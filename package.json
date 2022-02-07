@@ -1,0 +1,6 @@
+{
+  "name": "configgen",
+  "scripts": {
+    "configgen": "npx ts-node ./index.ts"
+  }
+}
