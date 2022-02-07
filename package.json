@@ -1,7 +1,8 @@
 {
   "name": "configgen",
   "scripts": {
-    "configgen": "npx ts-node ./index.ts"
+    "configgen": "npx ts-node ./index.ts",
+    "bump": "./bump.sh"
   },
   "dependencies": {
     "fs-extra": "^10.0.0",
