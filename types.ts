@@ -14,7 +14,7 @@ export type Preset =
   | "vitest"
   | "yarn"
 
-export type Command = "yarn" | "script" | "file" | "executable"
+export type Command = "yarn" | "script" | "file" | "executable" | "rm" | "run"
 
 type CommandString = Command | `${Command}:${string}`
 

@@ -48,6 +48,11 @@ for (const preset of presets) {
 
   for (const [key, value] of Object.entries(output)) {
     const [command, ...args] = key.split(":") as [Command, ...string[]]
-    commands[command](...args, value)
+    const functionArgs = [...args, value]
+    let argsLog = JSON.stringify(functionArgs)
+    argsLog = argsLog.slice(1, argsLog.length - 1)
+    argsLog = argsLog.length < 40 ? argsLog : `${argsLog.slice(0, 40)}...`
+    console.log(`${command}(${argsLog})...`)
+    commands[command](...functionArgs)
   }
 }

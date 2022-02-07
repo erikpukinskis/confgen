@@ -1,7 +1,7 @@
 import { Command } from "./types"
 import { execSync } from "child_process"
 import merge from "merge-objects"
-import { existsSync, readFileSync, writeFile } from "fs"
+import { existsSync, readFileSync, rmSync } from "fs"
 import { outputFileSync } from "fs-extra"
 
 type FileChanges = string | string[] | Record<string, unknown>
@@ -30,7 +30,7 @@ export const commands: Record<Command, Function> = {
       version = args[1]
       dev = ""
     }
-    execSync(`yarn add ${dev}${name}@${version}`)
+    execSync(`yarn add ${dev}${name}@${version}`, { stdio: "inherit" })
   },
   "script": (...args: string[]) => {
     const command = args.pop()
@@ -41,6 +41,12 @@ export const commands: Record<Command, Function> = {
         [scriptName]: command,
       },
     })
+  },
+  rm: (filename: string) => {
+    if (existsSync(filename)) rmSync(filename)
+  },
+  run: (command: string) => {
+    execSync(command, { stdio: "inherit" })
   },
 }
 
