@@ -2,5 +2,13 @@
   "name": "configgen",
   "scripts": {
     "configgen": "npx ts-node ./index.ts"
+  },
+  "dependencies": {
+    "fs-extra": "^10.0.0",
+    "merge-objects": "^1.0.5"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^9.0.13",
+    "@types/merge-objects": "^1.0.0"
   }
 }

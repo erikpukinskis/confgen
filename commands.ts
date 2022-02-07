@@ -1,7 +1,8 @@
 import { Command } from "./types"
 import { execSync } from "child_process"
 import merge from "merge-objects"
-import { readFileSync, writeFileSync } from "fs"
+import { existsSync, readFileSync } from "fs"
+import { outputFileSync } from "fs-extra"
 
 export const commands: Record<Command, Function> = {
   file: (
@@ -11,14 +12,18 @@ export const commands: Record<Command, Function> = {
     if (Array.isArray(value)) {
       ensureLines(filename, value)
     } else if (typeof value === "string") {
-      writeFileSync(filename, value)
+      outputFileSync(filename, value)
     } else {
       amendJson(filename, value)
     }
   },
-  "executable": (...args) => {
+  "executable": (
+    filename: string,
+    value: string | string[] | Record<string, unknown>
+  ) => {
     // @ts-ignore
-    this.file(...args)
+    this.file(filename, value)
+    execSync(`chmod a+x ${filename}`)
   },
   yarn: (...args: string[]) => {
     let name: string
@@ -48,20 +53,24 @@ export const commands: Record<Command, Function> = {
 }
 
 const ensureLines = (filename: string, newLines: string[]) => {
-  const originalContents = readFileSync(filename).toString()
+  const originalContents = existsSync(filename)
+    ? readFileSync(filename).toString()
+    : ""
   const lines = originalContents.split("\n")
   for (const line of newLines) {
     if (lines.includes(line)) continue
     lines.push(line)
   }
-  writeFileSync(filename, lines.join("\n"))
+  outputFileSync(filename, lines.join("\n"))
 }
 
 const amendJson = (filename: string, json: Record<string, unknown>) => {
-  const originalContents = readFileSync(filename).toString()
+  const originalContents = existsSync(filename)
+    ? readFileSync(filename).toString()
+    : "{}"
   console.log("original", originalContents)
   const originalJson = JSON.parse(originalContents)
   const newJson = merge(originalJson, json)
   console.log("updates", JSON.stringify(newJson, null, 2))
-  writeFileSync(filename, JSON.stringify(newJson, null, 2))
+  outputFileSync(filename, JSON.stringify(newJson, null, 2))
 }
