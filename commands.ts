@@ -1,28 +1,20 @@
 import { Command } from "./types"
 import { execSync } from "child_process"
 import merge from "merge-objects"
-import { existsSync, readFileSync } from "fs"
+import { existsSync, readFileSync, writeFile } from "fs"
 import { outputFileSync } from "fs-extra"
 
+type FileChanges = string | string[] | Record<string, unknown>
+
 export const commands: Record<Command, Function> = {
-  file: (
-    filename: string,
-    value: string | string[] | Record<string, unknown>
-  ) => {
-    if (Array.isArray(value)) {
-      ensureLines(filename, value)
-    } else if (typeof value === "string") {
-      outputFileSync(filename, value)
-    } else {
-      amendJson(filename, value)
-    }
+  file: (filename: string, value: FileChanges) => {
+    syncFile(filename, value)
   },
   "executable": (
     filename: string,
     value: string | string[] | Record<string, unknown>
   ) => {
-    // @ts-ignore
-    this.file(filename, value)
+    syncFile(filename, value)
     execSync(`chmod a+x ${filename}`)
   },
   yarn: (...args: string[]) => {
@@ -50,6 +42,16 @@ export const commands: Record<Command, Function> = {
       },
     })
   },
+}
+
+const syncFile = (filename: string, changes: FileChanges) => {
+  if (Array.isArray(changes)) {
+    ensureLines(filename, changes)
+  } else if (typeof changes === "string") {
+    outputFileSync(filename, changes)
+  } else {
+    amendJson(filename, changes)
+  }
 }
 
 const ensureLines = (filename: string, newLines: string[]) => {

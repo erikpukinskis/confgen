@@ -17,10 +17,6 @@ import { commands } from "./commands"
 
 const [, , ...args] = process.argv
 
-if (!args.includes("base")) {
-  args.unshift("base")
-}
-
 const scripts: Record<Preset, Configgen> = {
   api,
   devServer,
