@@ -1,6 +1,6 @@
 {
   "name": "configgen",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "bin": {
     "configgen": "./dist/index.umd.js"
   },
