@@ -1,7 +1,7 @@
 import { Configgen } from "./types"
 
 export const prettier: Configgen = () => ({
-  "yarn:dev": "prettier",
+  "yarn:dev:prettier": "*",
   "file:.vscode/settings.json": {
     "editor.codeActionsOnSave": {
       "source.formatDocument": true,
@@ -18,4 +18,5 @@ export const prettier: Configgen = () => ({
   "file:.devcontainer/devcontainer.json": {
     "extensions": ["rohit-gohri.format-code-action", "esbenp.prettier-vscode"],
   },
+  "run": "yarn run fix:format",
 })
