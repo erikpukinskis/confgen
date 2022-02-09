@@ -3,6 +3,7 @@ import { execSync } from "child_process"
 import merge from "merge-objects"
 import { existsSync, readFileSync, rmSync } from "fs"
 import { outputFileSync } from "fs-extra"
+import uniq from "lodash/uniq"
 
 type FileChanges = string | string[] | Record<string, unknown>
 
@@ -78,7 +79,20 @@ const amendJson = (filename: string, json: Record<string, unknown>) => {
     : "{}"
   console.log("original", originalContents)
   const originalJson = JSON.parse(originalContents)
-  const newJson = merge(originalJson, json)
+  const newJson = dedupe(merge(originalJson, json))
   console.log("updates", JSON.stringify(newJson, null, 2))
   outputFileSync(filename, JSON.stringify(newJson, null, 2))
+}
+
+type Json = Record<string, unknown>
+
+const dedupe = (json: Json) => {
+  for (const [key, value] of Object.entries(json)) {
+    if (Array.isArray(value)) {
+      json[key] = uniq(value)
+    } else if (typeof value === "object") {
+      json[key] = dedupe(value as Json)
+    }
+  }
+  return json
 }

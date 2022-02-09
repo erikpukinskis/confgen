@@ -1,4 +1,5 @@
 import { Configgen, Preset } from "./types"
+import { readFileSync } from "fs"
 
 export const vite: Configgen = (presets, args) => ({
   "yarn:dev:vite": "latest",
@@ -29,36 +30,36 @@ export const vite: Configgen = (presets, args) => ({
 })
 
 const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
-  const name = args.library[0]
-  if (!name) {
+  const libraryName = presets.includes("library") ? args.library[0] : undefined
+  if (presets.includes("library") && !libraryName) {
     throw new Error(
-      "Library preset requires a global name: npx configgen library:MyLibrary"
+      "library preset requires a global name: npx configgen library:MyLibrary"
     )
   }
+  const dependencies = getDependencies()
+  const globals = getGlobals(dependencies)
   const libraryStuff = presets.includes("library")
     ? `
   build: {
     sourcemap: true,
     lib: {
       entry: path.resolve(__dirname, "src/index.ts"),
-      name: "${name}",
+      name: "${libraryName}",
       fileName: (format) => \`index.\${format}.js\`,
     },
     rollupOptions: {
       // make sure to externalize deps that shouldn't be bundled
       // into your library
-      external: ["react"],
+      external: ${JSON.stringify(dependencies)},
       output: {
         // Provide global variables to use in the UMD build
         // for externalized deps
-        globals: {
-          react: "React",
-        },
+        globals: ${JSON.stringify(globals, null, 10)},
       },
     },
   },
   `
-    : undefined
+    : ""
 
   const devServerStuff = presets.includes("devServer")
     ? `
@@ -68,7 +69,7 @@ const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
     },
   },
   `
-    : undefined
+    : ""
 
   return `
 import path from "path"
@@ -87,3 +88,18 @@ export default defineConfig({
 })
   `
 }
+
+const getDependencies = () => {
+  const source = readFileSync("package.json").toString()
+  const json = JSON.parse(source)
+  return Object.keys(json["dependencies"])
+}
+
+const getGlobals = (dependencies: string[]) =>
+  dependencies.reduce(
+    (globals, dependency) => ({
+      ...globals,
+      [dependency]: dependency.replace(/[^a-z]/gi, ""),
+    }),
+    {} as Record<string,string>
+  )
