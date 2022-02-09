@@ -6,7 +6,7 @@
   },
   "scripts": {
     "config": "npx ts-node ./src/index.ts",
-    "configgen": "npm run build; ./dist/index.umd.js vite library:Configgen node:fs:child_process prettier",
+    "configgen": "npm run build; ./dist/index.umd.js bump vite library:Configgen node:fs:child_process prettier",
     "bump": "./bump.sh",
     "build": "npm run build:vite; npm run build:bin",
     "build:vite": "vite build",
