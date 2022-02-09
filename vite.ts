@@ -4,44 +4,39 @@ export const vite: Configgen = (presets, args) => ({
   "yarn:dev:vite": "latest",
   ...(presets.includes("devServer")
     ? {
-        "script:start:dev": `vite serve ${args.devServer[0] || ""} --config vite.config.js`,
-        "viteConfig:server": {
-          server: {
-            hmr: {
-              port: 443,
-            },
-          },
-        }
+        "script:start:dev": `vite serve ${
+          args.devServer[0] || ""
+        } --config vite.config.js`,
       }
     : undefined),
   ...(presets.includes("library")
     ? {
         "script:build:vite": "vite build",
-        "file:vite.config.js": buildViteConfig(presets, args),
         "file:package.json": {
-          "files": [
-            "dist"
-          ],
+          "files": ["dist"],
           "main": "./dist/index.umd.js",
           "module": "./dist/index.es.js",
           "exports": {
             ".": {
               "import": "./dist/index.es.js",
-              "require": "./dist/index.umd.js"
-            }
+              "require": "./dist/index.umd.js",
+            },
           },
-        }
+        },
       }
     : undefined),
-  
+  "file:vite.config.js": buildViteConfig(presets, args),
 })
 
-const buildViteConfig = (presets: Preset[], args: Record<Preset,string[]>) => {
+const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
   const name = args.library[0]
   if (!name) {
-    throw new Error('Library preset requires a global name: npx configgen library:MyLibrary')
+    throw new Error(
+      "Library preset requires a global name: npx configgen library:MyLibrary"
+    )
   }
-  const libraryStuff = presets.includes('library') ? `
+  const libraryStuff = presets.includes("library")
+    ? `
   build: {
     sourcemap: true,
     lib: {
@@ -62,15 +57,18 @@ const buildViteConfig = (presets: Preset[], args: Record<Preset,string[]>) => {
       },
     },
   },
-  ` : undefined
+  `
+    : undefined
 
-  const devServerStuff = presets.includes('devServer') ? `
+  const devServerStuff = presets.includes("devServer")
+    ? `
   server: {
     hmr: {
       port: 443,
     },
   },
-  ` : undefined
+  `
+    : undefined
 
   return `
 import path from "path"
