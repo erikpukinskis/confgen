@@ -1,13 +1,15 @@
 {
   "name": "configgen",
   "bin": {
-    "configgen": "./dist/index.js"
+    "configgen": "./dist/index.umd.js"
   },
   "scripts": {
     "config": "npx ts-node ./src/index.ts",
     "configgen": "npx ts-node ./src/index.ts vite library:Configgen node:fs:child_process prettier",
     "bump": "./bump.sh",
+    "build": "npm run build:vite; npm run build:bin",
     "build:vite": "vite build",
+    "build:bin": "echo '#!/usr/bin/env node'|cat - dist/index.umd.js > /tmp/out && mv /tmp/out dist/index.umd.js; chmod a+x dist/index.umd.js",
     "fix:format": "prettier --write ."
   },
   "dependencies": {
