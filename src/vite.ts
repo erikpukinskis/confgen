@@ -2,7 +2,13 @@ import { Configgen, Preset } from "./types"
 import { readFileSync } from "fs"
 
 export const vite: Configgen = (presets, args) => ({
-  "yarn:dev:vite": "latest",
+  "yarn:dev:vite": "*",
+  ...(presets.includes("node") && args.node.length > 0
+    ? { "yarn:dev:vite-plugin-commonjs-externals": "*" }
+    : undefined),
+  ...(presets.includes("emotion")
+    ? { "yarn:dev:vite-plugin-babel-macros": "*" }
+    : undefined),
   ...(presets.includes("devServer")
     ? {
         "script:start:dev": `vite serve ${
@@ -71,10 +77,25 @@ const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
   `
     : ""
 
+  const plugins: VitePlugin[] = []
+  if (presets.includes("emotion")) {
+    plugins.push(["macrosPlugin", "vite-plugin-babel-macros"])
+  }
+
+  if (presets.includes("node") && args.node.length > 0) {
+    plugins.push([
+      "commonjsExternals",
+      "vite-plugin-commonjs-externals",
+      {
+        externals: args.node,
+      },
+    ])
+  }
+
   return `
 import path from "path"
 import { defineConfig } from "vite"
-import macrosPlugin from "vite-plugin-babel-macros"
+${pluginImports(plugins)}
 
 export default defineConfig({
   ${devServerStuff}
@@ -83,7 +104,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  plugins: [macrosPlugin()],
+  ${pluginConfig(plugins)}
   ${libraryStuff}
 })
   `
@@ -101,5 +122,25 @@ const getGlobals = (dependencies: string[]) =>
       ...globals,
       [dependency]: dependency.replace(/[^a-z]/gi, ""),
     }),
-    {} as Record<string,string>
+    {} as Record<string, string>
   )
+
+type VitePlugin = [string, string, any?]
+
+const pluginImports = (plugins: VitePlugin[]) => {
+  return plugins
+    .map(([variable, pkg]) => `import ${variable} from "${pkg}"`)
+    .join("\n")
+}
+
+const pluginConfig = (plugins: VitePlugin[]) => `
+  plugins: [
+${plugins
+  .map(
+    ([variable, , config]) =>
+      `${variable}(${config ? JSON.stringify(config, null, 4) : ""})`
+  )
+  .join("\n")}
+  ],
+
+`
