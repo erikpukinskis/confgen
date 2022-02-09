@@ -1,8 +1,14 @@
 {
   "name": "configgen",
+  "bin": {
+    "configgen": "./dist/index.js"
+  },
   "scripts": {
-    "configgen": "npx ts-node ./index.ts",
-    "bump": "./bump.sh"
+    "config": "npx ts-node ./src/index.ts",
+    "configgen": "npx ts-node ./src/index.ts vite library:Configgen node:fs:child_process prettier",
+    "bump": "./bump.sh",
+    "build:vite": "vite build",
+    "fix:format": "prettier --write ."
   },
   "dependencies": {
     "fs-extra": "^10.0.0",
@@ -13,6 +19,20 @@
     "@types/fs-extra": "^9.0.13",
     "@types/lodash": "^4.14.178",
     "@types/merge-objects": "^1.0.0",
-    "ts-node": "^10.5.0"
+    "prettier": "*",
+    "ts-node": "^10.5.0",
+    "vite": "*",
+    "vite-plugin-commonjs-externals": "*"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
   }
 }

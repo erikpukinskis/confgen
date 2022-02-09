@@ -9,5 +9,10 @@
   },
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
-  "editor.detectIndentation": false
+  "editor.detectIndentation": false,
+  "editor.codeActionsOnSave": {
+    "source.formatDocument": true
+  },
+  "editor.formatOnSave": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
