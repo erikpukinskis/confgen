@@ -67,7 +67,7 @@ const ensureLines = (filename: string, newLines: string[]) => {
   const lines = originalContents.split("\n")
   for (const line of newLines) {
     if (lines.includes(line)) continue
-    lines.push(line)
+    lines.unshift(line)
   }
   outputFileSync(filename, lines.join("\n"))
 }
