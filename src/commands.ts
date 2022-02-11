@@ -77,10 +77,8 @@ const amendJson = (filename: string, json: Record<string, unknown>) => {
   const originalContents = existsSync(filename)
     ? readFileSync(filename).toString()
     : "{}"
-  console.log("original", originalContents)
   const originalJson = JSON.parse(originalContents)
   const newJson = dedupe(merge(originalJson, json))
-  console.log("updates", JSON.stringify(newJson, null, 2))
   outputFileSync(filename, JSON.stringify(newJson, null, 2))
 }
 
