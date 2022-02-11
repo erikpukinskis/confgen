@@ -1,4 +1,4 @@
-import { CommandGenerator } from "./types"
+import { CommandGenerator } from "@/types"
 
 export const react: CommandGenerator = () => [
   {

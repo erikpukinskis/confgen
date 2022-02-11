@@ -1,4 +1,4 @@
-import { CommandGenerator, Preset } from "./types"
+import { CommandGenerator, Preset } from "@/types"
 import { readFileSync } from "fs"
 
 export const vite: CommandGenerator = (presets, args) => [

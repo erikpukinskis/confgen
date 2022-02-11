@@ -1,4 +1,4 @@
-import { CommandGenerator, Preset } from "./types"
+import { CommandGenerator, Preset } from "@/types"
 
 export const eslint: CommandGenerator = (presets) => [
   {

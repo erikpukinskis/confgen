@@ -1,3 +1,3 @@
-import { CommandGenerator } from "./types"
+import { CommandGenerator } from "@/types"
 
 export const emotion: CommandGenerator = (presets) => []
