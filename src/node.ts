@@ -4,10 +4,9 @@ export const node: CommandGenerator = () => [
   {
     command: "file",
     path: ".devcontainer/Dockerfile",
-    contents: `
-      ARG VARIANT="16-bullseye"
-      FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:0-\${VARIANT}
-    `,
+    contents: `ARG VARIANT="16-bullseye"
+FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:0-\${VARIANT}
+`,
   },
   {
     command: "file",

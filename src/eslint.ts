@@ -37,11 +37,10 @@ export const eslint: CommandGenerator = (presets) => [
   {
     command: "file",
     path: ".eslintignore",
-    contents: `
-node_modules
+    contents: `node_modules
 dist
 vendor
-    `,
+`,
   },
   {
     command: "file",
