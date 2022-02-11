@@ -4,9 +4,9 @@
   "bin": "./dist/index.umd.js",
   "scripts": {
     "config": "npx ts-node ./src/index.ts",
-    "confgen": "npm run build; ./dist/index.umd.js base bump vite library:Confgen node:fs:child_process prettier",
+    "confgen": "npm run build; ./dist/index.umd.js base bump vite library:Confgen bin node:fs:child_process prettier",
     "bump": "./bump.sh",
-    "build": "npm run build:vite; npm run build:bin",
+    "build": "rm -rf dist/*; npm run build:vite; npm run build:bin",
     "build:vite": "vite build",
     "build:bin": "echo '#!/usr/bin/env node'|cat - dist/index.umd.js > /tmp/out && mv /tmp/out dist/index.umd.js; chmod a+x dist/index.umd.js",
     "fix:format": "prettier --write ."
