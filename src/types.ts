@@ -1,5 +1,6 @@
 export type Preset =
   | "api"
+  | "apollo"
   | "base"
   | "bump"
   | "devServer"

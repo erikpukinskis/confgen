@@ -1,3 +1,4 @@
+import { apollo } from "./apollo"
 import { api } from "./api"
 import { base } from "./base"
 import { bump } from "./bump"
@@ -19,6 +20,7 @@ const [, , ...args] = process.argv
 
 const generators: Record<Preset, CommandGenerator> = {
   api,
+  apollo,
   devServer,
   base,
   bump,
@@ -43,7 +45,7 @@ const presets = args.map((arg) => {
 })
 
 for (const preset of presets) {
-  console.log(`Configgening ${preset}...`)
+  console.log(`Generating config for preset [${preset}]...`)
   const generated = generators[preset](presets, argsByPreset)
 
   for (const { command, ...args } of generated) {

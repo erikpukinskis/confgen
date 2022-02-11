@@ -12,7 +12,7 @@ export const typescript: CommandGenerator = (presets) => [
           command: "script",
           name: "build:types",
           script:
-            "tsc --declaration --emitDeclarationOnly --outDir dist --skipLibCheck",
+            "tsc --declaration --emitDeclarationOnly --outDir dist --skipLibCheck; mv dist/index.d.ts dist/index.umd.d.ts",
         },
       ] as const)
     : []),
