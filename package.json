@@ -20,10 +20,10 @@
     "@types/fs-extra": "^9.0.13",
     "@types/lodash": "^4.14.178",
     "@types/merge-objects": "^1.0.0",
-    "prettier": "*",
+    "prettier": "^2.5.1",
     "ts-node": "^10.5.0",
-    "vite": "*",
-    "vite-plugin-commonjs-externals": "*"
+    "vite": "^2.8.0",
+    "vite-plugin-commonjs-externals": "^0.1.1"
   },
   "files": [
     "dist"
