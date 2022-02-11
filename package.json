@@ -4,7 +4,7 @@
   "bin": "./dist/index.umd.js",
   "scripts": {
     "config": "npx ts-node ./src/index.ts",
-    "confgen": "npm run build; ./dist/index.umd.js bump vite library:Confgen node:fs:child_process prettier",
+    "confgen": "npm run build; ./dist/index.umd.js base bump vite library:Confgen node:fs:child_process prettier",
     "bump": "./bump.sh",
     "build": "npm run build:vite; npm run build:bin",
     "build:vite": "vite build",
