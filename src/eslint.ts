@@ -31,13 +31,13 @@ export const eslint: Configgen = (presets) => ({
       : undefined),
     "extends": [
       "eslint:recommended",
-      ...(presets.includes("react") ? ["plugin:react/recommended"] : undefined),
+      ...(presets.includes("react") ? ["plugin:react/recommended"] : []),
       ...(presets.includes("typescript")
         ? [
             "plugin:@typescript-eslint/eslint-recommended",
             "plugin:@typescript-eslint/recommended",
           ]
-        : undefined),
+        : []),
     ],
     ...(presets.includes("react")
       ? {

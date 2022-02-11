@@ -19,7 +19,7 @@ export default defineConfig({
     sourcemap: true,
     lib: {
       entry: path.resolve(__dirname, "src/index.ts"),
-      name: "Configgen",
+      name: "Confgen",
       fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
