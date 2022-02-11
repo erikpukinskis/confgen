@@ -14,11 +14,34 @@ export type Preset =
   | "vitest"
   | "yarn"
 
-export type Command = "yarn" | "script" | "file" | "executable" | "rm" | "run"
+export type Command = "file" | "rm" | "run" | "script" | "yarn"
 
-type CommandString = Command | `${Command}:${string}`
+type CommandWithArgs =
+  | {
+      command: "file"
+      path: string
+      contents: string | string[] | Record<string, unknown>
+    }
+  | {
+      command: "rm"
+      path: string
+    }
+  | {
+      command: "run"
+      script: string
+    }
+  | {
+      command: "script"
+      name: string
+      script: string
+    }
+  | {
+      command: "yarn"
+      dev?: boolean
+      pkg: string
+    }
 
-export type Configgen = (
+export type CommandGenerator = (
   presets: Preset[],
   args: Record<Preset, string[]>
-) => Partial<Record<CommandString, string | Record<string, unknown> | string[]>>
+) => CommandWithArgs[]

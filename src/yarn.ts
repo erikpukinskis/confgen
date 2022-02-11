@@ -1,6 +1,12 @@
-import { Configgen } from "./types"
+import { CommandGenerator } from "./types"
 
-export const yarn: Configgen = () => ({
-  "rm": "package-lock.json",
-  "run": "rm -rf node_modules; yarn",
-})
+export const yarn: CommandGenerator = () => [
+  {
+    command: "rm",
+    path: "package-lock.json",
+  },
+  {
+    command: "run",
+    script: "rm -rf node_modules; yarn",
+  },
+]

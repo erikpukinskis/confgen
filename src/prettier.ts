@@ -1,22 +1,48 @@
-import { Configgen } from "./types"
+import { CommandGenerator } from "./types"
 
-export const prettier: Configgen = () => ({
-  "yarn:dev:prettier": "*",
-  "file:.vscode/settings.json": {
-    "editor.codeActionsOnSave": {
-      "source.formatDocument": true,
+export const prettier: CommandGenerator = () => [
+  {
+    command: "yarn",
+    dev: true,
+    pkg: "prettier",
+  },
+  {
+    command: "file",
+    path: ".vscode/settings.json",
+    contents: {
+      "editor.codeActionsOnSave": {
+        "source.formatDocument": true,
+      },
+      "editor.formatOnSave": false,
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
-    "editor.formatOnSave": false,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
-  "file:.prettierrc": {
-    "semi": false,
-    "tabWidth": 2,
-    "quoteProps": "preserve",
+  {
+    command: "file",
+    path: ".prettierrc",
+    contents: {
+      "semi": false,
+      "tabWidth": 2,
+      "quoteProps": "preserve",
+    },
   },
-  "script:fix:format": "prettier --write .",
-  "file:.devcontainer/devcontainer.json": {
-    "extensions": ["rohit-gohri.format-code-action", "esbenp.prettier-vscode"],
+  {
+    command: "script",
+    name: "fix:format",
+    script: "prettier --write .",
   },
-  "run": "yarn run fix:format",
-})
+  {
+    command: "file",
+    path: ".devcontainer/devcontainer.json",
+    contents: {
+      "extensions": [
+        "rohit-gohri.format-code-action",
+        "esbenp.prettier-vscode",
+      ],
+    },
+  },
+  {
+    command: "run",
+    script: "yarn run fix:format",
+  },
+]

@@ -8,46 +8,32 @@ import uniq from "lodash/uniq"
 type FileChanges = string | string[] | Record<string, unknown>
 
 export const commands: Record<Command, Function> = {
-  file: (filename: string, value: FileChanges) => {
-    syncFile(filename, value)
+  file: ({
+    path,
+    contents,
+  }: {
+    path: string
+    contents: string | string[] | Record<string, unknown>
+  }) => {
+    syncFile(path, contents)
   },
-  "executable": (
-    filename: string,
-    value: string | string[] | Record<string, unknown>
-  ) => {
-    syncFile(filename, value)
-    execSync(`chmod a+x ${filename}`)
-  },
-  yarn: (...args: string[]) => {
-    let name: string
-    let dev: string
-    let version: string
-    if (args[0] === "dev") {
-      name = args[1]
-      version = args[2]
-      dev = "-D "
-    } else {
-      name = args[0]
-      version = args[1]
-      dev = ""
-    }
-    execSync(`yarn add ${dev}${name}@${version}`, { stdio: "inherit" })
-  },
-  "script": (...args: string[]) => {
-    const command = args.pop()
-    const scriptName = args.join(":")
 
+  rm: ({ path }: { path: string }) => {
+    if (existsSync(path)) rmSync(path)
+  },
+  run: ({ script }: { script: string }) => {
+    execSync(script, { stdio: "inherit" })
+  },
+  "script": ({ name, script }: { name: string; script: string }) => {
     amendJson("package.json", {
       "scripts": {
-        [scriptName]: command,
+        [name]: script,
       },
     })
   },
-  rm: (filename: string) => {
-    if (existsSync(filename)) rmSync(filename)
-  },
-  run: (command: string) => {
-    execSync(command, { stdio: "inherit" })
+  yarn: ({ dev, pkg }: { dev?: boolean; pkg: string }) => {
+    const dashDev = dev ? "-D " : ""
+    execSync(`yarn add ${dashDev}${pkg}`, { stdio: "inherit" })
   },
 }
 

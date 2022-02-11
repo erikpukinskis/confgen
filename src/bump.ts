@@ -1,7 +1,10 @@
-import { Configgen } from "./types"
+import { CommandGenerator } from "./types"
 
-export const bump: Configgen = () => ({
-  "executable:bump.sh": `
+export const bump: CommandGenerator = () => [
+  {
+    command: "file",
+    path: "bump.sh",
+    contents: `
 #/bin/bash
 git reset
 git add package.json
@@ -11,5 +14,14 @@ npm publish --access public
 git checkout -- package.json
 git push
   `,
-  "script:bump": "./bump.sh",
-})
+  },
+  {
+    command: "run",
+    script: "chmod a+x ./bump.sh",
+  },
+  {
+    command: "script",
+    "name": "bump",
+    "script": "./bump.sh",
+  },
+]

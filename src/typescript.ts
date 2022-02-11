@@ -1,13 +1,25 @@
-import { Configgen } from "./types"
+import { CommandGenerator } from "./types"
 
-export const typescript: Configgen = (presets) => ({
-  "yarn:dev": "typescript",
+export const typescript: CommandGenerator = (presets) => [
+  {
+    command: "yarn",
+    dev: true,
+    pkg: "typescript",
+  },
   ...(presets.includes("library")
-    ? {
-        "script:build:types":
-          "tsc --declaration --emitDeclarationOnly --outDir dist --skipLibCheck",
-      }
-    : undefined),
-  "script:check:types":
-    "tsc --noEmit --skipLibCheck; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
-})
+    ? ([
+        {
+          command: "script",
+          name: "build:types",
+          script:
+            "tsc --declaration --emitDeclarationOnly --outDir dist --skipLibCheck",
+        },
+      ] as const)
+    : []),
+  {
+    command: "script",
+    name: "check:types",
+    script:
+      "tsc --noEmit --skipLibCheck; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
+  },
+]

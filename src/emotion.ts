@@ -1,8 +1,13 @@
-import { Configgen } from "./types"
+import { CommandGenerator } from "./types"
 
-export const emotion: Configgen = (presets) => ({
-  "yarn:emotion": "latest",
+export const emotion: CommandGenerator = (presets) => [
+  {
+    command: "yarn",
+    pkg: "emotion",
+  },
   ...(presets.includes("vite")
-    ? { "yarn:dev:vite-plugin-babel-macros": "latest" }
-    : undefined),
-})
+    ? ([
+        { "command": "yarn", dev: true, pkg: "vite-plugin-babel-macros" },
+      ] as const)
+    : []),
+]

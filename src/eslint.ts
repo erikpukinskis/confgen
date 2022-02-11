@@ -1,69 +1,97 @@
-import { Configgen } from "./types"
+import { CommandGenerator, Preset } from "./types"
 
-export const eslint: Configgen = (presets) => ({
-  "yarn:dev:eslint": "latest",
+export const eslint: CommandGenerator = (presets) => [
+  {
+    command: "yarn",
+    dev: true,
+    pkg: "eslint",
+  },
+  ...(presets.includes("typescript")
+    ? ([
+        {
+          command: "yarn",
+          dev: true,
+          pkg: "@typescript-eslint/eslint-plugin",
+        },
+        { command: "yarn", dev: true, pkg: "@typescript-eslint/parser" },
+      ] as const)
+    : []),
+  ...(presets.includes("react")
+    ? ([
+        {
+          command: "yarn",
+          dev: true,
+          pkg: "eslint-plugin-react",
+        },
+      ] as const)
+    : []),
+  {
+    command: "file",
+    path: ".vscode/settings.json",
+    contents: {
+      "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true,
+      },
+    },
+  },
+  {
+    command: "file",
+    path: ".eslintignore",
+    contents: `
+node_modules
+dist
+vendor
+    `,
+  },
+  {
+    command: "file",
+    path: ".eslintrc",
+    contents: buildEslintrc(presets),
+    "script:check:lint": "eslint . --ext .ts,.tsx",
+    "script:fix:lint": "eslint . --ext .ts,.tsx --fix",
+    "file:.devcontainer/devcontainer.json": {
+      "extensions": ["dbaeumer.vscode-eslint"],
+    },
+  },
+]
+
+const buildEslintrc = (presets: Preset[]) => ({
+  "root": true,
   ...(presets.includes("typescript")
     ? {
-        "yarn:dev:@typescript-eslint/eslint-plugin": "latest",
-        "yarn:dev:@typescript-eslint/parser": "latest",
+        "parser": "@typescript-eslint/parser",
+        "plugins": ["@typescript-eslint"],
       }
     : undefined),
+  "extends": [
+    "eslint:recommended",
+    ...(presets.includes("react") ? ["plugin:react/recommended"] : []),
+    ...(presets.includes("typescript")
+      ? [
+          "plugin:@typescript-eslint/eslint-recommended",
+          "plugin:@typescript-eslint/recommended",
+        ]
+      : []),
+  ],
   ...(presets.includes("react")
-    ? { "yarn:dev:eslint-plugin-react": "latest" }
+    ? {
+        "settings": {
+          "react": {
+            "version": "detect",
+          },
+        },
+      }
     : undefined),
-  "file:.vscode/settings.json": {
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true,
-    },
-  },
-  "file:.eslintignore": `
-    node_modules
-    dist
-    vendor
-  `,
-  "file:.eslintrc": {
-    "root": true,
+  "rules": {
     ...(presets.includes("typescript")
       ? {
-          "parser": "@typescript-eslint/parser",
-          "plugins": ["@typescript-eslint"],
+          "@typescript-eslint/no-explicit-any": ["error"],
+          "@typescript-eslint/no-unused-vars": ["error"],
+          "semi": ["error", "never"],
         }
       : undefined),
-    "extends": [
-      "eslint:recommended",
-      ...(presets.includes("react") ? ["plugin:react/recommended"] : []),
-      ...(presets.includes("typescript")
-        ? [
-            "plugin:@typescript-eslint/eslint-recommended",
-            "plugin:@typescript-eslint/recommended",
-          ]
-        : []),
-    ],
-    ...(presets.includes("react")
-      ? {
-          "settings": {
-            "react": {
-              "version": "detect",
-            },
-          },
-        }
-      : undefined),
-    "rules": {
-      ...(presets.includes("typescript")
-        ? {
-            "@typescript-eslint/no-explicit-any": ["error"],
-            "@typescript-eslint/no-unused-vars": ["error"],
-            "semi": ["error", "never"],
-          }
-        : undefined),
-      "eol-last": ["error", "always"],
-      "quote-props": ["error", "always"],
-    },
-    "ignorePatterns": ["*.js"],
+    "eol-last": ["error", "always"],
+    "quote-props": ["error", "always"],
   },
-  "script:check:lint": "eslint . --ext .ts,.tsx",
-  "script:fix:lint": "eslint . --ext .ts,.tsx --fix",
-  "file:.devcontainer/devcontainer.json": {
-    "extensions": ["dbaeumer.vscode-eslint"],
-  },
+  "ignorePatterns": ["*.js"],
 })

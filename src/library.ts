@@ -1,3 +1,3 @@
-import { Configgen } from "./types"
+import { CommandGenerator } from "./types"
 
-export const library: Configgen = () => ({})
+export const library: CommandGenerator = () => []

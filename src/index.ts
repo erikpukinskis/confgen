@@ -12,12 +12,12 @@ import { typescript } from "./typescript"
 import { vite } from "./vite"
 import { vitest } from "./vitest"
 import { yarn } from "./yarn"
-import { Preset, Configgen, Command } from "./types"
+import { Preset, CommandGenerator, Command } from "./types"
 import { commands } from "./commands"
 
 const [, , ...args] = process.argv
 
-const scripts: Record<Preset, Configgen> = {
+const generators: Record<Preset, CommandGenerator> = {
   api,
   devServer,
   base,
@@ -44,15 +44,9 @@ const presets = args.map((arg) => {
 
 for (const preset of presets) {
   console.log(`Configgening ${preset}...`)
-  const output = scripts[preset](presets, argsByPreset)
+  const generated = generators[preset](presets, argsByPreset)
 
-  for (const [key, value] of Object.entries(output)) {
-    const [command, ...args] = key.split(":") as [Command, ...string[]]
-    const functionArgs = [...args, value]
-    let argsLog = JSON.stringify(functionArgs)
-    argsLog = argsLog.slice(1, argsLog.length - 1)
-    argsLog = argsLog.length < 40 ? argsLog : `${argsLog.slice(0, 40)}...`
-    console.log(`${command}(${argsLog})...`)
-    commands[command](...functionArgs)
+  for (const { command, ...args } of generated) {
+    commands[command](args)
   }
 }

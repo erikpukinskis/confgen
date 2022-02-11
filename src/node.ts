@@ -1,21 +1,33 @@
-import { Configgen } from "./types"
+import { CommandGenerator } from "./types"
 
-export const node: Configgen = () => ({
-  "file:.devcontainer/Dockerfile": `
+export const node: CommandGenerator = () => [
+  {
+    command: "file",
+    path: ".devcontainer/Dockerfile",
+    contents: `
       ARG VARIANT="16-bullseye"
       FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:0-\${VARIANT}
     `,
-  "file:.devcontainer/devcontainer.json": {
-    "name": "Node.js",
-    "build": {
-      "dockerfile": "Dockerfile",
-      "args": {
-        "VARIANT": "16-bullseye",
+  },
+  {
+    command: "file",
+    path: ".devcontainer/devcontainer.json",
+    contents: {
+      "name": "Node.js",
+      "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+          "VARIANT": "16-bullseye",
+        },
       },
+      "remoteUser": "node",
     },
-    "remoteUser": "node",
   },
-  "file:.vscode/extensions.json": {
-    "unwantedRecommendations": ["ms-azuretools.vscode-docker"],
+  {
+    command: "file",
+    path: ".vscode/extensions.json",
+    contents: {
+      "unwantedRecommendations": ["ms-azuretools.vscode-docker"],
+    },
   },
-})
+]

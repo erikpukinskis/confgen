@@ -1,5 +1,8 @@
-import { Configgen } from "./types"
+import { CommandGenerator } from "./types"
 
-export const react: Configgen = () => ({
-  "yarn:react": "latest",
-})
+export const react: CommandGenerator = () => [
+  {
+    command: "yarn",
+    pkg: "react",
+  },
+]

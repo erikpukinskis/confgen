@@ -1,7 +1,19 @@
-import { Configgen } from "./types"
+import { CommandGenerator } from "./types"
 
-export const vitest: Configgen = () => ({
-  "yarn:dev:vitest": "latest",
-  "script:test": "vitest run",
-  "script:test:watch": "vitest watch",
-})
+export const vitest: CommandGenerator = () => [
+  {
+    command: "yarn",
+    dev: true,
+    pkg: "vitest",
+  },
+  {
+    command: "script",
+    name: "test",
+    script: "vitest run",
+  },
+  {
+    command: "script",
+    name: "test:watch",
+    script: "vitest watch",
+  },
+]

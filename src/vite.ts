@@ -1,38 +1,68 @@
-import { Configgen, Preset } from "./types"
+import { CommandGenerator, Preset } from "./types"
 import { readFileSync } from "fs"
 
-export const vite: Configgen = (presets, args) => ({
-  "yarn:dev:vite": "*",
+export const vite: CommandGenerator = (presets, args) => [
+  {
+    command: "yarn",
+    dev: true,
+    pkg: "vite",
+  },
   ...(presets.includes("node") && args.node.length > 0
-    ? { "yarn:dev:vite-plugin-commonjs-externals": "*" }
-    : undefined),
-  ...(presets.includes("emotion")
-    ? { "yarn:dev:vite-plugin-babel-macros": "*" }
-    : undefined),
-  ...(presets.includes("devServer")
-    ? {
-        "script:start:dev": `vite serve ${
-          args.devServer[0] || ""
-        } --config vite.config.js`,
-      }
-    : undefined),
-  ...(presets.includes("library")
-    ? {
-        "script:build:vite": "vite build",
-        "file:package.json": {
-          "files": ["dist"],
-          "main": "./dist/index.umd.js",
-          "module": "./dist/index.es.js",
-          "exports": {
-            ".": {
-              "import": "./dist/index.es.js",
-              "require": "./dist/index.umd.js",
-            },
-          },
+    ? ([
+        {
+          command: "yarn",
+          dev: true,
+          pkg: "vite-plugin-commonjs-externals",
         },
-      }
-    : undefined),
-  "file:vite.config.js": buildViteConfig(presets, args),
+      ] as const)
+    : []),
+  ...(presets.includes("emotion")
+    ? ([
+        { command: "yarn", dev: true, pkg: "vite-plugin-babel-macros" },
+      ] as const)
+    : []),
+  ...(presets.includes("devServer")
+    ? ([
+        {
+          command: "script",
+          name: "start:dev",
+          script: `vite serve ${
+            args.devServer[0] || ""
+          } --config vite.config.js`,
+        },
+      ] as const)
+    : []),
+  ...(presets.includes("library")
+    ? ([
+        {
+          command: "script",
+          name: "build:vite",
+          script: "vite build",
+        },
+        {
+          command: "file",
+          path: "package.json",
+          contents: buildDistConfig(),
+        },
+      ] as const)
+    : []),
+  {
+    command: "file",
+    path: "vite.config.js",
+    contents: buildViteConfig(presets, args),
+  },
+]
+
+const buildDistConfig = () => ({
+  "files": ["dist"],
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js",
+    },
+  },
 })
 
 const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
