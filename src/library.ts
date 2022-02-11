@@ -1,11 +1,11 @@
 import { CommandGenerator, Preset } from "./types"
 
 export const library: CommandGenerator = (presets) => [
-{
-  command: "script",
-  name: "build",
-  script: buildScript(presets)
-}
+  {
+    command: "script",
+    name: "build",
+    script: buildScript(presets),
+  },
 ]
 
 const buildScript = (presets: Preset[]) => {
@@ -18,6 +18,9 @@ const buildScript = (presets: Preset[]) => {
   }
   if (presets.includes("typescript")) {
     script += "; npm run build:types"
+  }
+  if (presets.includes("bin")) {
+    script += "; npm run build:bin"
   }
   return script
 }

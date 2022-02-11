@@ -2,6 +2,7 @@ export type Preset =
   | "api"
   | "apollo"
   | "base"
+  | "bin"
   | "bump"
   | "devServer"
   | "emotion"
