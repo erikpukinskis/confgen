@@ -104,6 +104,8 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 },
 ```
 * We should probably have some tests!
+* Separate the UMD config from the ESM. Maybe `confgen library:Foo` should just be ESM by default,
+  and `confgen library:Foo umd` would add UMD compatibility
 
 ### Might happen
 * While `confgen` doesn't currently bootstrap a working app, it might be close to being able to do
