@@ -10,13 +10,18 @@ All of these are optional, depending on which presets you choose:
 
  - `prettier`, `eslint` set up Prettier formatting and Eslint fixing-on-save
  - `bin` Adds a "bin" to your package JSON
- - `library` Makes your package importable via UMD and ES
+ - `library:[PackageName]:[mode]` Makes your package importable via UMD and ES
  - `typescript` Adds type checking commands, and sets up exported typings
  - `devServer` Configures a development server
  - `vitest` Adds test scripts
  - `apollo` Adds code generation build script
  - `yarn` Creates a yarn.lock file
- - `node` Configures a Codespace to use the Node.js environment
+ - `node:[fs]:[child_process]:[etc...]` Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
+ - `react` ensures React is set up properly with eslint, typescript, etc
+ - `emotion` adds emotion macro config to Vite
+ - `bump` helper script for bumping minor version numbers
+ - `base` sets ups `.gitignore` and some base VSCode settings
+ - `api:[folder]` Adds a `start:api` command to start the service in [folder]
 
 ## How to use it
 
