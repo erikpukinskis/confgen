@@ -73,6 +73,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   manageable
 
 ### Probably will happen
+* Collect up the NPM packages to install them all at once (will be a bit faster)
 * Right now there are implicit dependencies between presets like `vite` and `devServer`. I think
   these probably should be made explicit, and some error checking should be introduced to prevent
   mistakes.
