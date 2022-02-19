@@ -55,8 +55,11 @@ export const vite: CommandGenerator = (presets, args) => [
 
 const buildBuildCommand = (args: Record<Preset, string[]>) => {
   let command = "vite build"
-  if (args.library[1])
-  return `${command} --mode ${args.library[1]}`
+  if (args.library[1]) {
+    return `${command} --mode ${args.library[1]}`
+  } else {
+    return command
+  }
 }
 
 const buildDistConfig = () => ({
