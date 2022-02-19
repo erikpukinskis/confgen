@@ -40,7 +40,9 @@ type CommandWithArgs =
   | PackageCommand
   | DevPackageCommand
 
-export function isPackageCommand(command: CommandWithArgs): command is PackageCommand {
+export function isPackageCommand(
+  command: CommandWithArgs
+): command is PackageCommand {
   return command.command === "yarn" && !(command as DevPackageCommand).dev
 }
 
@@ -49,7 +51,9 @@ export type PackageCommand = {
   pkg: string
 }
 
-export function isDevPackageCommand(command: CommandWithArgs): command is DevPackageCommand {
+export function isDevPackageCommand(
+  command: CommandWithArgs
+): command is DevPackageCommand {
   return command.command === "yarn" && (command as DevPackageCommand).dev
 }
 

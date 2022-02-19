@@ -1,10 +1,17 @@
-import { presets } from './presets';
-import { Preset, CommandGenerator, Command, isPackageCommand, isDevPackageCommand, PackageCommand, DevPackageCommand } from "./types"
+import { presets } from "./presets"
+import {
+  Preset,
+  CommandGenerator,
+  Command,
+  isPackageCommand,
+  isDevPackageCommand,
+  PackageCommand,
+  DevPackageCommand,
+} from "./types"
 import { commands } from "./commands"
 import { execSync } from "child_process"
 
 const [, , ...args] = process.argv
-
 
 const argsByPresetName = {} as Record<Preset, string[]>
 
@@ -23,21 +30,28 @@ for (const presetName of presetNames) {
   generatedCommands.push(...generated)
 }
 
-const packageCommands = generatedCommands.filter<PackageCommand>(isPackageCommand)
+const packageCommands =
+  generatedCommands.filter<PackageCommand>(isPackageCommand)
 
-const devPackageCommands = generatedCommands.filter<DevPackageCommand>(isDevPackageCommand)
+const devPackageCommands =
+  generatedCommands.filter<DevPackageCommand>(isDevPackageCommand)
 
 const otherCommands = generatedCommands.filter(
   ({ command }) => command !== "yarn"
 )
 
 const packages = packageCommands.map(({ pkg }) => pkg).join(" ")
-packages && execSync(`yarn add ${packages}`, { stdio: "inherit" })
+if (packages) {
+  console.log(`yarn add ${packages}`)
+  execSync(`yarn add ${packages}`, { stdio: "inherit" })
+}
 
 const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")
-devPackages && execSync(`yarn add -D ${devPackages}`, { stdio: "inherit" })
+if (devPackages) {
+  console.log(`yarn add -D ${devPackages}`)
+  execSync(`yarn add -D ${devPackages}`, { stdio: "inherit" })
+}
 
 for (const { command, ...args } of otherCommands) {
   commands[command as Command](args)
 }
-
