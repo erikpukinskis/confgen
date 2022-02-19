@@ -37,11 +37,25 @@ type CommandWithArgs =
       name: string
       script: string
     }
-  | {
-      command: "yarn"
-      dev?: boolean
-      pkg: string
-    }
+  | PackageCommand
+  | DevPackageCommand
+
+export function isPackageCommand(command: CommandWithArgs): command is PackageCommand {
+  return command.command === "yarn" && !(command as DevPackageCommand).dev
+}
+
+export type PackageCommand = {
+  command: "yarn"
+  pkg: string
+}
+
+export function isDevPackageCommand(command: CommandWithArgs): command is DevPackageCommand {
+  return command.command === "yarn" && (command as DevPackageCommand).dev
+}
+
+export type DevPackageCommand = PackageCommand & {
+  dev: true
+}
 
 export type CommandGenerator = (
   presets: Preset[],
