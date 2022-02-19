@@ -4,12 +4,13 @@
   "bin": "./dist/index.umd.js",
   "scripts": {
     "config": "npx ts-node ./src/index.ts",
-    "confgen": "npm run build; ./dist/index.umd.js base bump vite library:Confgen bin node:fs:child_process prettier",
+    "confgen": "npm run build; ./dist/index.umd.js base bump typescript vite library:Confgen bin node:fs:child_process prettier",
     "bump": "./bump.sh",
     "build": "rm -rf dist/*; npm run build:vite; npm run build:bin",
     "build:vite": "vite build",
     "build:bin": "echo '#!/usr/bin/env node'|cat - dist/index.umd.js > /tmp/out && mv /tmp/out dist/index.umd.js; chmod a+x dist/index.umd.js",
-    "fix:format": "prettier --write ."
+    "fix:format": "prettier --write .",
+    "check:types": "tsc --noEmit --skipLibCheck; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi"
   },
   "dependencies": {
     "fs-extra": "^10.0.0",

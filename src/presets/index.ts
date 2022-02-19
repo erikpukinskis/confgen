@@ -14,7 +14,7 @@ import { typescript } from "./typescript"
 import { vite } from "./vite"
 import { vitest } from "./vitest"
 import { yarn } from "./yarn"
-import { CommandGenerator } from '@/types'
+import { Preset, CommandGenerator } from '@/types'
 
 export const presets: Record<Preset, CommandGenerator> = {
   api,

@@ -9,15 +9,15 @@ const argsByPresetName = {} as Record<Preset, string[]>
 
 const presetNames = args.map((arg) => {
   const [presetNames, ...presetArgs] = arg.split(":") as [Preset, ...string[]]
-  argsByPreset[presetNames] = presetArgs
+  argsByPresetName[presetNames] = presetArgs
   return presetNames
 })
 
-for (const preset of presets) {
-  console.log(`Generating config for preset [${preset}]...`)
-  const generated = generators[preset](presetsNames, argsByPresetName)
+for (const presetName of presetNames) {
+  console.log(`Generating config for preset [${presetName}]...`)
+  const generated = presets[presetName](presetNames, argsByPresetName)
 
   for (const { command, ...args } of generated) {
-    commands[command](args)
+    commands[command as Command](args)
   }
 }
