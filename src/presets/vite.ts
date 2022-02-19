@@ -36,7 +36,7 @@ export const vite: CommandGenerator = (presets, args) => [
     ? ([
         {
           command: "script",
-          name: "build:vite",
+          name: buildBuildCommand(args),
           script: "vite build",
         },
         {
@@ -52,6 +52,12 @@ export const vite: CommandGenerator = (presets, args) => [
     contents: buildViteConfig(presets, args),
   },
 ]
+
+const buildBuildCommand = (args: Record<Preset, string[]>) => {
+  let command = "build:vite"
+  if (args.library[1])
+  return `${command} --mode ${args.library[1]}`
+}
 
 const buildDistConfig = () => ({
   "files": ["dist"],
