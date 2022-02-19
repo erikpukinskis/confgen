@@ -13,11 +13,34 @@ const presetNames = args.map((arg) => {
   return presetNames
 })
 
+const generatedCommands = []
+
 for (const presetName of presetNames) {
   console.log(`Generating config for preset [${presetName}]...`)
   const generated = presets[presetName](presetNames, argsByPresetName)
 
-  for (const { command, ...args } of generated) {
-    commands[command as Command](args)
-  }
+  generatedCommands.push(...generated)
 }
+
+const packageCommands = generatedCommands.filter(
+  ({ command, dev }) => command === "yarn" && !dev
+)
+
+const devPackageCommands = generatedCommands.filter(
+  ({ command, dev }) => command === "yarn" && dev
+)
+
+const otherCommands = generatedCommands.filter(
+  ({ command }) => command !== "yarn"
+)
+
+const packages = packageCommands.map(({ pkg }) => pkg).join(" ")
+execSync(`yarn add ${packages}`, { stdio: "inherit" })
+
+const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")
+execSync(`yarn add -D ${packages}`, { stdio: "inherit" })
+
+for (const { command, ...args } of otherCommands) {
+  commands[command as Command](args)
+}
+
