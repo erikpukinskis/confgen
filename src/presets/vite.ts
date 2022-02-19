@@ -36,7 +36,7 @@ export const vite: CommandGenerator = (presets, args) => [
     ? ([
         {
           command: "script",
-          name: "build:vite"
+          name: "build:vite",
           script: buildBuildCommand(args),
         },
         {
