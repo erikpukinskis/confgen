@@ -42,14 +42,12 @@ const otherCommands = generatedCommands.filter(
 
 const packages = packageCommands.map(({ pkg }) => pkg).join(" ")
 if (packages) {
-  console.log(`yarn add ${packages}`)
-  execSync(`yarn add ${packages}`, { stdio: "inherit" })
+  commands.yarn({ pkg: packages })
 }
 
 const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")
 if (devPackages) {
-  console.log(`yarn add -D ${devPackages}`)
-  execSync(`yarn add -D ${devPackages}`, { stdio: "inherit" })
+  commands.yarn({ pkg: devPackages, dev: true })
 }
 
 for (const { command, ...args } of otherCommands) {

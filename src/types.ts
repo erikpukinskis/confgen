@@ -16,17 +16,13 @@ export type Preset =
   | "vitest"
   | "yarn"
 
-export type Command = "file" | "rm" | "run" | "script" | "yarn"
+export type Command = "file" | "run" | "script" | "yarn"
 
 type CommandWithArgs =
   | {
       command: "file"
       path: string
       contents: string | string[] | Record<string, unknown>
-    }
-  | {
-      command: "rm"
-      path: string
     }
   | {
       command: "run"

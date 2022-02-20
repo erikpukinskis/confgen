@@ -7,6 +7,11 @@ import uniq from "lodash/uniq"
 
 type FileChanges = string | string[] | Record<string, unknown>
 
+const announce = (command: string, data: string) => {
+  console.log(`----------------------------------------
+👷‍♀️ ${command}
+   ${data}`)
+}
 export const commands: Record<Command, Function> = {
   file: ({
     path,
@@ -15,16 +20,15 @@ export const commands: Record<Command, Function> = {
     path: string
     contents: string | string[] | Record<string, unknown>
   }) => {
+    announce("Amending file...", path)
     syncFile(path, contents)
   },
-
-  rm: ({ path }: { path: string }) => {
-    if (existsSync(path)) rmSync(path)
-  },
   run: ({ script }: { script: string }) => {
+    announce("Running...", script)
     execSync(script, { stdio: "inherit" })
   },
   "script": ({ name, script }: { name: string; script: string }) => {
+    announce("Updating \"${name}\" script in package.json...", script)
     amendJson("package.json", {
       "scripts": {
         [name]: script,
@@ -32,6 +36,7 @@ export const commands: Record<Command, Function> = {
     })
   },
   yarn: ({ dev, pkg }: { dev?: boolean; pkg: string }) => {
+    announce("Adding package to package.json...", pkg)
     const dashDev = dev ? "-D " : ""
     execSync(`yarn add ${dashDev}${pkg}`, { stdio: "inherit" })
   },
