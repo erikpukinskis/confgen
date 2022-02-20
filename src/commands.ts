@@ -20,7 +20,7 @@ export const runCommand = (command: CommandWithArgs) => {
   }...
    ${command[Object.keys(command)[1] as keyof CommandWithArgs]}`)
 
-  // @ts-ignore
+  // @ts-expect-error Typescript doesn't know that command.command narrows the type sufficiently here
   commands[command.command](command)
 }
 

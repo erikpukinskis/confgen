@@ -61,7 +61,7 @@ vendor
   {
     command: "script",
     name: "check:lint",
-    script: "eslint .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSE= | base64 -d; fi",
+    script: "eslint .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
   },
   {
     command: "script",

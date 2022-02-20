@@ -1,5 +1,6 @@
 {
   "name": "confgen",
+  "license": "MIT",
   "version": "0.34.0",
   "bin": "./dist/index.umd.js",
   "scripts": {
@@ -11,9 +12,8 @@
     "fix:format": "prettier --write --ignore-path=.gitignore .",
     "check:types": "tsc --noEmit --skipLibCheck; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist --skipLibCheck; mv dist/index.d.ts dist/index.umd.d.ts",
-    "check:lint": "eslint .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSE= | base64 -d; fi",
     "fix:lint": "eslint . --fix",
-    "check:lint; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSE= | base64 -d; fi": "eslint"
+    "check:lint": "eslint .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi"
   },
   "dependencies": {
     "fs-extra": "^10.0.0",
