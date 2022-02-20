@@ -192,7 +192,7 @@ ${plugins
     ([variable, , config]) =>
       `${variable}(${config ? JSON.stringify(config, null, 4) : ""})`
   )
-  .join("\n")}
+  .join(",\n")}
   ],
 
 `
