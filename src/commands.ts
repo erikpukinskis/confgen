@@ -1,7 +1,7 @@
-import { Command, Preset, CommandWithArgs } from "./types"
+import { Command, CommandWithArgs } from "./types"
 import { execSync } from "child_process"
 import merge from "merge-objects"
-import { existsSync, readFileSync, rmSync } from "fs"
+import { existsSync, readFileSync } from "fs"
 import { outputFileSync } from "fs-extra"
 import uniq from "lodash/uniq"
 
@@ -20,10 +20,11 @@ export const runCommand = (command: CommandWithArgs) => {
   }...
    ${command[Object.keys(command)[1] as keyof CommandWithArgs]}`)
 
-  commands[command.command as Command](command)
+  // @ts-ignore
+  commands[command.command](command)
 }
 
-const commands: Record<Command, Function> = {
+const commands = {
   file: ({
     path,
     contents,
@@ -36,9 +37,9 @@ const commands: Record<Command, Function> = {
   run: ({ script }: { script: string }) => {
     execSync(script, { stdio: "inherit" })
   },
-  "script": ({ name, script }: { name: string; script: string }) => {
+  script: ({ name, script }: { name: string; script: string }) => {
     amendJson("package.json", {
-      "scripts": {
+      scripts: {
         [name]: script,
       },
     })
@@ -47,7 +48,7 @@ const commands: Record<Command, Function> = {
     const dashDev = dev ? "-D " : ""
     execSync(`yarn add ${dashDev}${pkg}`, { stdio: "inherit" })
   },
-}
+} as const
 
 const syncFile = (filename: string, changes: FileChanges) => {
   if (Array.isArray(changes)) {

@@ -21,9 +21,9 @@ export const prettier: CommandGenerator = (presets) => [
     command: "file",
     path: ".prettierrc",
     contents: {
-      "semi": false,
-      "tabWidth": 2,
-      "quoteProps": "preserve",
+      semi: false,
+      tabWidth: 2,
+      quoteProps: "preserve",
     },
   },
   {
@@ -37,7 +37,7 @@ export const prettier: CommandGenerator = (presets) => [
           command: "file",
           path: ".devcontainer/devcontainer.json",
           contents: {
-            "extensions": [
+            extensions: [
               "rohit-gohri.format-code-action",
               "esbenp.prettier-vscode",
             ],

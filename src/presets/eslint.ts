@@ -53,7 +53,7 @@ vendor
           command: "file",
           path: ".devcontainer/devcontainer.json",
           contents: {
-            "extensions": ["dbaeumer.vscode-eslint"],
+            extensions: ["dbaeumer.vscode-eslint"],
           },
         },
       ] as const)
@@ -75,14 +75,14 @@ vendor
 ]
 
 const buildEslintrc = (presets: Preset[]) => ({
-  "root": true,
+  root: true,
   ...(presets.includes("typescript")
     ? {
-        "parser": "@typescript-eslint/parser",
-        "plugins": ["@typescript-eslint"],
+        parser: "@typescript-eslint/parser",
+        plugins: ["@typescript-eslint"],
       }
     : undefined),
-  "extends": [
+  extends: [
     "eslint:recommended",
     ...(presets.includes("react") ? ["plugin:react/recommended"] : []),
     ...(presets.includes("typescript")
@@ -94,17 +94,18 @@ const buildEslintrc = (presets: Preset[]) => ({
   ],
   ...(presets.includes("react")
     ? {
-        "settings": {
-          "react": {
-            "version": "detect",
+        settings: {
+          react: {
+            version: "detect",
           },
         },
       }
     : undefined),
-  "rules": {
+  rules: {
     ...(presets.includes("typescript")
       ? {
           "@typescript-eslint/no-explicit-any": ["error"],
+          "no-unused-vars": "off",
           "@typescript-eslint/no-unused-vars": ["error"],
           "semi": ["error", "never"],
         }
@@ -113,5 +114,5 @@ const buildEslintrc = (presets: Preset[]) => ({
     "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"],
   },
-  "ignorePatterns": ["*.js"],
+  ignorePatterns: ["*.js"],
 })

@@ -11,7 +11,7 @@ export const bin: CommandGenerator = () => [
     command: "file",
     path: "package.json",
     contents: {
-      "bin": "./dist/index.umd.js",
+      bin: "./dist/index.umd.js",
     },
   },
 ]

@@ -2,15 +2,12 @@ import { presets } from "./presets"
 import {
   PRESETS,
   Preset,
-  CommandGenerator,
-  Command,
   isPackageCommand,
   isDevPackageCommand,
   PackageCommand,
   DevPackageCommand,
 } from "./types"
 import { runCommand } from "./commands"
-import { execSync } from "child_process"
 
 const [, , ...args] = process.argv
 

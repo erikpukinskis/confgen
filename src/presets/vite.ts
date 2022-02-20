@@ -63,7 +63,7 @@ export const vite: CommandGenerator = (presets, args) => [
 ]
 
 const buildBuildCommand = (args: Record<Preset, string[]>) => {
-  let command = "vite build"
+  const command = "vite build"
   if (args.library[1]) {
     return `${command} --mode ${args.library[1]}`
   } else {
@@ -72,13 +72,13 @@ const buildBuildCommand = (args: Record<Preset, string[]>) => {
 }
 
 const buildDistConfig = () => ({
-  "files": ["dist"],
-  "main": "./dist/index.umd.js",
-  "module": "./dist/index.es.js",
-  "exports": {
+  files: ["dist"],
+  main: "./dist/index.umd.js",
+  module: "./dist/index.es.js",
+  exports: {
     ".": {
-      "import": "./dist/index.es.js",
-      "require": "./dist/index.umd.js",
+      import: "./dist/index.es.js",
+      require: "./dist/index.umd.js",
     },
   },
 })
@@ -198,7 +198,7 @@ const getGlobals = (dependencies: string[]) =>
     {} as Record<string, string>
   )
 
-type VitePlugin = [string, string, any?]
+type VitePlugin = [string, string] | [string,string,Record<string,unknown>]
 
 const pluginImports = (plugins: VitePlugin[]) => {
   return plugins
