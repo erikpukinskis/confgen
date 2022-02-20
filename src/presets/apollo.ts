@@ -14,6 +14,12 @@ export const apollo: CommandGenerator = (presets, args) => [
   {
     command: "script",
     name: "build:generate",
-    script: "graphql-codegen",
+    script: "rm ./src/__generated__/*; graphql-codegen",
   },
+  {
+    file: ".gitignore",
+    contents: [
+      "__generated__"
+    ]
+  }
 ]
