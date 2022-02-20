@@ -43,7 +43,7 @@ generates:
       - add:
           content: "import { ResolverContext } from '../context';"
   ./src/__generated__/schema.ts:
-    - graphql-codegen-plugin-schema-source.js
+    - graphql-codegen-schema-script
 `,
         },
       ] as const)
