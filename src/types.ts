@@ -1,20 +1,23 @@
-export type Preset =
-  | "api"
-  | "apollo"
-  | "base"
-  | "bin"
-  | "devServer"
-  | "emotion"
-  | "eslint"
-  | "library"
-  | "node"
-  | "prettier"
-  | "react"
-  | "sql"
-  | "typescript"
-  | "vite"
-  | "vitest"
-  | "yarn"
+export const PRESETS = [
+  "api",
+  "apollo",
+  "base",
+  "bin",
+  "devServer",
+  "emotion",
+  "eslint",
+  "library",
+  "node",
+  "prettier",
+  "react",
+  "sql",
+  "typescript",
+  "vite",
+  "vitest",
+  "yarn",
+] as const
+
+export type Preset = typeof PRESETS[number]
 
 export type Command = "file" | "run" | "script" | "yarn"
 

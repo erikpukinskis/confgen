@@ -1,5 +1,6 @@
 import { presets } from "./presets"
 import {
+  PRESETS,
   Preset,
   CommandGenerator,
   Command,
@@ -16,9 +17,16 @@ const [, , ...args] = process.argv
 const argsByPresetName = {} as Record<Preset, string[]>
 
 const presetNames = args.map((arg) => {
-  const [presetNames, ...presetArgs] = arg.split(":") as [Preset, ...string[]]
-  argsByPresetName[presetNames] = presetArgs
-  return presetNames
+  const [presetName, ...presetArgs] = arg.split(":") as [Preset, ...string[]]
+  if (!PRESETS.includes(presetName)) {
+    throw new Error(
+      `${presetName} is not a valid preset.\n\nUsage:\nnpx confgen [${PRESETS.join(
+        " | "
+      )}]\n`
+    )
+  }
+  argsByPresetName[presetName] = presetArgs
+  return presetName
 })
 
 const generatedCommands = []

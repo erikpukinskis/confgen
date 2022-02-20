@@ -29,7 +29,7 @@ export const prettier: CommandGenerator = () => [
   {
     command: "script",
     name: "fix:format",
-    script: "prettier --write .",
+    script: "prettier --write --ignore-path=.gitignore .",
   },
   {
     command: "file",
