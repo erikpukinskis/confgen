@@ -7,6 +7,6 @@ export const yarn: CommandGenerator = () => [
   },
   {
     command: "run",
-    script: "rm -rf node_modules; yarn",
+    script: "yarn",
   },
 ]
