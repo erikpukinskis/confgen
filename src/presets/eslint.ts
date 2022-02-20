@@ -110,7 +110,8 @@ const buildEslintrc = (presets: Preset[]) => ({
         }
       : undefined),
     "eol-last": ["error", "always"],
-    "quote-props": ["error", "always"],
+    "quote-props": ["error", "consistent-as-needed"],
+    "array-element-newline": ["off"],
   },
   "ignorePatterns": ["*.js"],
 })
