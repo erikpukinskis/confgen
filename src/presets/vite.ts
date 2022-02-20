@@ -51,7 +51,7 @@ export const vite: CommandGenerator = (presets, args) => [
         {
           command: "yarn",
           pkg: "vite-plugin-sql",
-          dev: true
+          dev: true,
         },
       ] as const)
     : []),
