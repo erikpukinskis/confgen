@@ -18,7 +18,7 @@ export type Preset =
 
 export type Command = "file" | "run" | "script" | "yarn"
 
-type CommandWithArgs =
+export type CommandWithArgs = { preset?: Preset } & (
   | {
       command: "file"
       path: string
@@ -35,6 +35,7 @@ type CommandWithArgs =
     }
   | PackageCommand
   | DevPackageCommand
+)
 
 export function isPackageCommand(
   command: CommandWithArgs

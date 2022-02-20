@@ -8,7 +8,7 @@ import {
   PackageCommand,
   DevPackageCommand,
 } from "./types"
-import { commands } from "./commands"
+import { runCommand } from "./commands"
 import { execSync } from "child_process"
 
 const [, , ...args] = process.argv
@@ -26,7 +26,7 @@ const generatedCommands = []
 for (const presetName of presetNames) {
   console.log(`Generating config for preset [${presetName}]...`)
   const generated = presets[presetName](presetNames, argsByPresetName)
-
+  generated.forEach((command) => (command.preset = presetName))
   generatedCommands.push(...generated)
 }
 
@@ -42,14 +42,14 @@ const otherCommands = generatedCommands.filter(
 
 const packages = packageCommands.map(({ pkg }) => pkg).join(" ")
 if (packages) {
-  commands.yarn({ pkg: packages })
+  runCommand({ command: "yarn", pkg: packages })
 }
 
 const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")
 if (devPackages) {
-  commands.yarn({ pkg: devPackages, dev: true })
+  runCommand({ command: "yarn", pkg: devPackages, dev: true })
 }
 
-for (const { command, ...args } of otherCommands) {
-  commands[command as Command](args)
+for (const command of otherCommands) {
+  runCommand(command)
 }

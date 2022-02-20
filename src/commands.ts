@@ -1,4 +1,4 @@
-import { Command } from "./types"
+import { Command, Preset, CommandWithArgs } from "./types"
 import { execSync } from "child_process"
 import merge from "merge-objects"
 import { existsSync, readFileSync, rmSync } from "fs"
@@ -7,12 +7,23 @@ import uniq from "lodash/uniq"
 
 type FileChanges = string | string[] | Record<string, unknown>
 
-const announce = (command: string, data: string) => {
-  console.log(`----------------------------------------
-👷‍♀️ ${command}
-   ${data}`)
+const descriptions: Record<Command, string> = {
+  file: "Updating file",
+  run: "Running command",
+  script: "Updating script in package.json",
+  yarn: "Adding package(s) to package.json",
 }
-export const commands: Record<Command, Function> = {
+export const runCommand = (command: CommandWithArgs) => {
+  console.log(`----------------------------------------
+👷‍♀️ ${descriptions[command.command]}${
+    command.preset ? ` for preset [${command.preset}]` : ""
+  }...
+   ${command[Object.keys(command)[1] as keyof CommandWithArgs]}`)
+
+  commands[command.command as Command](command)
+}
+
+const commands: Record<Command, Function> = {
   file: ({
     path,
     contents,
@@ -20,15 +31,12 @@ export const commands: Record<Command, Function> = {
     path: string
     contents: string | string[] | Record<string, unknown>
   }) => {
-    announce("Amending file...", path)
     syncFile(path, contents)
   },
   run: ({ script }: { script: string }) => {
-    announce("Running...", script)
     execSync(script, { stdio: "inherit" })
   },
   "script": ({ name, script }: { name: string; script: string }) => {
-    announce("Updating \"${name}\" script in package.json...", script)
     amendJson("package.json", {
       "scripts": {
         [name]: script,
@@ -36,7 +44,6 @@ export const commands: Record<Command, Function> = {
     })
   },
   yarn: ({ dev, pkg }: { dev?: boolean; pkg: string }) => {
-    announce("Adding package to package.json...", pkg)
     const dashDev = dev ? "-D " : ""
     execSync(`yarn add ${dashDev}${pkg}`, { stdio: "inherit" })
   },
