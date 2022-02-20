@@ -52,6 +52,20 @@ vendor
       "extensions": ["dbaeumer.vscode-eslint"],
     },
   },
+  {
+    command: "script",
+    name: "check:lint",
+    script: "eslint"
+  },
+  {
+    command: "script",
+    name: "fix:lint",
+    script: "eslint --fix"
+  },
+  {
+    command: "run",
+    script: "npm run fix:lint"
+  }
 ]
 
 const buildEslintrc = (presets: Preset[]) => ({
