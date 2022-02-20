@@ -1,6 +1,6 @@
 {
   "name": "confgen",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "bin": "./dist/index.umd.js",
   "scripts": {
     "config": "npx ts-node ./src/index.ts",
