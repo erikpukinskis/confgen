@@ -171,7 +171,6 @@ ${pluginImports(plugins)}
 export default defineConfig({
   ${devServerStuff}
   ${jsdomStuff}
-  ${apiStuff}
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
