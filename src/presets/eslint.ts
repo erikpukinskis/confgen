@@ -55,17 +55,17 @@ vendor
   {
     command: "script",
     name: "check:lint",
-    script: "eslint"
+    script: "eslint",
   },
   {
     command: "script",
     name: "fix:lint",
-    script: "eslint --fix"
+    script: "eslint --fix",
   },
   {
     command: "run",
-    script: "npm run fix:lint"
-  }
+    script: "npm run fix:lint",
+  },
 ]
 
 const buildEslintrc = (presets: Preset[]) => ({

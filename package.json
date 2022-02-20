@@ -10,7 +10,9 @@
     "build:bin": "echo '#!/usr/bin/env node'|cat - dist/index.umd.js > /tmp/out && mv /tmp/out dist/index.umd.js; chmod a+x dist/index.umd.js",
     "fix:format": "prettier --write .",
     "check:types": "tsc --noEmit --skipLibCheck; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
-    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist --skipLibCheck; mv dist/index.d.ts dist/index.umd.d.ts"
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist --skipLibCheck; mv dist/index.d.ts dist/index.umd.d.ts",
+    "check:lint": "eslint",
+    "fix:lint": "eslint --fix"
   },
   "dependencies": {
     "fs-extra": "^10.0.0",
@@ -21,6 +23,9 @@
     "@types/fs-extra": "^9.0.13",
     "@types/lodash": "^4.14.178",
     "@types/merge-objects": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.12.0",
+    "@typescript-eslint/parser": "^5.12.0",
+    "eslint": "^8.9.0",
     "prettier": "^2.5.1",
     "ts-node": "^10.5.0",
     "typescript": "^4.5.5",
