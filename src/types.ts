@@ -1,11 +1,12 @@
 export const PRESETS = [
   "api",
   "apollo",
-  "base",
   "bin",
+  "codespaces",
   "devServer",
   "emotion",
   "eslint",
+  "git",
   "library",
   "node",
   "prettier",

@@ -9,19 +9,23 @@
 
 All of these are optional, depending on which presets you choose:
 
-- `prettier`, `eslint` set up Prettier formatting and Eslint fixing-on-save
-- `bin` Adds a "bin" to your package JSON
-- `library:[PackageName]:[mode]` Makes your package importable via UMD and ES
-- `typescript` Adds type checking commands, and sets up exported typings
-- `devServer` Configures a development server
-- `vitest` Adds test scripts
-- `apollo` Adds code generation build script
-- `yarn` Creates a yarn.lock file
-- `node:[fs]:[child_process]:[etc...]` Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
-- `react` ensures React is set up properly with eslint, typescript, etc
-- `emotion` adds emotion macro config to Vite
-- `base` sets ups `.gitignore` and some base VSCode settings
 - `api:[folder]` Adds a `start:api` command to start the service in [folder]
+- `apollo` Adds code generation build script
+- `bin` Adds a "bin" to your package JSON
+- `codespaces` sets up some good VSCode defaults, and adds extensions eslint, prettier, etc presets
+- `devServer` Configures a development server
+- `emotion` adds emotion macro config to Vite
+- `eslint` sets up linting with fix-on-save in Codespaces
+- `git` Pre-populates gitignore
+- `library:[PackageName]:[mode]` Makes your package importable via UMD and ES
+- `node:[fs]:[child_process]:[etc...]` Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
+- `prettier` set up code formatting with format-on-save in Codespaces
+- `react` ensures React is set up properly with eslint, typescript, etc
+- `typescript` Adds type checking commands, and sets up exported typings
+- `vitest` Adds test scripts
+- `yarn` Creates a yarn.lock file
+
+Note that many of these things support each other, so for example the `eslint` preset will add the `@typescript-eslint` plugin only when combined with the `typescript` preset.
 
 ## How to use it
 
@@ -30,7 +34,7 @@ It's recommended to add a `confgen` script to your package.json:
 ```
 {
   "scripts: {
-    "confgen": "npx confgen base node yarn vite vitest library:MyPackage prettier"
+    "confgen": "npx confgen git node yarn vite vitest library:MyPackage prettier"
   }
 }
 ```

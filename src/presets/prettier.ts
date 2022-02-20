@@ -1,6 +1,6 @@
 import { CommandGenerator } from "@/types"
 
-export const prettier: CommandGenerator = () => [
+export const prettier: CommandGenerator = (presets) => [
   {
     command: "yarn",
     dev: true,
@@ -31,16 +31,20 @@ export const prettier: CommandGenerator = () => [
     name: "fix:format",
     script: "prettier --write --ignore-path=.gitignore .",
   },
-  {
-    command: "file",
-    path: ".devcontainer/devcontainer.json",
-    contents: {
-      "extensions": [
-        "rohit-gohri.format-code-action",
-        "esbenp.prettier-vscode",
-      ],
-    },
-  },
+  ...(presets.includes("codespaces")
+    ? ([
+        {
+          command: "file",
+          path: ".devcontainer/devcontainer.json",
+          contents: {
+            "extensions": [
+              "rohit-gohri.format-code-action",
+              "esbenp.prettier-vscode",
+            ],
+          },
+        },
+      ] as const)
+    : []),
   {
     command: "run",
     script: "yarn run fix:format",

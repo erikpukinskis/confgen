@@ -1,10 +1,11 @@
 import { apollo } from "./apollo"
 import { api } from "./api"
-import { base } from "./base"
 import { bin } from "./bin"
+import { codespaces } from "./codespaces"
 import { devServer } from "./devServer"
 import { emotion } from "./emotion"
 import { eslint } from "./eslint"
+import { git } from "./git"
 import { library } from "./library"
 import { node } from "./node"
 import { prettier } from "./prettier"
@@ -20,10 +21,11 @@ export const presets: Record<Preset, CommandGenerator> = {
   api,
   apollo,
   bin,
+  codespaces,
   devServer,
-  base,
   emotion,
   eslint,
+  git,
   library,
   node,
   prettier,

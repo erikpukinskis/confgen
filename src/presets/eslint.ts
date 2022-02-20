@@ -47,13 +47,17 @@ vendor
     path: ".eslintrc",
     contents: buildEslintrc(presets),
   },
-  {
-    command: "file",
-    path: "file:.devcontainer/devcontainer.json":
-    contents: {
-      "extensions": ["dbaeumer.vscode-eslint"],
-    },
-  }
+  ...(presets.includes("codespaces")
+    ? ([
+        {
+          command: "file",
+          path: ".devcontainer/devcontainer.json",
+          contents: {
+            "extensions": ["dbaeumer.vscode-eslint"],
+          },
+        },
+      ] as const)
+    : []),
   {
     command: "script",
     name: "check:lint; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSE= | base64 -d; fi",

@@ -1,6 +1,6 @@
 import { CommandGenerator } from "@/types"
 
-export const base: CommandGenerator = () => [
+export const codespaces: CommandGenerator = () => [
   {
     command: "file",
     path: ".vscode/settings.json",
@@ -17,10 +17,5 @@ export const base: CommandGenerator = () => [
       "editor.insertSpaces": true,
       "editor.detectIndentation": false,
     },
-  },
-  {
-    command: "file",
-    path: ".gitignore",
-    contents: ["node_modules", ".DS_Store", "dist", "vendor"],
   },
 ]
