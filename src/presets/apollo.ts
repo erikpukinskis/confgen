@@ -1,4 +1,4 @@
-import { CommandGenerator } from "@/types"
+import { CommandGenerator, Preset } from "@/types"
 
 export const apollo: CommandGenerator = (presets, args) => [
   {
@@ -11,11 +11,15 @@ export const apollo: CommandGenerator = (presets, args) => [
     dev: true,
     pkg: "graphql",
   },
-  {
-    command: "yarn",
-    dev: true,
-    pkg: "graphql-codegen-schema-script",
-  },
+  ...(args.apollo[0] === "source"
+    ? ([
+        {
+          command: "yarn",
+          dev: true,
+          pkg: "graphql-codegen-schema-script",
+        },
+      ] as const)
+    : []),
   {
     command: "script",
     name: "build:generate",
@@ -31,7 +35,14 @@ export const apollo: CommandGenerator = (presets, args) => [
         {
           command: "file",
           path: "codegen.yml",
-          contents: `
+          contents: buildCodegen(args),
+        },
+      ] as const)
+    : []),
+]
+
+const buildCodegen = (args: Record<Preset, string[]>) => {
+  let yml = `
 schema: schema.graphql
 generates:
   ./src/__generated__/types.ts:
@@ -42,10 +53,11 @@ generates:
       - typescript-resolvers
       - add:
           content: "import { ResolverContext } from '../context';"
-  ./src/__generated__/schema.ts:
+`
+  if (args.apollo[0] === "schema") {
+    yml += `  ./src/__generated__/schema.ts:
     - graphql-codegen-schema-script
-`,
-        },
-      ] as const)
-    : []),
-]
+`
+  }
+  return yml
+}
