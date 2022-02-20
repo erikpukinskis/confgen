@@ -125,11 +125,14 @@ const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
   `
     : ""
 
-  const jsdomStuff = presets.includes("vitest") && presets.includes("react") ? `
+  const jsdomStuff =
+    presets.includes("vitest") && presets.includes("react")
+      ? `
   test: {
     environment: "jsdom",
   },
-  `: ""
+  `
+      : ""
 
   const plugins: VitePlugin[] = []
   if (presets.includes("emotion") || presets.includes("sql")) {
