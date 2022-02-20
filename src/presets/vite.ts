@@ -152,6 +152,7 @@ export default defineConfig({
 const getDependencies = () => {
   const source = readFileSync("package.json").toString()
   const json = JSON.parse(source)
+  if (!json.dependencies) return []
   return Object.keys(json["dependencies"])
 }
 
