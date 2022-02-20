@@ -10,6 +10,7 @@ import { library } from "./library"
 import { node } from "./node"
 import { prettier } from "./prettier"
 import { react } from "./react"
+import { sql } from "./sql"
 import { typescript } from "./typescript"
 import { vite } from "./vite"
 import { vitest } from "./vitest"
@@ -29,6 +30,7 @@ export const presets: Record<Preset, CommandGenerator> = {
   node,
   prettier,
   react,
+  sql,
   typescript,
   vite,
   vitest,

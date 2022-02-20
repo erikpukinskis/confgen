@@ -11,6 +11,7 @@ export type Preset =
   | "node"
   | "prettier"
   | "react"
+  | "sql"
   | "typescript"
   | "vite"
   | "vitest"
