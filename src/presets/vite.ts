@@ -134,6 +134,12 @@ const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
   `
       : ""
 
+  const apiStuff = presets.includes("api") && presets.includes("devServer") ? `
+  proxy: {
+    '/graphql': 'http://localhost:3001',
+  },
+` : ""
+
   const plugins: VitePlugin[] = []
   if (presets.includes("emotion") || presets.includes("sql")) {
     plugins.push(["macros", "vite-plugin-babel-macros"])
@@ -161,6 +167,7 @@ ${pluginImports(plugins)}
 export default defineConfig({
   ${devServerStuff}
   ${jsdomStuff}
+  ${apiStuff}
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
