@@ -198,7 +198,7 @@ const getGlobals = (dependencies: string[]) =>
     {} as Record<string, string>
   )
 
-type VitePlugin = [string, string] | [string,string,Record<string,unknown>]
+type VitePlugin = [string, string] | [string, string, Record<string, unknown>]
 
 const pluginImports = (plugins: VitePlugin[]) => {
   return plugins
