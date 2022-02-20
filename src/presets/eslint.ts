@@ -60,13 +60,13 @@ vendor
     : []),
   {
     command: "script",
-    name: "check:lint; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSE= | base64 -d; fi",
-    script: "eslint",
+    name: "check:lint",
+    script: "eslint .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSE= | base64 -d; fi",
   },
   {
     command: "script",
     name: "fix:lint",
-    script: "eslint --fix",
+    script: "eslint . --fix",
   },
   {
     command: "run",

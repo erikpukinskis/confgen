@@ -12,7 +12,8 @@
     "check:types": "tsc --noEmit --skipLibCheck; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist --skipLibCheck; mv dist/index.d.ts dist/index.umd.d.ts",
     "check:lint": "eslint",
-    "fix:lint": "eslint --fix"
+    "fix:lint": "eslint --fix",
+    "check:lint; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSE= | base64 -d; fi": "eslint"
   },
   "dependencies": {
     "fs-extra": "^10.0.0",

@@ -32,7 +32,7 @@ const presetNames = args.map((arg) => {
 const generatedCommands = []
 
 for (const presetName of presetNames) {
-  console.log(`Generating config for preset [${presetName}]...`)
+  console.log(`Generating commands for preset [${presetName}]...`)
   const generated = presets[presetName](presetNames, argsByPresetName)
   generated.forEach((command) => (command.preset = presetName))
   generatedCommands.push(...generated)

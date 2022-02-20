@@ -7,5 +7,9 @@
     }
   },
   "remoteUser": "node",
-  "extensions": ["rohit-gohri.format-code-action", "esbenp.prettier-vscode"]
+  "extensions": [
+    "rohit-gohri.format-code-action",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint"
+  ]
 }
