@@ -2,7 +2,6 @@ import { apollo } from "./apollo"
 import { api } from "./api"
 import { base } from "./base"
 import { bin } from "./bin"
-import { bump } from "./bump"
 import { devServer } from "./devServer"
 import { emotion } from "./emotion"
 import { eslint } from "./eslint"
@@ -23,7 +22,6 @@ export const presets: Record<Preset, CommandGenerator> = {
   bin,
   devServer,
   base,
-  bump,
   emotion,
   eslint,
   library,

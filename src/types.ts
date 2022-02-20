@@ -3,7 +3,6 @@ export type Preset =
   | "apollo"
   | "base"
   | "bin"
-  | "bump"
   | "devServer"
   | "emotion"
   | "eslint"

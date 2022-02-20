@@ -20,7 +20,6 @@ All of these are optional, depending on which presets you choose:
 - `node:[fs]:[child_process]:[etc...]` Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
 - `react` ensures React is set up properly with eslint, typescript, etc
 - `emotion` adds emotion macro config to Vite
-- `bump` helper script for bumping minor version numbers
 - `base` sets ups `.gitignore` and some base VSCode settings
 - `api:[folder]` Adds a `start:api` command to start the service in [folder]
 
