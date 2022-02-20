@@ -15,7 +15,7 @@ const descriptions: Record<Command, string> = {
 }
 export const runCommand = (command: CommandWithArgs) => {
   console.log(`----------------------------------------
-👷‍♀️ ${descriptions[command.command]}${
+👷 ${descriptions[command.command]}${
     command.preset ? ` for preset [${command.preset}]` : ""
   }...
    ${command[Object.keys(command)[1] as keyof CommandWithArgs]}`)
