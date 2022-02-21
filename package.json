@@ -1,7 +1,7 @@
 {
   "name": "confgen",
   "license": "MIT",
-  "version": "0.41.0",
+  "version": "0.42.0",
   "bin": "./dist/index.umd.js",
   "scripts": {
     "config": "npx ts-node ./src/index.ts",
