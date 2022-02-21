@@ -6,17 +6,21 @@ export const prettier: CommandGenerator = (presets) => [
     dev: true,
     pkg: "prettier",
   },
-  {
-    command: "file",
-    path: ".vscode/settings.json",
-    contents: {
-      "editor.codeActionsOnSave": {
-        "source.formatDocument": true,
-      },
-      "editor.formatOnSave": false,
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
-    },
-  },
+  ...(presets.includes("codespaces")
+    ? ([
+        {
+          command: "file",
+          path: ".vscode/settings.json",
+          contents: {
+            "editor.codeActionsOnSave": {
+              "source.formatDocument": true,
+            },
+            "editor.formatOnSave": false,
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+          },
+        },
+      ] as const)
+    : []),
   {
     command: "file",
     path: ".prettierrc",

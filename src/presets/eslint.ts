@@ -27,15 +27,6 @@ export const eslint: CommandGenerator = (presets) => [
     : []),
   {
     command: "file",
-    path: ".vscode/settings.json",
-    contents: {
-      "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": true,
-      },
-    },
-  },
-  {
-    command: "file",
     path: ".eslintignore",
     contents: `node_modules
 dist
@@ -54,6 +45,15 @@ vendor
           path: ".devcontainer/devcontainer.json",
           contents: {
             extensions: ["dbaeumer.vscode-eslint"],
+          },
+        },
+        {
+          command: "file",
+          path: ".vscode/settings.json",
+          contents: {
+            "editor.codeActionsOnSave": {
+              "source.fixAll.eslint": true,
+            },
           },
         },
       ] as const)
