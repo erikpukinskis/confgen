@@ -4,6 +4,7 @@ import merge from "merge-objects"
 import { existsSync, readFileSync } from "fs"
 import { outputFileSync } from "fs-extra"
 import uniq from "lodash/uniq"
+import YAML from "yaml"
 
 type FileChanges = string | string[] | Record<string, unknown>
 
@@ -51,7 +52,9 @@ const commands = {
 } as const
 
 const syncFile = (filename: string, changes: FileChanges) => {
-  if (Array.isArray(changes)) {
+  if (/[.]ya?ml$/.test(filename)) {
+    amendYaml(filename, changes)
+  } else if (Array.isArray(changes)) {
     ensureLines(filename, changes)
   } else if (typeof changes === "string") {
     outputFileSync(filename, changes)
@@ -92,4 +95,26 @@ const dedupe = (json: Json) => {
     }
   }
   return json
+}
+
+const amendYaml = (filename: string, changes: FileChanges) => {
+  if (typeof changes === "string" || Array.isArray(changes)) {
+    throw new Error(
+      `Cannot amend YAML file ${filename} with a string or array. Contents must be an object.`
+    )
+  }
+
+  const originalYaml = existsSync(filename)
+    ? YAML.parse(readFileSync(filename).toString())
+    : {}
+
+  if (Array.isArray(originalYaml)) {
+    throw new Error(
+      `YAML file ${filename} is an array, but we only know how to sync objects`
+    )
+  }
+
+  const newYaml = dedupe(merge(originalYaml, changes))
+
+  outputFileSync(filename, YAML.stringify(newYaml))
 }

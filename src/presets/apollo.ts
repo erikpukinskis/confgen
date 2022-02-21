@@ -11,19 +11,19 @@ export const apollo: CommandGenerator = (presets, args) => [
     dev: true,
     pkg: "graphql",
   },
-  ...(args.apollo[0] === "source"
+  ...(args.apollo[0] === "server"
     ? ([
         {
           command: "yarn",
           dev: true,
-          pkg: "graphql-codegen-schema-script",
+          pkg: "@graphql-codegen/typescript-resolvers",
         },
       ] as const)
     : []),
   {
     command: "script",
     name: "build:generate",
-    script: "rm ./src/__generated__/*; graphql-codegen",
+    script: "rm -f ./src/__generated__/*; graphql-codegen",
   },
   {
     command: "file",
@@ -35,29 +35,38 @@ export const apollo: CommandGenerator = (presets, args) => [
         {
           command: "file",
           path: "codegen.yml",
-          contents: buildCodegen(args),
+          contents: buildCodegenContents(args),
         },
       ] as const)
     : []),
 ]
 
-const buildCodegen = (args: Record<Preset, string[]>) => {
-  let yml = `
-schema: schema.graphql
-generates:
-  ./src/__generated__/types.ts:
-    config:
-      contextType: ResolverContext
-    plugins:
-      - typescript
-      - typescript-resolvers
-      - add:
-          content: "import { ResolverContext } from '../context';"
-`
-  if (args.apollo[0] === "schema") {
-    yml += `  ./src/__generated__/schema.ts:
-    - graphql-codegen-schema-script
-`
+const buildCodegenContents = (args: Record<Preset, string[]>) => {
+  const typesConfig = {
+    plugins: ["typescript"],
+  } as CodegenConfig
+
+  if (args.apollo[0] === "server") {
+    typesConfig.config = {
+      contextType: "ResolverContext",
+    }
+    typesConfig.plugins.push("typescript-resolvers", {
+      add: {
+        content: "import { ResolverContext } from '../context';",
+      },
+    })
   }
-  return yml
+
+  return {
+    generates: {
+      "./src/__generated__/types.ts": typesConfig,
+    },
+  }
+}
+
+type CodegenConfig = {
+  plugins: (string | Record<string, { content: string }>)[]
+  config?: {
+    contextType: string
+  }
 }

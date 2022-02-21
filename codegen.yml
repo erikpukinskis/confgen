@@ -1,0 +1,12 @@
+schema: schema.graphql
+generates:
+  ./src/__generated__/types.ts:
+    config:
+      contextType: ResolverContext
+    plugins:
+      - typescript
+      - typescript-resolvers
+      - add:
+          content: "import { ResolverContext } from '../context';"
+  ./src/__generated__/schema.ts:
+    - graphql-codegen-schema-script
