@@ -14,7 +14,7 @@ All of these are optional, depending on which presets you choose:
 - `bin` Adds a "bin" to your package JSON
 - `codespaces` sets up some good VSCode defaults, and adds extensions eslint, prettier, etc presets
 - `devServer` Configures a development server
-- `emotion` adds emotion macro config to Vite
+- `macros` enables babel macros in Vite
 - `eslint` sets up linting with fix-on-save in Codespaces
 - `git` Pre-populates gitignore
 - `library:[PackageName]:[mode]` Makes your package importable via UMD and ES
@@ -90,7 +90,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   these probably should be made explicit, and some error checking should be introduced to prevent
   mistakes.
   - Ex. The existing `vite` preset does many things in the presence of other presets. I think it
-    should more accurately be called `vite+node+yarn+emotion+devServer+library`. And if you were
+    should more accurately be called `vite+node+yarn+macros+devServer+library`. And if you were
     to run `npx confgen vite node`, it should probably error out and make you get more specific
     about _which_ vite preset you mean. I.e. `npx confgen vite+node node`. That would make the
     dependencies more explicit. And this would open up the possibility of...
@@ -125,5 +125,5 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 ### Might happen
 
 - While `confgen` doesn't currently bootstrap a working app, it might be close to being able to do
-  that. Running something like `npx confgen react devServer emotion storybook` could set up a working
+  that. Running something like `npx confgen vite react devServer` could set up a working
   repo.

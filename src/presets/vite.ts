@@ -16,7 +16,7 @@ export const vite: CommandGenerator = (presets, args) => [
         },
       ] as const)
     : []),
-  ...(presets.includes("emotion")
+  ...(presets.includes("macros")
     ? ([
         { command: "yarn", dev: true, pkg: "vite-plugin-babel-macros" },
       ] as const)
@@ -145,7 +145,7 @@ const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
       : ""
 
   const plugins: VitePlugin[] = []
-  if (presets.includes("emotion") || presets.includes("sql")) {
+  if (presets.includes("macros") || presets.includes("sql")) {
     plugins.push(["macros", "vite-plugin-babel-macros"])
   }
 

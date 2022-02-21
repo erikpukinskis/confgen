@@ -3,7 +3,7 @@ import { api } from "./api"
 import { bin } from "./bin"
 import { codespaces } from "./codespaces"
 import { devServer } from "./devServer"
-import { emotion } from "./emotion"
+import { macros } from "./macros"
 import { eslint } from "./eslint"
 import { git } from "./git"
 import { library } from "./library"
@@ -23,10 +23,10 @@ export const presets: Record<Preset, CommandGenerator> = {
   bin,
   codespaces,
   devServer,
-  emotion,
   eslint,
   git,
   library,
+  macros,
   node,
   prettier,
   react,

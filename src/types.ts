@@ -4,7 +4,7 @@ export const PRESETS = [
   "bin",
   "codespaces",
   "devServer",
-  "emotion",
+  "macros",
   "eslint",
   "git",
   "library",
