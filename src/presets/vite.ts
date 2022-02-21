@@ -55,6 +55,15 @@ export const vite: CommandGenerator = (presets, args) => [
         },
       ] as const)
     : []),
+  ...(presets.includes("react")
+    ? ([
+        {
+          command: "yarn",
+          pkg: "@vitejs/plugin-react",
+          dev: true,
+        },
+      ] as const)
+    : []),
   {
     command: "file",
     path: "vite.config.js",
@@ -145,6 +154,7 @@ const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
       : ""
 
   const plugins: VitePlugin[] = []
+
   if (presets.includes("macros") || presets.includes("sql")) {
     plugins.push(["macros", "vite-plugin-babel-macros"])
   }
@@ -161,6 +171,10 @@ const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
 
   if (presets.includes("sql")) {
     plugins.push(["sql", "vite-plugin-sql"])
+  }
+
+  if (presets.includes("react")) {
+    plugins.push(["react", "@vitejs/plugin-react"])
   }
 
   return `
