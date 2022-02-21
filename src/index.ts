@@ -11,6 +11,19 @@ import { runCommand } from "./commands"
 
 const [, , ...args] = process.argv
 
+// Eslint makes things better, and Prettier makes things pretty so we want
+// prettier to be last and eslint to be second-to-last
+if (args.includes("eslint")) {
+  const index = args.indexOf("eslint")
+  args.splice(index, 1)
+  args.push("eslint")
+}
+if (args.includes("prettier")) {
+  const index = args.indexOf("prettier")
+  args.splice(index, 1)
+  args.push("prettier")
+}
+
 const argsByPresetName = {} as Record<Preset, string[]>
 
 const presetNames = args.map((arg) => {
