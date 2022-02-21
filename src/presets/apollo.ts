@@ -57,7 +57,7 @@ const buildCodegenContents = (args: Record<Preset, string[]>) => {
     })
   }
 
-  const srcDir = args.devServer[0] || 'src'
+  const srcDir = args.devServer[0] || "src"
   return {
     generates: {
       [`./${srcDir}/__generated__/types.ts`]: typesConfig,
