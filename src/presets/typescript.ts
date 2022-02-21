@@ -20,6 +20,18 @@ export const typescript: CommandGenerator = (presets) => [
     command: "script",
     name: "check:types",
     script:
-      "tsc --noEmit --skipLibCheck; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
+      "tsc --noEmit; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
+  },
+  {
+    command: "file",
+    path: "tsconfig.json",
+    contents: {
+      compilerOptions: {
+        esModuleInterop: true,
+        forceConsistentCasingInFileNames: true,
+        strict: true,
+        skipLibCheck: true,
+      },
+    },
   },
 ]
