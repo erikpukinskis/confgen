@@ -111,6 +111,12 @@ const buildEslintrc = (presets: Preset[]) => ({
           "semi": ["error", "never"],
         }
       : undefined),
+    ...(presets.includes("react") && presets.includes("typescript")
+      ? {
+          // Doesn't work that great with const Foo: SomeType = ... style components
+          "react/prop-types": ["off"],
+        }
+      : undefined),
     "eol-last": ["error", "always"],
     "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"],

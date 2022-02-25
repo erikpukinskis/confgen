@@ -1,4 +1,4 @@
-**confgen** is a scaffolding tool in the genre of create-react-app, with a few notable difference:
+👷 **confgen** is a scaffolding tool in the genre of create-react-app, with a few notable difference:
 
 1. _It's idempotent_, you are meant to re-run it over and over as you continue building your app.
 
