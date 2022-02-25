@@ -34,7 +34,7 @@
     }
   },
   "scripts": {
-    "conf": "npx ts-node ./src/index.ts",
+    "conf": "npx ts-node --transpile-only ./src/index.ts",
     "confgen": "npm run build; ./dist/index.umd.js git yarn typescript vite library:Confgen bin node:fs:child_process:path eslint prettier",
     "build": "rm -rf dist/*; npm run build:vite; npm run build:types; npm run build:bin",
     "build:vite": "vite build",
