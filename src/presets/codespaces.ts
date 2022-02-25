@@ -18,4 +18,11 @@ export const codespaces: CommandGenerator = () => [
       "editor.detectIndentation": false,
     },
   },
+  {
+    command: "file",
+    path: ".devcontainer/devcontainer.json",
+    contents: {
+      extensions: ["erikpukinskis.chrome-codespaces-keymap"],
+    },
+  },
 ]
