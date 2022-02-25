@@ -1,4 +1,4 @@
-import { Command, CommandWithArgs } from "./types"
+import { CommandWithArgs, isDevPackageCommand } from "./types"
 import { execSync } from "child_process"
 import merge from "merge-objects"
 import { existsSync, readFileSync } from "fs"
@@ -8,15 +8,20 @@ import YAML from "yaml"
 
 type FileChanges = string | string[] | Record<string, unknown>
 
-const descriptions: Record<Command, string> = {
+const descriptions: Record<string, string> = {
   file: "Updating file",
   run: "Running command",
   script: "Updating script in package.json",
   yarn: "Adding package(s) to package.json",
+  yarnDev: "Adding development package(s) to package.json",
 }
+
 export const runCommand = (command: CommandWithArgs) => {
+  const descriptionKey = isDevPackageCommand(command)
+    ? "yarnDev"
+    : command.command
   console.log(`----------------------------------------
-👷 ${descriptions[command.command]}${
+👷 ${descriptions[descriptionKey]}${
     command.preset ? ` for preset [${command.preset}]` : ""
   }...
    ${command[Object.keys(command)[1] as keyof CommandWithArgs]}`)
