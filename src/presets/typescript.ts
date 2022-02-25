@@ -27,7 +27,7 @@ export const typescript: CommandGenerator = (presets) => [
     path: "tsconfig.json",
     contents: {
       compilerOptions: {
-        lib: ["es2017"],
+        lib: ["es2017", ...(presets.includes("react") ? ["dom"] : [])],
         esModuleInterop: true,
         forceConsistentCasingInFileNames: true,
         strict: true,
