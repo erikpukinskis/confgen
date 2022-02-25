@@ -62,7 +62,9 @@ export type DevPackageCommand = PackageCommand & {
   dev: true
 }
 
+export type Args = Record<Preset, string[]>
+
 export type CommandGenerator = (
   presets: Preset[],
-  args: Record<Preset, string[]>
+  args: Args
 ) => CommandWithArgs[]

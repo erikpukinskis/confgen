@@ -126,6 +126,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 ### Probably will happen
 
 - [x] Collect up the NPM packages to install them all at once (will be a bit faster)
+- Add type checking, linting, and formatting to the build command
 - Adding a `pojo` command. Right now the `vite` preset generates a POJO (Plain Old JavaScript Object)
   by concatenating top level blocks of JavaScript, like `{ server: { hmr: { port: 443 } } }`. This
   seems to be working for now. But it means that, unlike with JSON files, you can'd add your own

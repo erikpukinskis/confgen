@@ -1,4 +1,6 @@
-import { CommandGenerator } from "@/types"
+import { CommandGenerator, Args } from "@/types"
+
+const tsconfigPath = (args: Args) => args.typescript[0] || "tsconfig.json"
 
 export const typescript: CommandGenerator = (presets, args) => [
   {
@@ -11,8 +13,9 @@ export const typescript: CommandGenerator = (presets, args) => [
         {
           command: "script",
           name: "build:types",
-          script:
-            "tsc --declaration --emitDeclarationOnly --outDir dist --skipLibCheck; mv dist/index.d.ts dist/index.umd.d.ts",
+          script: `tsc --declaration --emitDeclarationOnly -p ${tsconfigPath(
+            args
+          )} --outDir dist --skipLibCheck; mv dist/index.d.ts dist/index.umd.d.ts`,
         },
       ] as const)
     : []),
@@ -24,7 +27,7 @@ export const typescript: CommandGenerator = (presets, args) => [
   },
   {
     command: "file",
-    path: args.typescript[0] || "tsconfig.json",
+    path: tsconfigPath(args),
     contents: {
       compilerOptions: {
         lib: ["es2017", ...(presets.includes("react") ? ["dom"] : [])],
