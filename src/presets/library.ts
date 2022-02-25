@@ -9,18 +9,18 @@ export const library: CommandGenerator = (presets) => [
 ]
 
 const buildScript = (presets: Preset[]) => {
-  let script = "rm -rf dist/*"
+  const scripts = ["rm -rf dist/*"]
   if (presets.includes("apollo")) {
-    script += "; npm run build:generate"
+    scripts.push("yarn run build:generate")
   }
   if (presets.includes("vite")) {
-    script += "; npm run build:vite"
+    scripts.push("yarn run build:vite")
   }
   if (presets.includes("typescript")) {
-    script += "; npm run build:types"
+    scripts.push("yarn run build:types")
   }
   if (presets.includes("bin")) {
-    script += "; npm run build:bin"
+    scripts.push("yarn run build:bin")
   }
-  return script
+  return scripts.join("; ")
 }

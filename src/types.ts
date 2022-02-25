@@ -1,4 +1,5 @@
 export const PRESETS = [
+  "all",
   "api",
   "apollo",
   "bin",

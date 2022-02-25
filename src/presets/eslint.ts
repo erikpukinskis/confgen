@@ -72,7 +72,7 @@ vendor
   },
   {
     command: "run",
-    script: "npm run fix:lint",
+    script: "yarn run fix:lint",
   },
 ]
 

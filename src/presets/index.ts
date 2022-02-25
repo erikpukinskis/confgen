@@ -1,5 +1,6 @@
-import { apollo } from "./apollo"
+import { all } from "./all"
 import { api } from "./api"
+import { apollo } from "./apollo"
 import { bin } from "./bin"
 import { codespaces } from "./codespaces"
 import { devServer } from "./devServer"
@@ -18,6 +19,7 @@ import { yarn } from "./yarn"
 import { Preset, CommandGenerator } from "@/types"
 
 export const presets: Record<Preset, CommandGenerator> = {
+  all,
   api,
   apollo,
   bin,

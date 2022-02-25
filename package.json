@@ -15,7 +15,7 @@
     "@types/merge-objects": "^1.0.0",
     "@typescript-eslint/eslint-plugin": "^5.12.1",
     "@typescript-eslint/parser": "^5.12.1",
-    "eslint": "^8.9.0",
+    "eslint": "^8.10.0",
     "prettier": "^2.5.1",
     "ts-node": "^10.5.0",
     "typescript": "^4.5.5",
@@ -34,15 +34,17 @@
     }
   },
   "scripts": {
-    "confgen": "npm run build; ./dist/index.umd.js git yarn typescript vite library:Confgen bin node:fs:child_process:path eslint prettier",
+    "confgen": "yarn run build; ./dist/index.umd.js git yarn typescript vite library:Confgen bin node:fs:child_process:path eslint prettier",
     "conf": "npx ts-node --transpile-only ./src/index.ts",
-    "build": "rm -rf dist/*; npm run build:vite; npm run build:types; npm run build:bin",
+    "build": "rm -rf dist/*; yarn run build:vite; yarn run build:types; yarn run build:bin",
     "build:vite": "vite build",
     "build:bin": "echo '#!/usr/bin/env node'|cat - dist/index.umd.js > /tmp/out && mv /tmp/out dist/index.umd.js; chmod a+x dist/index.umd.js",
     "fix:format": "prettier --write --ignore-path .gitignore .",
     "check:types": "tsc --noEmit; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
     "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.json --outDir dist --skipLibCheck; mv dist/index.d.ts dist/index.umd.d.ts",
     "fix:lint": "eslint --ignore-path .gitignore . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
-    "check:lint": "eslint --ignore-path .gitignore .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi"
+    "check:lint": "eslint --ignore-path .gitignore .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
+    "fix": "yarn fix:lint; yarn fix:format",
+    "all": "yarn build; yarn fix; yarn check:types; echo all"
   }
 }

@@ -79,7 +79,36 @@ It's recommended to add a `confgen` script to your package.json:
 }
 ```
 
-Then you can run `yarn run confgen` or `npm run confgen` and the relevant configs will be updated. It's important to add `@latest` so you get the most recent updates each time!
+Then you can run `yarn confgen` or `npm run confgen` and the relevant configs will be updated. It's important to add `@latest` so you get the most recent updates each time!
+
+### Running the scripts
+
+Depending on which presets you choose, lots of package.json scripts will be available:
+
+- `yarn build` runs all of the build sub-commands:
+  - `yarn build:generate` generates GraphQL code
+  - `yarn build:vite` packages the app into `dist/`
+  - `yarn build:types` generates typgins in `dist/`
+- `yarn start:api` starts an API server if you have one
+- `yarn start:dev` or `yarn start:[your folder]` starts the dev server
+- `yarn fix` runs all of the fix sub-commands:
+  - `yarn fix:lint` fixes all of the Eslint errors that can be auto-fixed
+  - `yarn fix:format` runs Prettier
+- `yarn check:types` looks for type errors
+- `yarn check:lint` looks for lint errors
+- `yarn test` runs the tests and `yarn test:watch` runs them in watch mode
+
+...and last but not least,
+
+- `yarn all the things!` runs all of the build, fix, check, and test scripts. Good for pre-publish
+
+If you want an easy way to publish a new version of your NPM package, check out my other package, [bump-n-pub](https://www.npmjs.com/package/bump-n-pub). My typical workflow for publishing a package is:
+
+```
+yarn confgen
+yarn all the things!
+npx bump-n-pub minor
+```
 
 ### Extending it
 
@@ -126,7 +155,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 ### Probably will happen
 
 - [x] Collect up the NPM packages to install them all at once (will be a bit faster)
-- Add type checking, linting, and formatting to the build command
+- [x] Add a mega `yarn all the things` that does the whole build, linting, formatting, type checking, and test which is nice to do before a deploy
 - Adding a `pojo` command. Right now the `vite` preset generates a POJO (Plain Old JavaScript Object)
   by concatenating top level blocks of JavaScript, like `{ server: { hmr: { port: 443 } } }`. This
   seems to be working for now. But it means that, unlike with JSON files, you can'd add your own

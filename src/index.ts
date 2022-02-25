@@ -14,6 +14,8 @@ import { existsSync, readFileSync } from "fs"
 
 const [, , ...args] = process.argv
 
+args.push("all")
+
 // Eslint makes things better, and Prettier makes things pretty so we want
 // prettier to be last and eslint to be second-to-last
 if (args.includes("eslint")) {
