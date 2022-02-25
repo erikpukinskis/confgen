@@ -1,9 +1,46 @@
 👷 **confgen** is a scaffolding tool in the genre of create-react-app, with a few notable difference:
 
-1. _It's idempotent_, you are meant to re-run it over and over as you continue building your app.
+1. _It's idempotent_, you can keep running it over time as you need to configure new features or reconfigure old ones.
 
-2. It _doesn't set up a working app_. The point is to automate the repetitive jobs of getting a repo
-   set up, not create an entire working app.
+2. It _doesn't set up a working app_. The point is to automate the repetitive an error prone task of getting all the different libraries working together. In other words: it sets up the files you probably won't touch much. The actual code you work on every day you set up yourself.
+
+You can think of confgen as an alternative to the monorepo strategy: It makes it easier to have different repos for different parts of your stack, because it helps keep a lot of the configuration up-to-date.
+
+## Example
+
+Let's say you have a **design system** package, and an **application** package, both of which use React and TypeScript. And let's say you want to enable Eslint. And your team is editing these apps in VScode.
+
+There's a bunch of gotchas associated with that:
+
+1. Your `tsconfig.json` needs to have the `"dom"` lib, otherwise you'll get type errors when trying to reference `document` and other browser globals.
+2. You also need to set the `jsx` flag to `"react"` for your TSX files to pass type check.
+3. The `@typescript-eslint` plugin needs to be enabled in your `.eslintrc`.
+4. And for that to work, the `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser` NPM packages need to be installed.
+5. `source.fixAll.eslint` needs to be added to your `editor.codeActionsOnSave` in the `.vscode/settings.json` file.
+6. And for that to work, you need a `.devcontainer` set up with the `dbaeumer.vscode-eslint` extension installed.
+7. You probably also want commands to run the linter, autofix, check the types, etc in your `package.json`.
+
+I could go on, but there's a lot to coordinate!
+
+And those are just the common pieces of configuration that you're going to share between your design system and your application.
+
+Let's say you're using Vite to build the **design system** as an NPM package. You'll need a command to generate typings, make sure they're named properly in your `dist/` folder, make sure everything is being exported properly in your `package.json`. Etc, etc.
+
+All of this is the kind of work that **confgen** does for you.
+
+## Who this is _not_ for
+
+Right now, confgen only works with a fairly opinionated set of tools. If you want to use Webpack or Angular, you're out of luck. This tool is really geared towards people who are using:
+
+* Vite
+* TypeScript
+* React
+* Apollo
+* Codespaces
+
+Although it is still quite useful even if you're just using a subset of those! If you just have an API server written in TypeScript on Vite, it can still do a lot for you.
+
+But if you are trying to coordinate configs across a very different stack than the above, it's probably not going to help much.
 
 ## Features
 
@@ -37,12 +74,12 @@ It's recommended to add a `confgen` script to your package.json:
 ```
 {
   "scripts: {
-    "confgen": "npx confgen git node yarn vite vitest library:MyPackage prettier"
+    "confgen": "npx confgen@latest git node yarn vite vitest library:MyPackage prettier"
   }
 }
 ```
 
-Then you can run `yarn run confgen` or `npm run confgen` and the relevant configs will be updated.
+Then you can run `yarn run confgen` or `npm run confgen` and the relevant configs will be updated. It's important to add `@latest` so you get the most recent updates each time!
 
 ### Extending it
 
@@ -89,23 +126,12 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 ### Probably will happen
 
 - [x] Collect up the NPM packages to install them all at once (will be a bit faster)
-- Right now there are implicit dependencies between presets like `vite` and `devServer`. I think
-  these probably should be made explicit, and some error checking should be introduced to prevent
-  mistakes.
-  - Ex. The existing `vite` preset does many things in the presence of other presets. I think it
-    should more accurately be called `vite+node+yarn+macros+devServer+library`. And if you were
-    to run `npx confgen vite node`, it should probably error out and make you get more specific
-    about _which_ vite preset you mean. I.e. `npx confgen vite+node node`. That would make the
-    dependencies more explicit. And this would open up the possibility of...
-- Making room for other "ecosystems". E.g. maybe there's a separate Webpack ecosystem preset like:
-  `npx cofgen webpack+node node`
 - Adding a `pojo` command. Right now the `vite` preset generates a POJO (Plain Old JavaScript Object)
   by concatenating top level blocks of JavaScript, like `{ server: { hmr: { port: 443 } } }`. This
   seems to be working for now. But it means that, unlike with JSON files, you can'd add your own
   config alongside that. The `vite` preset has to generate `vite.config.js` entirely. It would be
   better long term if that object could be merged with the existing JavaScript, so you could have
   commands like:
-
 ```js
 {
   command: 'pojo',
@@ -120,13 +146,10 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   },
 },
 ```
-
 - We should probably have some tests!
-- Separate the UMD config from the ESM. Maybe `confgen library:Foo` should just be ESM by default,
-  and `confgen library:Foo umd` would add UMD compatibility
 
 ### Might happen
 
-- While `confgen` doesn't currently bootstrap a working app, it might be close to being able to do
-  that. Running something like `npx confgen vite react devServer` could set up a working
-  repo.
+- Making room for other "ecosystems". E.g. maybe there's a separate Webpack ecosystem preset like:
+  `npx cofgen webpack node`.
+- While `confgen` doesn't currently bootstrap a working app, it might be close. Maybe in the future running `npx confgen vite react devServer` could fully bootstrap a runnable app.
