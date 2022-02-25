@@ -52,7 +52,7 @@ const buildCodegenContents = (args: Args) => {
     }
     typesConfig.plugins.push("typescript-resolvers", {
       add: {
-        content: "import { ResolverContext } from '../context';",
+        content: "import { ResolverContext } from '../context'; //@contextType",
       },
     })
   }

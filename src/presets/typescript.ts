@@ -35,6 +35,7 @@ export const typescript: CommandGenerator = (presets, args) => [
         forceConsistentCasingInFileNames: true,
         strict: true,
         skipLibCheck: true,
+        downlevelIteration: true,
         ...(presets.includes("react") ? { jsx: "react" } : undefined),
       },
     },
