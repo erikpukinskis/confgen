@@ -1,4 +1,4 @@
-import { CommandGenerator, Preset } from "@/types"
+import { CommandGenerator, Preset, Args } from "@/types"
 import { readFileSync } from "fs"
 
 export const vite: CommandGenerator = (presets, args) => [
@@ -71,7 +71,7 @@ export const vite: CommandGenerator = (presets, args) => [
   },
 ]
 
-const buildBuildCommand = (args: Record<Preset, string[]>) => {
+const buildBuildCommand = (args: Args) => {
   const command = "vite build"
   if (args.library[1]) {
     return `${command} --mode ${args.library[1]}`
@@ -92,7 +92,7 @@ const buildDistConfig = () => ({
   },
 })
 
-const buildViteConfig = (presets: Preset[], args: Record<Preset, string[]>) => {
+const buildViteConfig = (presets: Preset[], args: Args) => {
   const libraryName = presets.includes("library") ? args.library[0] : undefined
   if (presets.includes("library") && !libraryName) {
     throw new Error(

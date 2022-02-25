@@ -1,4 +1,4 @@
-import { CommandGenerator, Preset } from "@/types"
+import { CommandGenerator, Args } from "@/types"
 
 export const apollo: CommandGenerator = (presets, args) => [
   {
@@ -41,7 +41,7 @@ export const apollo: CommandGenerator = (presets, args) => [
     : []),
 ]
 
-const buildCodegenContents = (args: Record<Preset, string[]>) => {
+const buildCodegenContents = (args: Args) => {
   const typesConfig = {
     plugins: ["typescript"],
   } as CodegenConfig

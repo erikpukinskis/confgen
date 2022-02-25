@@ -6,6 +6,7 @@ import {
   isDevPackageCommand,
   PackageCommand,
   DevPackageCommand,
+  Args,
 } from "./types"
 import { runCommand } from "./commands"
 import path from "path"
@@ -43,7 +44,13 @@ console.log(`----------------------------------------
 👷 Running confgen@${getVersion()}
 ----------------------------------------`)
 
-const argsByPresetName = {} as Record<Preset, string[]>
+const argsByPresetName = PRESETS.reduce(
+  (args, preset) => ({
+    ...args,
+    [preset]: [],
+  }),
+  {} as Args
+)
 
 const presetNames = args.map((arg) => {
   const [presetName, ...presetArgs] = arg.split(":") as [Preset, ...string[]]
