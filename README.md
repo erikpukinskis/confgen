@@ -10,18 +10,21 @@
 All of these are optional, depending on which presets you choose:
 
 - `api:[folder]` Adds a `start:api` command to start the service in [folder]
-- `apollo` Adds code generation build script
+- `apollo:client` Generate types for Apollo queries for the browser
+- `apollo:server` Generate types for Apollo Server resolvers
 - `bin` Adds a "bin" to your package JSON
 - `codespaces` sets up some good VSCode defaults, and adds extensions eslint, prettier, etc presets
-- `devServer` Configures a development server
-- `macros` enables babel macros in Vite
+- `devServer` Configures a `start:dev` command for starting a dev server
 - `eslint` sets up linting with fix-on-save in Codespaces
 - `git` Pre-populates gitignore
 - `library:[PackageName]:[mode]` Makes your package importable via UMD and ES
+- `macros` enables babel macros in Vite
 - `node:[fs]:[child_process]:[etc...]` Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
 - `prettier` set up code formatting with format-on-save in Codespaces
 - `react` ensures React is set up properly with eslint, typescript, etc
+- `sql` sets up Vite plugin for importing sql
 - `typescript` Adds type checking commands, and sets up exported typings
+- `vite` Sets up Vite, with a dev server, library build or both depending on the other presets
 - `vitest` Adds test scripts
 - `yarn` Creates a yarn.lock file
 
