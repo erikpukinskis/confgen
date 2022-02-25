@@ -60,7 +60,7 @@ All of these are optional, depending on which presets you choose:
 - `prettier` set up code formatting with format-on-save in Codespaces
 - `react` ensures React is set up properly with eslint, typescript, etc
 - `sql` sets up Vite plugin for importing sql
-- `typescript` Adds type checking commands, and sets up exported typings
+- `typescript:[tsconfig path]` Adds type checking commands, and sets up exported typings
 - `vite` Sets up Vite, with a dev server, library build or both depending on the other presets
 - `vitest` Adds test scripts
 - `yarn` Creates a yarn.lock file

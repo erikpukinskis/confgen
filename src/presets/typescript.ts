@@ -1,6 +1,6 @@
 import { CommandGenerator } from "@/types"
 
-export const typescript: CommandGenerator = (presets) => [
+export const typescript: CommandGenerator = (presets, args) => [
   {
     command: "yarn",
     dev: true,
@@ -24,7 +24,7 @@ export const typescript: CommandGenerator = (presets) => [
   },
   {
     command: "file",
-    path: "tsconfig.json",
+    path: args.typescript[0] || "tsconfig.json",
     contents: {
       compilerOptions: {
         lib: ["es2017", ...(presets.includes("react") ? ["dom"] : [])],
