@@ -32,11 +32,11 @@ All of this is the kind of work that **confgen** does for you.
 
 Right now, confgen only works with a fairly opinionated set of tools. If you want to use Webpack or Angular, you're out of luck. This tool is really geared towards people who are using:
 
-* Vite
-* TypeScript
-* React
-* Apollo
-* Codespaces
+- Vite
+- TypeScript
+- React
+- Apollo
+- Codespaces
 
 Although it is still quite useful even if you're just using a subset of those! If you just have an API server written in TypeScript on Vite, it can still do a lot for you.
 
@@ -132,6 +132,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   config alongside that. The `vite` preset has to generate `vite.config.js` entirely. It would be
   better long term if that object could be merged with the existing JavaScript, so you could have
   commands like:
+
 ```js
 {
   command: 'pojo',
@@ -146,6 +147,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   },
 },
 ```
+
 - We should probably have some tests!
 
 ### Might happen

@@ -21,7 +21,7 @@ export const eslint: CommandGenerator = (presets) => [
         {
           command: "yarn",
           dev: true,
-          pkg: "eslint-plugin-react",
+          pkg: "eslint-plugin-react@7.28.0",
         },
       ] as const)
     : []),
