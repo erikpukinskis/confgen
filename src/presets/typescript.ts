@@ -27,6 +27,7 @@ export const typescript: CommandGenerator = (presets) => [
     path: "tsconfig.json",
     contents: {
       compilerOptions: {
+        lib: "ES2017",
         esModuleInterop: true,
         forceConsistentCasingInFileNames: true,
         strict: true,
