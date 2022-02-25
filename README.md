@@ -14,7 +14,7 @@ All of these are optional, depending on which presets you choose:
 - `apollo:server` Generate types for Apollo Server resolvers
 - `bin` Adds a "bin" to your package JSON
 - `codespaces` sets up some good VSCode defaults, and adds extensions eslint, prettier, etc presets
-- `devServer` Configures a `start:dev` command for starting a dev server
+- `devServer:[folder]` Configures command for starting a dev server. If [folder] is provided, the command will be `start:[folder]`, otherwise it will be `start:dev` by default.
 - `eslint` sets up linting with fix-on-save in Codespaces
 - `git` Pre-populates gitignore
 - `library:[PackageName]:[mode]` Makes your package importable via UMD and ES

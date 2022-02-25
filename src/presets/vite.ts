@@ -25,7 +25,7 @@ export const vite: CommandGenerator = (presets, args) => [
     ? ([
         {
           command: "script",
-          name: "start:dev",
+          name: `start:${args.devServer[0] || "dev"}`,
           script: `vite serve ${
             args.devServer[0] || ""
           } --config vite.config.js`,
