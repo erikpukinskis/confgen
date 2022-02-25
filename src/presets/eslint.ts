@@ -67,7 +67,8 @@ vendor
   {
     command: "script",
     name: "fix:lint",
-    script: "eslint --ignore-path .gitignore . --fix",
+    script:
+      "eslint --ignore-path .gitignore . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
   },
   {
     command: "run",
