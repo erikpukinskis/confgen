@@ -8,6 +8,8 @@ import {
   DevPackageCommand,
 } from "./types"
 import { runCommand } from "./commands"
+import path from "path"
+import { existsSync, readFileSync } from "fs"
 
 const [, , ...args] = process.argv
 
@@ -23,6 +25,23 @@ if (args.includes("prettier")) {
   args.splice(index, 1)
   args.push("prettier")
 }
+
+const getVersion = () => {
+  let packageJsonPath = path.join(__dirname, "..", "package.json")
+  if (!existsSync(packageJsonPath)) {
+    packageJsonPath = path.join(__dirname, "..", "..", "package.json")
+  }
+  if (!existsSync(packageJsonPath)) {
+    return "unknown"
+  }
+  const contents = readFileSync(packageJsonPath).toString()
+  const json = JSON.parse(contents)
+  return json.version
+}
+
+console.log(`----------------------------------------
+👷 Running confgen@${getVersion()}
+----------------------------------------`)
 
 const argsByPresetName = {} as Record<Preset, string[]>
 

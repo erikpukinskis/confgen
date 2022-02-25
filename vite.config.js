@@ -11,7 +11,7 @@ export default defineConfig({
 
   plugins: [
     commonjsExternals({
-      "externals": ["fs", "child_process"],
+      "externals": ["fs", "child_process", "path"],
     }),
   ],
 
