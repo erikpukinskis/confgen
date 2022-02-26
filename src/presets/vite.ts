@@ -187,7 +187,7 @@ export default defineConfig({
   ${jsdomStuff}
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "./${args.devServer[0] || "src"}"),
     },
   },
   ${pluginConfig(plugins)}
