@@ -1,6 +1,6 @@
 import { CommandGenerator } from "@/types"
 
-export const codespaces: CommandGenerator = () => [
+export const codespaces: CommandGenerator = (presets) => [
   {
     command: "file",
     path: ".vscode/settings.json",
@@ -25,4 +25,15 @@ export const codespaces: CommandGenerator = () => [
       extensions: ["erikpukinskis.chrome-codespaces-keymap"],
     },
   },
+  ...(presets.includes("yarn")
+    ? ([
+        {
+          command: "file",
+          path: ".devcontainer/devcontainer.json",
+          contents: {
+            postCreateCommand: ["yarn"],
+          },
+        },
+      ] as const)
+    : []),
 ]
