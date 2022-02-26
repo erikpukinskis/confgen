@@ -1,7 +1,7 @@
 {
   "name": "confgen",
   "license": "MIT",
-  "version": "0.62.0",
+  "version": "0.63.0",
   "bin": "./dist/index.umd.js",
   "dependencies": {
     "fs-extra": "^10.0.0",
