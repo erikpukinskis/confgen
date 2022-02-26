@@ -11,11 +11,18 @@ export const typescript: CommandGenerator = (presets, args) => [
   ...(presets.includes("library")
     ? ([
         {
+          command: "yarn",
+          dev: true,
+          pkg: "tsc-alias",
+        },
+        {
           command: "script",
           name: "build:types",
           script: `tsc --declaration --emitDeclarationOnly -p ${tsconfigPath(
             args
-          )} --outDir dist --skipLibCheck; mv dist/index.d.ts dist/index.umd.d.ts`,
+          )} --skipLibCheck; tsc-alias -p ${tsconfigPath(
+            args
+          )}; mv dist/index.d.ts dist/index.umd.d.ts`,
         },
       ] as const)
     : []),
@@ -37,6 +44,7 @@ export const typescript: CommandGenerator = (presets, args) => [
         skipLibCheck: true,
         downlevelIteration: true,
         ...(presets.includes("react") ? { jsx: "react" } : undefined),
+        ...(presets.includes("library") ? { "outDir": "dist" } : undefined),
       },
     },
   },
