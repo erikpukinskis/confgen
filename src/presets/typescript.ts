@@ -29,8 +29,9 @@ export const typescript: CommandGenerator = (presets, args) => [
   {
     command: "script",
     name: "check:types",
-    script:
-      "tsc --noEmit; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
+    script: `tsc --noEmit -p ${tsconfigPath(
+      args
+    )}; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi`,
   },
   {
     command: "file",
