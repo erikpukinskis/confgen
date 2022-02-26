@@ -44,7 +44,7 @@ export const typescript: CommandGenerator = (presets, args) => [
         skipLibCheck: true,
         downlevelIteration: true,
         ...(presets.includes("react") ? { jsx: "react" } : undefined),
-        ...(presets.includes("library") ? { "outDir": "dist" } : undefined),
+        ...(presets.includes("library") ? { outDir: "dist" } : undefined),
       },
     },
   },
