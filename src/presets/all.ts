@@ -25,7 +25,8 @@ const buildFixCommand = (presets: Preset[]) => {
 }
 
 const buildAllOfTheThingsCommand = (presets: Preset[]) => {
-  const scripts = []
+  const scripts = ["yarn"]
+
   if (presets.includes("library")) {
     scripts.push("yarn build")
   }

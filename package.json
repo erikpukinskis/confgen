@@ -46,6 +46,6 @@
     "fix:lint": "eslint --ignore-path .gitignore . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
     "check:lint": "eslint --ignore-path .gitignore .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
     "fix": "yarn fix:lint; yarn fix:format",
-    "all": "yarn build; yarn fix; yarn check:types; echo all"
+    "all": "yarn; yarn build; yarn fix; yarn check:types; echo all"
   }
 }
