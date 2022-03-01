@@ -36,10 +36,13 @@ const commands = {
   file: ({
     path,
     contents,
+    skipIfExists,
   }: {
     path: string
     contents: string | string[] | Record<string, unknown>
+    skipIfExists?: boolean
   }) => {
+    if (skipIfExists && existsSync(path)) return
     syncFile(path, contents)
   },
   run: ({ script }: { script: string }) => {

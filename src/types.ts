@@ -28,6 +28,7 @@ export type CommandWithArgs = { preset?: Preset } & (
       command: "file"
       path: string
       contents: string | string[] | Record<string, unknown>
+      skipIfExists?: boolean
     }
   | {
       command: "run"

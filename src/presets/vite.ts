@@ -44,6 +44,12 @@ export const vite: CommandGenerator = (presets, args) => [
           path: "package.json",
           contents: buildDistConfig(),
         },
+        {
+          command: "file",
+          path: `src/index.${libraryExtension(presets)}`,
+          skipIfExists: true,
+          contents: buildDefaultIndex(args),
+        },
       ] as const)
     : []),
   ...(presets.includes("sql")
@@ -60,6 +66,15 @@ export const vite: CommandGenerator = (presets, args) => [
         {
           command: "yarn",
           pkg: "@vitejs/plugin-react",
+          dev: true,
+        },
+      ] as const)
+    : []),
+  ...(presets.includes("vitest") && presets.includes("react")
+    ? ([
+        {
+          command: "yarn",
+          pkg: "jsdom",
           dev: true,
         },
       ] as const)
@@ -230,4 +245,11 @@ ${plugins
   .join(",\n")}
   ],
 
+`
+
+const libraryExtension = (presets: Preset[]) =>
+  presets.includes("typescript") ? "ts" : "js"
+
+const buildDefaultIndex = (args: Args) => `
+  export const ${args.library[0] || "MyLib"} => "hello, world!"
 `
