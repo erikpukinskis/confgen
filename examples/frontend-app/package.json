@@ -1,0 +1,33 @@
+{
+  "scripts": {
+    "confgen": "npx ts-node --transpile-only ../../src/index.ts yarn codespaces vite vitest react library:FrontendLib apollo:client",
+    "build:vite": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "build": "rm -rf dist/*; yarn run build:generate; yarn run build:vite",
+    "build:generate": "rm -f ./src/__generated__/*; graphql-codegen",
+    "all": "yarn; yarn build; yarn test; echo all"
+  },
+  "dependencies": {
+    "react": "^17.0.2"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^2.6.2",
+    "@vitejs/plugin-react": "^1.2.0",
+    "graphql": "^16.3.0",
+    "jsdom": "^19.0.0",
+    "vite": "^2.8.5",
+    "vitest": "^0.5.8"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
+  }
+}
