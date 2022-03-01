@@ -1,15 +1,20 @@
 {
   "scripts": {
-    "confgen": "npx ts-node --transpile-only ../../src/index.ts vite library:BackendLib node:fs apollo:server",
+    "confgen": "npx ts-node --transpile-only ../../src/index.ts vite typescript library:BackendLib node:fs apollo:server",
     "build:vite": "vite build",
-    "build": "rm -rf dist/*; yarn run build:generate; yarn run build:vite",
+    "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.json --skipLibCheck; tsc-alias -p tsconfig.json; mv dist/index.d.ts dist/index.umd.d.ts",
+    "check:types": "tsc --noEmit -p tsconfig.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
+    "build": "rm -rf dist/*; yarn run build:generate; yarn run build:vite; yarn run build:types",
     "build:generate": "rm -f ./src/__generated__/*; graphql-codegen",
-    "all": "yarn; yarn build; echo all"
+    "all": "yarn; yarn build; yarn check:types; echo all"
   },
   "devDependencies": {
+    "@graphql-codegen/add": "^3.1.1",
     "@graphql-codegen/cli": "^2.6.2",
     "@graphql-codegen/typescript-resolvers": "^2.5.2",
     "graphql": "^16.3.0",
+    "tsc-alias": "^1.6.3",
+    "typescript": "^4.6.2",
     "vite": "^2.8.5",
     "vite-plugin-commonjs-externals": "^0.1.1"
   },
