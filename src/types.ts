@@ -30,12 +30,12 @@ export type FileCommand = {
   merge?: "if-not-exists" | "prefer-existing" | "prefer-preset"
 }
 
-type RunCommand = {
+export type RunCommand = {
   command: "run"
   script: string
 }
 
-type ScriptCommand = {
+export type ScriptCommand = {
   command: "script"
   name: string
   script: string
@@ -46,28 +46,29 @@ export type CommandWithArgs = { preset?: Preset } & (
   | RunCommand
   | ScriptCommand
   | PackageCommand
-  | DevPackageCommand
 )
 
-export function isPackageCommand(
+export function isDistPackageCommand(
   command: CommandWithArgs
-): command is PackageCommand {
+): command is DistPackageCommand {
   return command.command === "yarn" && !(command as DevPackageCommand).dev
 }
 
-export type PackageCommand = {
+export type DistPackageCommand = {
   command: "yarn"
   pkg: string
 }
+
+export type DevPackageCommand = DistPackageCommand & {
+  dev: true
+}
+
+export type PackageCommand = DistPackageCommand | DevPackageCommand
 
 export function isDevPackageCommand(
   command: CommandWithArgs
 ): command is DevPackageCommand {
   return command.command === "yarn" && (command as DevPackageCommand).dev
-}
-
-export type DevPackageCommand = PackageCommand & {
-  dev: true
 }
 
 export type Args = Record<Preset, string[]>

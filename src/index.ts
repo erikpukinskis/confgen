@@ -2,10 +2,10 @@ import { presets } from "./presets"
 import {
   PRESETS,
   Preset,
-  isPackageCommand,
-  isDevPackageCommand,
-  PackageCommand,
+  DistPackageCommand,
+  isDistPackageCommand,
   DevPackageCommand,
+  isDevPackageCommand,
   Args,
 } from "./types"
 import { runCommand } from "./commands"
@@ -76,8 +76,8 @@ for (const presetName of presetNames) {
   generatedCommands.push(...generated)
 }
 
-const packageCommands =
-  generatedCommands.filter<PackageCommand>(isPackageCommand)
+const distPackageCommands =
+  generatedCommands.filter<DistPackageCommand>(isDistPackageCommand)
 
 const devPackageCommands =
   generatedCommands.filter<DevPackageCommand>(isDevPackageCommand)
@@ -86,9 +86,9 @@ const otherCommands = generatedCommands.filter(
   ({ command }) => command !== "yarn"
 )
 
-const packages = packageCommands.map(({ pkg }) => pkg).join(" ")
-if (packages) {
-  runCommand({ command: "yarn", pkg: packages })
+const distPackages = distPackageCommands.map(({ pkg }) => pkg).join(" ")
+if (distPackages) {
+  runCommand({ command: "yarn", pkg: distPackages })
 }
 
 const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")

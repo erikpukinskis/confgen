@@ -1,16 +1,21 @@
 {
   "scripts": {
-    "confgen": "npx ts-node --transpile-only ../../src/index.ts vite react library:FrontendLib",
+    "confgen": "npx ts-node --transpile-only ../../src/index.ts vite react typescript library:FrontendLib devServer:docs",
+    "start:docs": "vite serve docs --config vite.config.js",
     "build:vite": "vite build",
-    "build": "rm -rf dist/*; yarn run build:vite",
-    "all": "yarn; yarn build; echo all"
+    "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.json --skipLibCheck; tsc-alias -p tsconfig.json; mv dist/index.d.ts dist/index.umd.d.ts",
+    "check:types": "tsc --noEmit -p tsconfig.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
+    "build": "rm -rf dist/*; yarn run build:vite; yarn run build:types",
+    "all": "yarn; yarn build; yarn check:types; echo all"
   },
   "dependencies": {
     "react": "^17.0.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^1.2.0",
-    "vite": "^2.8.5"
+    "tsc-alias": "^1.6.3",
+    "typescript": "^4.6.2",
+    "vite": "^2.8.6"
   },
   "files": [
     "dist"

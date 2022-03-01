@@ -37,13 +37,13 @@ export const apollo: CommandGenerator = (presets, args) => {
             merge: "if-not-exists",
             contents: `export type ResolverContext = {
   db: "..." // replace with your resolver context
-}`
-          }
+}`,
+          },
         ] as const)
       : []),
     ...(confgenHasSchema()
       ? []
-      : [
+      : ([
           {
             command: "file",
             path: "schema.graphql",
@@ -57,9 +57,9 @@ export const apollo: CommandGenerator = (presets, args) => {
             path: "codegen.yml",
             contents: {
               schema: "schema.graphql",
-            }
+            },
           },
-        ]),
+        ] as const)),
     {
       command: "file",
       path: "codegen.yml",
@@ -83,14 +83,14 @@ const buildCodegenContents = (args: Args) => {
     plugins: ["typescript"],
   } as CodegenConfig
 
-    typesConfig.config = {
-      contextType: "ResolverContext",
-    }
-    typesConfig.plugins.push("typescript-resolvers", {
-      add: {
-        content: "import { ResolverContext } from '../context'; //@contextType",
-      },
-    })
+  typesConfig.config = {
+    contextType: "ResolverContext",
+  }
+  typesConfig.plugins.push("typescript-resolvers", {
+    add: {
+      content: "import { ResolverContext } from '../context'; //@contextType",
+    },
+  })
 
   const srcDir = args.devServer[0] || "src"
   return {

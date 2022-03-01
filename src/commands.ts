@@ -1,4 +1,11 @@
-import { CommandWithArgs, isDevPackageCommand, FileCommand } from "./types"
+import {
+  CommandWithArgs,
+  isDevPackageCommand,
+  FileCommand,
+  ScriptCommand,
+  RunCommand,
+  PackageCommand,
+} from "./types"
 import { execSync } from "child_process"
 import merge from "merge-objects"
 import { existsSync, readFileSync } from "fs"
@@ -37,19 +44,23 @@ const commands = {
     if (merge === "if-not-exists" && existsSync(path)) return
     syncFile(path, contents, merge === "prefer-existing")
   },
-  run: ({ script }: { script: string }) => {
+  run: ({ script }: RunCommand) => {
     execSync(script, { stdio: "inherit" })
   },
-  script: ({ name, script }: { name: string; script: string }) => {
-    amendJson("package.json", {
-      scripts: {
-        [name]: script,
+  script: ({ name, script }: ScriptCommand) => {
+    amendJson(
+      "package.json",
+      {
+        scripts: {
+          [name]: script,
+        },
       },
-    })
+      false
+    )
   },
-  yarn: ({ dev, pkg }: { dev?: boolean; pkg: string }) => {
-    const dashDev = dev ? "-D " : ""
-    execSync(`yarn add ${dashDev}${pkg}`, { stdio: "inherit" })
+  yarn: (command: PackageCommand) => {
+    const dashDev = isDevPackageCommand(command) ? "-D " : ""
+    execSync(`yarn add ${dashDev}${command.pkg}`, { stdio: "inherit" })
   },
 } as const
 

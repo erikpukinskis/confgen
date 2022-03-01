@@ -1,23 +1,22 @@
 #/bin/bash
 cd examples
-rm -rf backend-lib/*
-echo "----------------------------------------
+# rm -rf backend-lib/*
+# echo "----------------------------------------
 
-backend-lib example
+# backend-lib example
 
-----------------------------------------
-"
-cd backend-lib
-echo '{
-  "scripts": {
-    "confgen": "npx ts-node --transpile-only ../../src/index.ts vite typescript library:BackendLib node:fs apollo:server"
-  }
-}' > package.json
-yarn confgen
-yarn all the things!
+# ----------------------------------------
+# "
+# cd backend-lib
+# echo '{
+#   "scripts": {
+#     "confgen": "npx ts-node --transpile-only ../../src/index.ts vite typescript library:BackendLib node:fs apollo:server"
+#   }
+# }' > package.json
+# yarn confgen
+# yarn all the things!
 
-exit 0
-cd ../
+# cd ../
 rm -rf frontend-lib/*
 echo "----------------------------------------
 
@@ -28,11 +27,12 @@ frontend-lib example
 cd frontend-lib
 echo '{
   "scripts": {
-    "confgen": "npx ts-node --transpile-only ../../src/index.ts vite react library:FrontendLib"
+    "confgen": "npx ts-node --transpile-only ../../src/index.ts vite react typescript library:FrontendLib devServer:docs"
   }
 }' > package.json
 yarn confgen
 yarn all the things!
+exit 0
 cd ../
 rm -rf frontend-app/*
 echo "----------------------------------------
