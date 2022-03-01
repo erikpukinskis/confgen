@@ -46,8 +46,8 @@ export const vite: CommandGenerator = (presets, args) => [
         },
         {
           command: "file",
-          path: `src/index.${libraryExtension(presets)}`,
-          skipIfExists: true,
+          path: buildEntryPointpath(presets),
+          merge: "if-not-exists",
           contents: buildDefaultIndex(args),
         },
       ] as const)
@@ -121,7 +121,7 @@ const buildViteConfig = (presets: Preset[], args: Args) => {
   build: {
     sourcemap: true,
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
+      entry: path.resolve(__dirname, "${buildEntryPointpath(presets)}"),
       name: "${libraryName}",
       fileName: (format) => \`index.\${format}.js\`,
     },
@@ -247,9 +247,9 @@ ${plugins
 
 `
 
-const libraryExtension = (presets: Preset[]) =>
-  presets.includes("typescript") ? "ts" : "js"
+const buildEntryPointpath = (presets: Preset[]) =>
+  `src/index.${presets.includes("typescript") ? "ts" : "js"}`
 
 const buildDefaultIndex = (args: Args) => `
-  export const ${args.library[0] || "MyLib"} => "hello, world!"
+  export const ${args.library[0] || "MyLib"} = () => "hello, world!"
 `

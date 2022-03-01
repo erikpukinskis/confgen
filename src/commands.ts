@@ -1,4 +1,4 @@
-import { CommandWithArgs, isDevPackageCommand } from "./types"
+import { CommandWithArgs, isDevPackageCommand, FileCommand } from "./types"
 import { execSync } from "child_process"
 import merge from "merge-objects"
 import { existsSync, readFileSync } from "fs"
@@ -33,17 +33,9 @@ export const runCommand = (command: CommandWithArgs) => {
 }
 
 const commands = {
-  file: ({
-    path,
-    contents,
-    skipIfExists,
-  }: {
-    path: string
-    contents: string | string[] | Record<string, unknown>
-    skipIfExists?: boolean
-  }) => {
-    if (skipIfExists && existsSync(path)) return
-    syncFile(path, contents)
+  file: ({ path, contents, merge }: FileCommand) => {
+    if (merge === "if-not-exists" && existsSync(path)) return
+    syncFile(path, contents, merge === "prefer-existing")
   },
   run: ({ script }: { script: string }) => {
     execSync(script, { stdio: "inherit" })
@@ -61,15 +53,19 @@ const commands = {
   },
 } as const
 
-const syncFile = (filename: string, changes: FileChanges) => {
+const syncFile = (
+  filename: string,
+  changes: FileChanges,
+  preferExisting: boolean
+) => {
   if (/[.]ya?ml$/.test(filename)) {
-    amendYaml(filename, changes)
+    amendYaml(filename, changes, preferExisting)
   } else if (Array.isArray(changes)) {
     ensureLines(filename, changes)
   } else if (typeof changes === "string") {
     outputFileSync(filename, changes)
   } else {
-    amendJson(filename, changes)
+    amendJson(filename, changes, preferExisting)
   }
 }
 
@@ -85,12 +81,18 @@ const ensureLines = (filename: string, newLines: string[]) => {
   outputFileSync(filename, lines.join("\n"))
 }
 
-const amendJson = (filename: string, json: Record<string, unknown>) => {
+const amendJson = (
+  filename: string,
+  json: Record<string, unknown>,
+  preferExisting: boolean
+) => {
   const originalContents = existsSync(filename)
     ? readFileSync(filename).toString()
     : "{}"
   const originalJson = JSON.parse(originalContents)
-  const newJson = dedupe(merge(originalJson, json))
+  const newJson = dedupe(
+    preferExisting ? merge(json, originalJson) : merge(originalJson, json)
+  )
   outputFileSync(filename, JSON.stringify(newJson, null, 2))
 }
 
@@ -165,7 +167,11 @@ const specialUnique = (arr: unknown[]) => {
   return arr.filter((item) => item != null) // remove the undefineds
 }
 
-const amendYaml = (filename: string, changes: FileChanges) => {
+const amendYaml = (
+  filename: string,
+  changes: FileChanges,
+  preferExisting: boolean
+) => {
   if (typeof changes === "string" || Array.isArray(changes)) {
     throw new Error(
       `Cannot amend YAML file ${filename} with a string or array. Contents must be an object.`
@@ -182,7 +188,9 @@ const amendYaml = (filename: string, changes: FileChanges) => {
     )
   }
 
-  const newYaml = dedupe(merge(originalYaml, changes))
+  const newYaml = dedupe(
+    preferExisting ? merge(changes, originalYaml) : merge(originalYaml, changes)
+  )
 
   outputFileSync(filename, YAML.stringify(newYaml))
 }

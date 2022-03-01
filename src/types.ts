@@ -23,22 +23,28 @@ export type Preset = typeof PRESETS[number]
 
 export type Command = "file" | "run" | "script" | "yarn"
 
+export type FileCommand = {
+  command: "file"
+  path: string
+  contents: string | string[] | Record<string, unknown>
+  merge?: "if-not-exists" | "prefer-existing" | "prefer-preset"
+}
+
+type RunCommand = {
+  command: "run"
+  script: string
+}
+
+type ScriptCommand = {
+  command: "script"
+  name: string
+  script: string
+}
+
 export type CommandWithArgs = { preset?: Preset } & (
-  | {
-      command: "file"
-      path: string
-      contents: string | string[] | Record<string, unknown>
-      skipIfExists?: boolean
-    }
-  | {
-      command: "run"
-      script: string
-    }
-  | {
-      command: "script"
-      name: string
-      script: string
-    }
+  | FileCommand
+  | RunCommand
+  | ScriptCommand
   | PackageCommand
   | DevPackageCommand
 )
