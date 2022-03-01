@@ -1,0 +1,8 @@
+{
+  "extensions": [
+    "erikpukinskis.chrome-codespaces-keymap"
+  ],
+  "postCreateCommand": [
+    "yarn"
+  ]
+}
