@@ -1,8 +1,8 @@
 export const PRESETS = [
   "all",
   "api",
-  "apollo",
   "bin",
+  "codegen",
   "codespaces",
   "devServer",
   "macros",

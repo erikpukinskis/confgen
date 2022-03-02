@@ -47,8 +47,9 @@ But if you are trying to coordinate configs across a very different stack than t
 All of these are optional, depending on which presets you choose:
 
 - `api:[folder]` Adds a `start:api` command to start the service in [folder]
-- `apollo:client` Generate types for Apollo queries for the browser
-- `apollo:server` Generate types for Apollo Server resolvers
+- `codegen:resolvers` Generate types for Apollo Server resolvers
+- `codegen:schema` Compiles a GraphQL schema to TypeScript so it it can be exported from a library
+- `codegen:operations` Compiles a typed `gql` function for all of your Apollo Client queries and mutations
 - `bin` Adds a "bin" to your package JSON
 - `codespaces` sets up some good VSCode defaults, and adds extensions eslint, prettier, etc presets
 - `devServer:[folder]` Configures command for starting a dev server. If [folder] is provided, the command will be `start:[folder]`, otherwise it will be `start:dev` by default.
@@ -156,8 +157,8 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 - [x] Collect up the NPM packages to install them all at once (will be a bit faster)
 - [x] Add a mega `yarn all the things` that does the whole build, linting, formatting, type checking, and test which is nice to do before a deploy
-- Use https://www.npmjs.com/package/@rollup/plugin-typescript or https://github.com/ezolenko/rollup-plugin-typescript2 instead of tsc to generate types. Right now, tsc is just generating a .d.ts for every ts file, and these have path aliases and stuff in them that don't work after build. Maybe the rollup plugin will be smarter?
-- Add apollo:client type generation
+- [x] ~Use https://www.npmjs.com/package/@rollup/plugin-typescript or https://github.com/ezolenko/rollup-plugin-typescript2 instead of tsc to generate types. Right now, tsc is just generating a .d.ts for every ts file, and these have path aliases and stuff in them that don't work after build. Maybe the rollup plugin will be smarter?~ Edit: Turns out the simplest way to do this is just use [tsc-alias](https://www.npmjs.com/package/tsc-alias). All that other stuff is insanely complex (ttypescript seems like a real hack).
+- [x] Add Apollo Client query type generation
 - Need to be more specific about these devServer/library folders. I don't want to open confgen up to a multi-package kind of situation, but currently we do technically support multiple packages, you could have any combo of: src, devServer, and api folders
 - Adding a `pojo` command. Right now the `vite` preset generates a POJO (Plain Old JavaScript Object)
   by concatenating top level blocks of JavaScript, like `{ server: { hmr: { port: 443 } } }`. This
