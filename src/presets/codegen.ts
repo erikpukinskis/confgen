@@ -87,6 +87,10 @@ export const codegen: CommandGenerator = (presets, args) => {
 type Query {
   exampleQuery(text: String!): ExampleResponse!
 }
+
+type Mutation {
+  exampleMutation(text: String!): ExampleResponse!
+}
 `,
         },
         {
