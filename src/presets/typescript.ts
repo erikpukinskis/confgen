@@ -39,8 +39,8 @@ export const typescript: CommandGenerator = (presets, args) => [
     contents: {
       compilerOptions: {
         lib: ["es2017", ...(presets.includes("react") ? ["dom"] : [])],
-        "baseUrl": ".",
-        "paths": {
+        baseUrl: ".",
+        paths: {
           "@/*": ["src/*"],
         },
         esModuleInterop: true,

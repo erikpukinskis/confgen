@@ -1,4 +1,4 @@
-import { CommandGenerator, Args } from "@/types"
+import { CommandGenerator, Args, CommandWithArgs } from "@/types"
 import { existsSync, readFileSync } from "fs"
 import YAML from "yaml"
 import { spawnSync } from "child_process"
