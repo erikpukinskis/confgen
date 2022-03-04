@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from "fs"
 
 const [, , ...args] = process.argv
 
-args.push("all")
+args.unshift("all", "git")
 
 // Eslint makes things better, and Prettier makes things pretty so we want
 // prettier to be last and eslint to be second-to-last

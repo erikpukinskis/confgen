@@ -251,5 +251,5 @@ const buildEntryPointpath = (presets: Preset[]) =>
   `src/index.${presets.includes("typescript") ? "ts" : "js"}`
 
 const buildDefaultIndex = (args: Args) => `
-  export const ${args.library[0] || "MyLib"} = () => "hello, world!"
+export const ${args.library[0] || "MyLib"} = () => "hello, world!"
 `

@@ -42,7 +42,7 @@ const buildAllOfTheThingsCommand = (presets: Preset[]) => {
 
   // This is just for fun, but it allows you to run "yarn all of the things!"
   // instead of just "yarn all"
-  scripts.push("echo all")
+  scripts.push("echo 🎉 Did all")
 
   return scripts.join(" && ")
 }
