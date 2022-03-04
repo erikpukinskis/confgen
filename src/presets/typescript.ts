@@ -20,9 +20,9 @@ export const typescript: CommandGenerator = (presets, args) => [
           name: "build:types",
           script: `tsc --declaration --emitDeclarationOnly -p ${tsconfigPath(
             args
-          )} --skipLibCheck; tsc-alias -p ${tsconfigPath(
+          )} --skipLibCheck && tsc-alias -p ${tsconfigPath(
             args
-          )}; mv dist/index.d.ts dist/index.umd.d.ts`,
+          )} && mv dist/index.d.ts dist/index.umd.d.ts`,
         },
       ] as const)
     : []),

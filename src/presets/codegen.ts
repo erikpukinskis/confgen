@@ -30,7 +30,7 @@ export const codegen: CommandGenerator = (presets, args) => {
     {
       command: "script",
       name: "build:generate",
-      script: "rm -f ./src/__generated__/*; graphql-codegen",
+      script: "rm -f ./src/__generated__/* && graphql-codegen",
     },
     {
       command: "script",

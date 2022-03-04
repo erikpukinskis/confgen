@@ -22,5 +22,5 @@ const buildScript = (presets: Preset[]) => {
   if (presets.includes("bin")) {
     scripts.push("yarn run build:bin")
   }
-  return scripts.join("; ")
+  return scripts.join(" && ")
 }

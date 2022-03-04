@@ -21,7 +21,7 @@ const buildFixCommand = (presets: Preset[]) => {
   const scripts = []
   if (presets.includes("eslint")) scripts.push("yarn fix:lint")
   if (presets.includes("prettier")) scripts.push("yarn fix:format")
-  return scripts.join("; ")
+  return scripts.join(" && ")
 }
 
 const buildAllOfTheThingsCommand = (presets: Preset[]) => {
@@ -44,5 +44,5 @@ const buildAllOfTheThingsCommand = (presets: Preset[]) => {
   // instead of just "yarn all"
   scripts.push("echo all")
 
-  return scripts.join("; ")
+  return scripts.join(" && ")
 }
