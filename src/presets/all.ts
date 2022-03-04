@@ -27,7 +27,7 @@ const buildFixCommand = (presets: Preset[]) => {
 const buildAllOfTheThingsCommand = (presets: Preset[]) => {
   const scripts = ["yarn"]
 
-  if (presets.includes("library")) {
+  if (presets.includes("library") || presets.includes("codegen")) {
     scripts.push("yarn build")
   }
   if (presets.includes("eslint") || presets.includes("prettier")) {

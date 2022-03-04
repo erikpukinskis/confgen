@@ -10,7 +10,7 @@ cd examples
 # cd backend-lib
 # echo '{
 #   "scripts": {
-#     "confgen": "npx ts-node --transpile-only ../../src/index.ts vite typescript library:BackendLib node:fs apollo:server eslint prettier"
+#     "confgen": "npx ts-node --transpile-only ../../src/index.ts vite typescript library:BackendLib node:fs codegen:resolvers:schema eslint prettier"
 #   }
 # }' > package.json
 # yarn confgen
@@ -43,7 +43,7 @@ frontend-app example
 cd frontend-app
 echo '{
   "scripts": {
-    "confgen": "npx ts-node --transpile-only ../../src/index.ts yarn codespaces typescript vite vitest react apollo:client api:server eslint prettier"
+    "confgen": "npx ts-node --transpile-only ../../src/index.ts yarn codespaces typescript vite vitest react codegen:operations api:server eslint prettier"
   }
 }' > package.json
 yarn confgen

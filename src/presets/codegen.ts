@@ -1,6 +1,7 @@
 import { CommandGenerator, Args } from "@/types"
 import { existsSync, readFileSync } from "fs"
 import YAML from "yaml"
+import { spawnSync } from "child_process"
 
 export const codegen: CommandGenerator = (presets, args) => {
   if (!presets.includes("typescript")) {
@@ -27,14 +28,15 @@ export const codegen: CommandGenerator = (presets, args) => {
       pkg: "graphql",
     },
     {
-      command: "file",
-      path: "codegen.yml",
-      contents: buildResolverCodegen(args),
-    },
-    {
       command: "script",
       name: "build:generate",
       script: "rm -f ./src/__generated__/*; graphql-codegen",
+    },
+    {
+      command: "script",
+      name: "build",
+      script: "yarn run build:generate",
+      merge: "prefer-existing",
     },
     {
       command: "file",
@@ -64,6 +66,11 @@ export const codegen: CommandGenerator = (presets, args) => {
   db: "..." // replace with your resolver context
 }`,
         },
+        {
+          command: "file",
+          path: "codegen.yml",
+          contents: buildResolverCodegen(args),
+        },
       ]
     )
   }
@@ -74,9 +81,12 @@ export const codegen: CommandGenerator = (presets, args) => {
         {
           command: "file",
           path: "schema.graphql",
-          contents: `type Query {
-  }
-  hello: String!
+          contents: `type ExampleResponse {
+  message: String!
+}
+
+type Query {
+  exampleQuery(text: String!): ExampleResponse!
 }
 `,
         },
@@ -113,6 +123,10 @@ export const codegen: CommandGenerator = (presets, args) => {
       ...[
         {
           command: "yarn",
+          pkg: "@apollo/client",
+        },
+        {
+          command: "yarn",
           pkg: "@graphql-codegen/gql-tag-operations-preset",
           dev: true,
         },
@@ -123,9 +137,26 @@ export const codegen: CommandGenerator = (presets, args) => {
         },
       ]
     )
+
+    if (!hasAnyOperations()) {
+      let path = "src/index.tsx"
+      if (existsSync(path)) {
+        path = "src/example.tsx"
+      }
+      commands.push({
+        command: "file",
+        path,
+        contents: buildExampleIndex(),
+      })
+    }
   }
 
   return commands
+}
+
+const hasAnyOperations = () => {
+  const { status } = spawnSync("grep -rnw . -e 'gql('")
+  return status === 0
 }
 
 const buildOperationsCodegen = () => ({
@@ -199,3 +230,42 @@ const confgenHasSchema = () => {
   const object = YAML.parse(contents)
   return Boolean(object.schema)
 }
+
+const buildExampleIndex = () => `import React from 'react'
+import {
+  ApolloProvider,
+  ApolloClient,
+  HttpLink,
+  InMemoryCache,
+  useQuery,
+} from "@apollo/client"
+import { gql } from "@/__generated__"
+import fetch from "cross-fetch"
+
+const client = new ApolloClient({
+  cache: new InMemoryCache(),
+  link: new HttpLink({
+    uri: \`\${window.location.protocol}//\${window.location.host}/graphql\`,
+    fetch,
+  }),
+})
+
+const EXAMPLE_OPERATION = gql(\`
+  query ExampleOperation($text: String!) {
+    exampleQuery(text: $text) {
+      message
+    }
+  }
+\`)
+
+const Example = () => {
+  const { data } = useQuery(EXAMPLE_OPERATION)
+  return <>{data?.exampleQuery.message || "No data"}</>
+}
+
+export const App = () => (
+  <ApolloProvider client={client}>
+    <Example />
+  </ApolloProvider>
+)
+`

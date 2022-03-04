@@ -10,7 +10,7 @@ export const library: CommandGenerator = (presets) => [
 
 const buildScript = (presets: Preset[]) => {
   const scripts = ["rm -rf dist/*"]
-  if (presets.includes("apollo")) {
+  if (presets.includes("codegen")) {
     scripts.push("yarn run build:generate")
   }
   if (presets.includes("vite")) {

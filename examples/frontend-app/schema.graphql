@@ -1,3 +1,7 @@
+type ExampleResponse {
+  message: String!
+}
+
 type Query {
-  hello: String!
+  exampleQuery(text: String!): ExampleResponse!
 }

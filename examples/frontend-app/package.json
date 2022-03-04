@@ -1,37 +1,39 @@
 {
   "scripts": {
-    "confgen": "npx ts-node --transpile-only ../../src/index.ts yarn codespaces typescript vite vitest react library:FrontendLib apollo:client",
-    "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.json --skipLibCheck; tsc-alias -p tsconfig.json; mv dist/index.d.ts dist/index.umd.d.ts",
+    "confgen": "npx ts-node --transpile-only ../../src/index.ts yarn codespaces typescript vite vitest react codegen:operations api:server eslint prettier",
     "check:types": "tsc --noEmit -p tsconfig.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
-    "build:vite": "vite build",
     "test": "vitest run",
     "test:watch": "vitest watch",
-    "build": "rm -rf dist/*; yarn run build:generate; yarn run build:vite; yarn run build:types",
     "build:generate": "rm -f ./src/__generated__/*; graphql-codegen",
-    "all": "yarn; yarn build; yarn check:types; yarn test; echo all"
+    "build": "yarn run build:generate",
+    "start:api": "vite-node server",
+    "fix": "yarn fix:lint; yarn fix:format",
+    "all": "yarn; yarn build; yarn fix; yarn check:types; yarn test; echo all",
+    "check:lint": "eslint --ignore-path .gitignore .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
+    "fix:lint": "eslint --ignore-path .gitignore . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
+    "fix:format": "prettier --write --ignore-path .gitignore ."
   },
   "dependencies": {
-    "react": "^17.0.2"
+    "@apollo/client": "^3.5.10",
+    "react": "^17.0.2",
+    "vite-node": "^0.5.9"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^2.6.2",
+    "@graphql-codegen/gql-tag-operations-preset": "^1.3.0",
+    "@testing-library/react": "^12.1.3",
+    "@types/react": "^17.0.39",
+    "@typescript-eslint/eslint-plugin": "^5.13.0",
+    "@typescript-eslint/parser": "^5.13.0",
     "@vitejs/plugin-react": "^1.2.0",
+    "eslint": "^8.10.0",
+    "eslint-plugin-react": "7.28.0",
     "graphql": "^16.3.0",
     "jsdom": "^19.0.0",
-    "tsc-alias": "^1.6.3",
+    "prettier": "^2.5.1",
+    "react-dom": "^17.0.2",
     "typescript": "^4.6.2",
     "vite": "^2.8.6",
     "vitest": "^0.5.9"
-  },
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/index.umd.js",
-  "module": "./dist/index.es.js",
-  "exports": {
-    ".": {
-      "import": "./dist/index.es.js",
-      "require": "./dist/index.umd.js"
-    }
   }
 }
