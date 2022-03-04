@@ -1,4 +1,5 @@
 #/bin/bash
+set -e
 cd examples
 rm -rf backend-lib/*
 echo "----------------------------------------
