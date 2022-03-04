@@ -75,7 +75,7 @@ export const codegen: CommandGenerator = (presets, args) => {
     )
   }
 
-  if (!confgenHasSchema()) {
+  if (!codegenHasSchema()) {
     commands.push(
       ...[
         {
@@ -224,9 +224,9 @@ type CodegenConfig = {
   }
 }
 
-const confgenHasSchema = () => {
-  if (!existsSync("confgen.yml")) return false
-  const contents = readFileSync("confgen.yml").toString()
+const codegenHasSchema = () => {
+  if (!existsSync("codegen.yml")) return false
+  const contents = readFileSync("codegen.yml").toString()
   const object = YAML.parse(contents)
   return Boolean(object.schema)
 }
