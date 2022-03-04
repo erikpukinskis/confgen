@@ -17,7 +17,7 @@ const client = new ApolloClient({
   }),
 })
 
-const EXAMPLE = gql(`
+const EXAMPLE_OPERATION = gql(`
   query ExampleOperation($text: String!) {
     exampleQuery(text: $text) {
       message
@@ -26,7 +26,7 @@ const EXAMPLE = gql(`
 `)
 
 const Example = () => {
-  const { data } = useQuery(EXAMPLE)
+  const { data } = useQuery(EXAMPLE_OPERATION)
   return <>{data?.exampleQuery.message || "No data"}</>
 }
 

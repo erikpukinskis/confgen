@@ -1,7 +1,7 @@
 {
   "scripts": {
     "confgen": "npx ts-node --transpile-only ../../src/index.ts yarn codespaces typescript vite vitest react codegen:operations api:server eslint prettier",
-    "check:types": "tsc --noEmit -p tsconfig.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
+    "check:types": "tsc --noEmit -p tsconfig.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "build:generate": "rm -f ./src/__generated__/*; graphql-codegen",
@@ -9,8 +9,8 @@
     "start:api": "vite-node server",
     "fix": "yarn fix:lint; yarn fix:format",
     "all": "yarn; yarn build; yarn fix; yarn check:types; yarn test; echo all",
-    "check:lint": "eslint --ignore-path .gitignore .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
-    "fix:lint": "eslint --ignore-path .gitignore . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; fi",
+    "check:lint": "eslint --ignore-path .gitignore .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
+    "fix:lint": "eslint --ignore-path .gitignore . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
     "fix:format": "prettier --write --ignore-path .gitignore ."
   },
   "dependencies": {
