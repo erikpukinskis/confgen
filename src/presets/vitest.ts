@@ -43,7 +43,7 @@ export const vitest: CommandGenerator = (presets: Preset[]) => [
     : []),
 ]
 
-const hasTestFiles = (bar: any) => {
+const hasTestFiles = () => {
   const { status } = spawnSync(
     `find . -regex '^.+[.]test[.][tj]sx?$' -not -path "./node_modules/*" | grep .`
   )
