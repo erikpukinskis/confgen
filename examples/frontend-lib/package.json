@@ -1,13 +1,13 @@
 {
   "scripts": {
     "confgen": "npx ts-node --transpile-only ../../src/index.ts vite react macros typescript:tsconfig.build.json library:FrontendLib:development react devServer:docs eslint prettier",
+    "fix": "yarn fix:lint && yarn fix:format",
+    "all": "yarn && yarn build && yarn fix && yarn check:types && echo 🎉 Did all",
     "start:docs": "vite serve docs --config vite.config.js",
     "build:vite": "vite build --mode development",
     "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.build.json --skipLibCheck && tsc-alias -p tsconfig.build.json && mv dist/index.d.ts dist/index.umd.d.ts",
     "check:types": "tsc --noEmit -p tsconfig.build.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi",
     "build": "rm -rf dist/* && yarn run build:vite && yarn run build:types",
-    "fix": "yarn fix:lint && yarn fix:format",
-    "all": "yarn && yarn build && yarn fix && yarn check:types && echo 🎉 Did all",
     "check:lint": "eslint --ignore-path .gitignore .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
     "fix:lint": "eslint --ignore-path .gitignore . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
     "fix:format": "prettier --write --ignore-path .gitignore ."

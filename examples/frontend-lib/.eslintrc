@@ -23,5 +23,8 @@
     "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"]
   },
-  "ignorePatterns": ["*.js"]
+  "ignorePatterns": ["*.js"],
+  "parserOptions": {
+    "warnOnUnsupportedTypeScriptVersion": false
+  }
 }
