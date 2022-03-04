@@ -79,7 +79,7 @@ vendor
 const buildEslintrc = (presets: Preset[]) => ({
   root: true,
   parserOptions: {
-    "warnOnUnsupportedTypeScriptVersion": false
+    warnOnUnsupportedTypeScriptVersion: false,
   },
   ...(presets.includes("typescript")
     ? {

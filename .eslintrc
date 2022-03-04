@@ -16,5 +16,8 @@
     "array-element-newline": ["off"],
     "no-unused-vars": "off"
   },
-  "ignorePatterns": ["*.js"]
+  "ignorePatterns": ["*.js"],
+  "parserOptions": {
+    "warnOnUnsupportedTypeScriptVersion": false
+  }
 }
