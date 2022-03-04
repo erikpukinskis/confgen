@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
     "lib": ["es2017"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,

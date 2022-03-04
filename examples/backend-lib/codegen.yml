@@ -1,6 +1,5 @@
-schema: schema.graphql
 generates:
-  ./src/__generated__/types.ts:
+  ./src/__generated__/resolvers.ts:
     plugins:
       - typescript
       - typescript-resolvers
@@ -8,3 +7,14 @@ generates:
           content: import { ResolverContext } from '../context'; //@contextType
     config:
       contextType: ResolverContext
+  ./src/__generated__/index.ts:
+    plugins:
+      - add:
+          content:
+            export { MutationResolvers, QueryResolvers } from "./resolvers"
+            //@resolversExport
+      - add:
+          content: export { default as schema } from "./schema" //@schemaExport
+  ./src/__generated__/schema.ts:
+    - graphql-codegen-schema-script
+schema: schema.graphql

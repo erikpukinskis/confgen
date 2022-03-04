@@ -1,0 +1,20 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": ["error"],
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": ["error"],
+    "semi": ["error", "never"],
+    "eol-last": ["error", "always"],
+    "quote-props": ["error", "consistent-as-needed"],
+    "array-element-newline": ["off"]
+  },
+  "ignorePatterns": ["*.js"]
+}

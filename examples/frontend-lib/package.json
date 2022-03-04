@@ -1,21 +1,32 @@
 {
   "scripts": {
-    "confgen": "npx ts-node --transpile-only ../../src/index.ts vite react typescript library:FrontendLib devServer:docs",
+    "confgen": "npx ts-node --transpile-only ../../src/index.ts vite react macros typescript:tsconfig.build.json library:FrontendLib:development react devServer:docs eslint prettier",
     "start:docs": "vite serve docs --config vite.config.js",
-    "build:vite": "vite build",
-    "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.json --skipLibCheck; tsc-alias -p tsconfig.json; mv dist/index.d.ts dist/index.umd.d.ts",
-    "check:types": "tsc --noEmit -p tsconfig.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; fi",
-    "build": "rm -rf dist/*; yarn run build:vite; yarn run build:types",
-    "all": "yarn; yarn build; yarn check:types; echo all"
+    "build:vite": "vite build --mode development",
+    "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.build.json --skipLibCheck && tsc-alias -p tsconfig.build.json && mv dist/index.d.ts dist/index.umd.d.ts",
+    "check:types": "tsc --noEmit -p tsconfig.build.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi",
+    "build": "rm -rf dist/* && yarn run build:vite && yarn run build:types",
+    "fix": "yarn fix:lint && yarn fix:format",
+    "all": "yarn && yarn build && yarn fix && yarn check:types && echo 🎉 Did all",
+    "check:lint": "eslint --ignore-path .gitignore .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
+    "fix:lint": "eslint --ignore-path .gitignore . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
+    "fix:format": "prettier --write --ignore-path .gitignore ."
   },
   "dependencies": {
     "react": "^17.0.2"
   },
   "devDependencies": {
+    "@types/react": "^17.0.39",
+    "@typescript-eslint/eslint-plugin": "^5.13.0",
+    "@typescript-eslint/parser": "^5.13.0",
     "@vitejs/plugin-react": "^1.2.0",
+    "eslint": "^8.10.0",
+    "eslint-plugin-react": "7.28.0",
+    "prettier": "^2.5.1",
     "tsc-alias": "^1.6.3",
     "typescript": "^4.6.2",
-    "vite": "^2.8.6"
+    "vite": "^2.8.6",
+    "vite-plugin-babel-macros": "^1.0.5"
   },
   "files": [
     "dist"
