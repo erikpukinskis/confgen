@@ -4,3 +4,4 @@ node_modules
 dist
 vendor
 examples/**/yarn.lock
+__generated__

@@ -36,7 +36,6 @@ export const codegen: CommandGenerator = (presets, args) => {
       command: "script",
       name: "build",
       script: "yarn run build:generate",
-      merge: "prefer-existing",
     },
     {
       command: "file",
@@ -47,7 +46,7 @@ export const codegen: CommandGenerator = (presets, args) => {
 
   if (args.codegen.includes("resolvers")) {
     commands.push(
-      ...[
+      ...([
         {
           command: "yarn",
           dev: true,
@@ -71,13 +70,13 @@ export const codegen: CommandGenerator = (presets, args) => {
           path: "codegen.yml",
           contents: buildResolverCodegen(args),
         },
-      ]
+      ] as const)
     )
   }
 
   if (!codegenHasSchema()) {
     commands.push(
-      ...[
+      ...([
         {
           command: "file",
           path: "schema.graphql",
@@ -97,13 +96,13 @@ type Query {
             schema: "schema.graphql",
           },
         },
-      ]
+      ] as const)
     )
   }
 
   if (args.codegen.includes("schema")) {
     commands.push(
-      ...[
+      ...([
         {
           command: "yarn",
           pkg: "graphql-codegen-schema-script",
@@ -114,13 +113,13 @@ type Query {
           path: "codegen.yml",
           contents: buildSchemaCodegen(),
         },
-      ]
+      ] as const)
     )
   }
 
   if (args.codegen.includes("operations")) {
     commands.push(
-      ...[
+      ...([
         {
           command: "yarn",
           pkg: "@apollo/client",
@@ -135,7 +134,7 @@ type Query {
           path: "codegen.yml",
           contents: buildOperationsCodegen(),
         },
-      ]
+      ] as const)
     )
 
     if (!hasAnyOperations()) {
@@ -214,13 +213,6 @@ const buildResolverCodegen = (args: Args) => {
         ],
       },
     },
-  }
-}
-
-type CodegenConfig = {
-  plugins: (string | Record<string, { content: string }>)[]
-  config?: {
-    contextType: string
   }
 }
 
