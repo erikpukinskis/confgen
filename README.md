@@ -188,6 +188,8 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 ### Might happen
 
+- Adding a system notification when commands have finished
+- PM2 preset
 - Making room for other "ecosystems". E.g. maybe there's a separate Webpack ecosystem preset like:
   `npx cofgen webpack node`.
 - While `confgen` doesn't currently bootstrap a working app, it might be close. Maybe in the future running `npx confgen vite react devServer` could fully bootstrap a runnable app.
