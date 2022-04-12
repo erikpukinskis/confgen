@@ -157,10 +157,21 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 - [x] Collect up the NPM packages to install them all at once (will be a bit faster)
 - [x] Add a mega `yarn all the things` that does the whole build, linting, formatting, type checking, and test which is nice to do before a deploy
+- [x] We should probably have some tests!
 - [x] ~Use https://www.npmjs.com/package/@rollup/plugin-typescript or https://github.com/ezolenko/rollup-plugin-typescript2 instead of tsc to generate types. Right now, tsc is just generating a .d.ts for every ts file, and these have path aliases and stuff in them that don't work after build. Maybe the rollup plugin will be smarter?~ Edit: Turns out the simplest way to do this is just use [tsc-alias](https://www.npmjs.com/package/tsc-alias). All that other stuff is insanely complex (ttypescript seems like a real hack).
 - [x] Add Apollo Client query type generation
 - [ ] Don't add a demo test file if there already is a .test.ts file
 - [ ] Don't add react demo test file if react preset isn't used
+- [ ] Add debug commands for tests & dev server
+- [ ] Add watch commands
+
+### Might happen
+
+- Adding a system notification when commands have finished
+- PM2 preset
+- Making room for other "ecosystems". E.g. maybe there's a separate Webpack ecosystem preset like:
+  `npx cofgen webpack node`.
+- While `confgen` doesn't currently bootstrap a working app, it might be close. Maybe in the future running `npx confgen vite react devServer` could fully bootstrap a runnable app.
 - Need to be more specific about these devServer/library folders. I don't want to open confgen up to a multi-package kind of situation, but currently we do technically support multiple packages, you could have any combo of: src, devServer, and api folders
 - Adding a `pojo` command. Right now the `vite` preset generates a POJO (Plain Old JavaScript Object)
   by concatenating top level blocks of JavaScript, like `{ server: { hmr: { port: 443 } } }`. This
@@ -183,13 +194,3 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   },
 },
 ```
-
-- We should probably have some tests!
-
-### Might happen
-
-- Adding a system notification when commands have finished
-- PM2 preset
-- Making room for other "ecosystems". E.g. maybe there's a separate Webpack ecosystem preset like:
-  `npx cofgen webpack node`.
-- While `confgen` doesn't currently bootstrap a working app, it might be close. Maybe in the future running `npx confgen vite react devServer` could fully bootstrap a runnable app.
