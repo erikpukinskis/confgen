@@ -162,8 +162,9 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Add Apollo Client query type generation
 - [ ] Don't add a demo test file if there already is a .test.ts file
 - [ ] Don't add react demo test file if react preset isn't used
-- [ ] Add debug commands for tests & dev server
-- [ ] Add watch commands
+- [ ] Add debug:test and debug:start commands
+- [ ] Add watch:test, watch:build, watch:generate, and watch commands
+- [ ] Include graphql.vscode-graphql extension when... well we don't have an apollo preset anymore, so just when we include codegen?
 
 ### Might happen
 
