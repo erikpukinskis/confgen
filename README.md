@@ -161,6 +161,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] ~Use https://www.npmjs.com/package/@rollup/plugin-typescript or https://github.com/ezolenko/rollup-plugin-typescript2 instead of tsc to generate types. Right now, tsc is just generating a .d.ts for every ts file, and these have path aliases and stuff in them that don't work after build. Maybe the rollup plugin will be smarter?~ Edit: Turns out the simplest way to do this is just use [tsc-alias](https://www.npmjs.com/package/tsc-alias). All that other stuff is insanely complex (ttypescript seems like a real hack).
 - [x] Add Apollo Client query type generation
 - [ ] Add `else exit 1;` to the celebrations
+- [ ] Lint should not fail on an empty project
 - [ ] Don't add a demo test file if there already is a .test.ts file
 - [ ] Don't add react demo test file if react preset isn't used
 - [ ] Add debug:test and debug:start commands
