@@ -1,0 +1,19 @@
+{
+  "workbench.startupEditor": "none",
+  "workbench.colorTheme": "GitHub Dark",
+  "workbench.colorCustomizations": {
+    "[GitHub Dark]": {
+      "tab.inactiveBackground": "#121416",
+      "tab.activeBorderTop": "#24292E"
+    }
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.formatDocument": true
+  },
+  "editor.formatOnSave": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
+}
