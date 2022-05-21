@@ -27,10 +27,11 @@ export const runCommand = (command: CommandWithArgs, system: System) => {
     ? "yarnDev"
     : command.command
 
-  console.log(`----------------------------------------
+  system.silent ||
+    console.log(`----------------------------------------
 👷 ${descriptions[descriptionKey]}${
-    command.preset ? ` for preset [${command.preset}]` : ""
-  }...
+      command.preset ? ` for preset [${command.preset}]` : ""
+    }...
    ${command[Object.keys(command)[1] as keyof CommandWithArgs]}`)
 
   // @ts-expect-error Typescript doesn't know that command.command narrows the type sufficiently here
