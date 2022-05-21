@@ -6,6 +6,7 @@ import {
   DevPackageCommand,
   isDevPackageCommand,
   Args,
+  EMPTY_ARGS,
 } from "./types"
 import { runCommand } from "./commands"
 import { RealSystem, type System } from "./system"
@@ -13,7 +14,7 @@ import { RealSystem, type System } from "./system"
 export class Project {
   system: System
   presetNames: Preset[]
-  argsByPresetName: Args
+  argsByPresetName: Partial<Args>
 
   constructor({
     presetNames,
@@ -31,10 +32,10 @@ export class Project {
     for (const presetName of this.presetNames) {
       this.system.silent ||
         console.log(`Generating commands for preset [${presetName}]...`)
-      const generated = presets[presetName](
-        this.presetNames,
-        this.argsByPresetName
-      )
+      const generated = presets[presetName](this.presetNames, {
+        ...EMPTY_ARGS,
+        ...this.argsByPresetName,
+      })
       generated.forEach((command) => (command.preset = presetName))
       generatedCommands.push(...generated)
     }
