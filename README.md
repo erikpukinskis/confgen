@@ -144,7 +144,7 @@ And then add the local version to your dependencies:
 ```
 
 Then you can go ahead and modify the presets in `vendor/confgen/src/presets` to suit your needs. Or
-add an entirely new preset by copying one of the examples in that folder and adding it to
+add an entirely new preset by copying one of the scripts in that folder and adding it to
 `src/presets/index.ts`.
 
 Then [submit a pull request](https://github.com/erikpukinskis/confgen/pulls)!
