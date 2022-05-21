@@ -1,9 +1,0 @@
-{
-  "extensions": [
-    "erikpukinskis.chrome-codespaces-keymap",
-    "dbaeumer.vscode-eslint",
-    "rohit-gohri.format-code-action",
-    "esbenp.prettier-vscode"
-  ],
-  "postCreateCommand": ["yarn"]
-}
