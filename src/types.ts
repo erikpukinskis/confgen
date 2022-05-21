@@ -21,6 +21,10 @@ export const PRESETS = [
 
 export type Preset = typeof PRESETS[number]
 
+export const isPreset = (preset: string): preset is Preset => {
+  return PRESETS.includes(preset as Preset)
+}
+
 export type Command = "file" | "run" | "script" | "yarn"
 
 export type FileCommand = {
