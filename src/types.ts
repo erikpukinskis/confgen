@@ -75,7 +75,7 @@ export function isDevPackageCommand(
   return command.command === "yarn" && (command as DevPackageCommand).dev
 }
 
-export type Args = Record<Preset, string[]>
+export type Args = Partial<Record<Preset, string[]>>
 
 export type CommandGenerator = (
   presets: Preset[],

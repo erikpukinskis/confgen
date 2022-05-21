@@ -1,6 +1,5 @@
 import { presets } from "./presets"
 import {
-  PRESETS,
   Preset,
   DistPackageCommand,
   isDistPackageCommand,
@@ -9,60 +8,58 @@ import {
   Args,
 } from "./types"
 import { runCommand } from "./commands"
-import path from "path"
-import { existsSync, readFileSync } from "fs"
-
-class RealFilesystem {}
+import { RealSystem, type System } from "./system"
 
 export class Project {
-  filesystem = new RealFilesystem()
+  system: System
   presetNames: Preset[]
-  argsByPresetName: Record<Preset,string[]>
+  argsByPresetName: Args
 
-  constructor({ presetNames, argsByPresetName }: Pick<Project, 'presetNames' | 'argsByPresetName'>) {
+  constructor({
+    presetNames,
+    argsByPresetName,
+    system,
+  }: Pick<Project, "presetNames" | "argsByPresetName"> & { system?: System }) {
+    this.system = system || new RealSystem()
     this.presetNames = presetNames
     this.argsByPresetName = argsByPresetName
   }
 
   confgen() {
     const generatedCommands = []
-    
+
     for (const presetName of this.presetNames) {
       console.log(`Generating commands for preset [${presetName}]...`)
-      const generated = presets[presetName](this.presetNames, this.argsByPresetName)
+      const generated = presets[presetName](
+        this.presetNames,
+        this.argsByPresetName
+      )
       generated.forEach((command) => (command.preset = presetName))
       generatedCommands.push(...generated)
     }
-    
+
     const distPackageCommands =
       generatedCommands.filter<DistPackageCommand>(isDistPackageCommand)
-    
+
     const devPackageCommands =
       generatedCommands.filter<DevPackageCommand>(isDevPackageCommand)
-    
+
     const otherCommands = generatedCommands.filter(
       ({ command }) => command !== "yarn"
     )
-    
+
     const distPackages = distPackageCommands.map(({ pkg }) => pkg).join(" ")
     if (distPackages) {
-      runCommand({ command: "yarn", pkg: distPackages })
+      runCommand({ command: "yarn", pkg: distPackages }, this.system)
     }
-    
+
     const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")
     if (devPackages) {
-      runCommand({ command: "yarn", pkg: devPackages, dev: true })
+      runCommand({ command: "yarn", pkg: devPackages, dev: true }, this.system)
     }
-    
+
     for (const command of otherCommands) {
-      runCommand(command)
+      runCommand(command, this.system)
     }
   }
 }
-
-class MockFilesystem {}
-
-export class MockProject extends Project {
-  filesystem = new MockFilesystem()
-}
-
