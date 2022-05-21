@@ -1,16 +1,11 @@
-import { presets } from "./presets"
 import {
   PRESETS,
-  Preset,
-  DistPackageCommand,
-  isDistPackageCommand,
-  DevPackageCommand,
-  isDevPackageCommand,
+  isPreset,
   Args,
 } from "./types"
-import { runCommand } from "./commands"
 import path from "path"
 import { existsSync, readFileSync } from "fs"
+import { Project } from './project'
 
 const [, , ...args] = process.argv
 
@@ -55,8 +50,8 @@ const argsByPresetName = PRESETS.reduce(
 )
 
 const presetNames = args.map((arg) => {
-  const [presetName, ...presetArgs] = arg.split(":") as [Preset, ...string[]]
-  if (!PRESETS.includes(presetName)) {
+  const [presetName, ...presetArgs] = arg.split(":")
+  if (!isPreset(presetName)) {
     throw new Error(
       `${presetName} is not a valid preset.\n\nUsage:\nnpx confgen [${PRESETS.join(
         " | "
@@ -67,35 +62,6 @@ const presetNames = args.map((arg) => {
   return presetName
 })
 
-const generatedCommands = []
+const project = new Project({ presetNames, argsByPresetName })
 
-for (const presetName of presetNames) {
-  console.log(`Generating commands for preset [${presetName}]...`)
-  const generated = presets[presetName](presetNames, argsByPresetName)
-  generated.forEach((command) => (command.preset = presetName))
-  generatedCommands.push(...generated)
-}
-
-const distPackageCommands =
-  generatedCommands.filter<DistPackageCommand>(isDistPackageCommand)
-
-const devPackageCommands =
-  generatedCommands.filter<DevPackageCommand>(isDevPackageCommand)
-
-const otherCommands = generatedCommands.filter(
-  ({ command }) => command !== "yarn"
-)
-
-const distPackages = distPackageCommands.map(({ pkg }) => pkg).join(" ")
-if (distPackages) {
-  runCommand({ command: "yarn", pkg: distPackages })
-}
-
-const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")
-if (devPackages) {
-  runCommand({ command: "yarn", pkg: devPackages, dev: true })
-}
-
-for (const command of otherCommands) {
-  runCommand(command)
-}
+project.confgen()
