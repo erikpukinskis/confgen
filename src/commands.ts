@@ -6,14 +6,11 @@ import {
   RunCommand,
   PackageCommand,
 } from "./types"
-import { execSync } from "child_process"
 import merge from "merge-objects"
-import { existsSync, readFileSync } from "fs"
-import { outputFileSync } from "fs-extra"
 import uniq from "lodash/uniq"
 import get from "lodash/get"
-
 import YAML from "yaml"
+import { type System } from "./system"
 
 type FileChanges = string | string[] | Record<string, unknown>
 
@@ -25,10 +22,11 @@ const descriptions: Record<string, string> = {
   yarnDev: "Adding development package(s) to package.json",
 }
 
-export const runCommand = (command: CommandWithArgs) => {
+export const runCommand = (command: CommandWithArgs, system: System) => {
   const descriptionKey = isDevPackageCommand(command)
     ? "yarnDev"
     : command.command
+
   console.log(`----------------------------------------
 👷 ${descriptions[descriptionKey]}${
     command.preset ? ` for preset [${command.preset}]` : ""
@@ -36,18 +34,18 @@ export const runCommand = (command: CommandWithArgs) => {
    ${command[Object.keys(command)[1] as keyof CommandWithArgs]}`)
 
   // @ts-expect-error Typescript doesn't know that command.command narrows the type sufficiently here
-  commands[command.command](command)
+  commands[command.command](command, system)
 }
 
 const commands = {
-  file: ({ path, contents, merge }: FileCommand) => {
-    if (merge === "if-not-exists" && existsSync(path)) return
-    syncFile(path, contents, merge === "prefer-existing")
+  file: ({ path, contents, merge }: FileCommand, system: System) => {
+    if (merge === "if-not-exists" && system.exists(path)) return
+    syncFile(path, contents, merge === "prefer-existing", system)
   },
-  run: ({ script }: RunCommand) => {
-    execSync(script, { stdio: "inherit" })
+  run: ({ script }: RunCommand, system: System) => {
+    system.run(script)
   },
-  script: ({ name, script }: ScriptCommand) => {
+  script: ({ name, script }: ScriptCommand, system: System) => {
     amendJson(
       "package.json",
       {
@@ -55,56 +53,56 @@ const commands = {
           [name]: script,
         },
       },
-      false
+      false,
+      system
     )
   },
-  yarn: (command: PackageCommand) => {
-    const dashDev = isDevPackageCommand(command) ? "-D " : ""
-    execSync(`yarn add ${dashDev}${command.pkg}`, { stdio: "inherit" })
+  yarn: (command: PackageCommand, system: System) => {
+    system.addPackage(command.pkg, isDevPackageCommand(command))
   },
 } as const
 
 const syncFile = (
   filename: string,
   changes: FileChanges,
-  preferExisting: boolean
+  preferExisting: boolean,
+  system: System
 ) => {
   if (/[.]ya?ml$/.test(filename)) {
-    amendYaml(filename, changes, preferExisting)
+    amendYaml(filename, changes, preferExisting, system)
   } else if (Array.isArray(changes)) {
-    ensureLines(filename, changes)
+    ensureLines(filename, changes, system)
   } else if (typeof changes === "string") {
-    outputFileSync(filename, changes)
+    system.write(filename, changes)
   } else {
-    amendJson(filename, changes, preferExisting)
+    amendJson(filename, changes, preferExisting, system)
   }
 }
 
-const ensureLines = (filename: string, newLines: string[]) => {
-  const originalContents = existsSync(filename)
-    ? readFileSync(filename).toString()
-    : ""
+const ensureLines = (filename: string, newLines: string[], system: System) => {
+  const originalContents = system.exists(filename) ? system.read(filename) : ""
   const lines = originalContents.split("\n")
   for (const line of newLines) {
     if (lines.includes(line)) continue
     lines.unshift(line)
   }
-  outputFileSync(filename, lines.join("\n"))
+  system.write(filename, lines.join("\n"))
 }
 
 const amendJson = (
   filename: string,
   json: Record<string, unknown>,
-  preferExisting: boolean
+  preferExisting: boolean,
+  system: System
 ) => {
-  const originalContents = existsSync(filename)
-    ? readFileSync(filename).toString()
+  const originalContents = system.exists(filename)
+    ? system.read(filename)
     : "{}"
   const originalJson = JSON.parse(originalContents)
   const newJson = dedupe(
     preferExisting ? merge(json, originalJson) : merge(originalJson, json)
   )
-  outputFileSync(filename, JSON.stringify(newJson, null, 2))
+  system.write(filename, JSON.stringify(newJson, null, 2))
 }
 
 type Json = Record<string, unknown>
@@ -181,7 +179,8 @@ const specialUnique = (arr: unknown[]) => {
 const amendYaml = (
   filename: string,
   changes: FileChanges,
-  preferExisting: boolean
+  preferExisting: boolean,
+  system: System
 ) => {
   if (typeof changes === "string" || Array.isArray(changes)) {
     throw new Error(
@@ -189,8 +188,8 @@ const amendYaml = (
     )
   }
 
-  const originalYaml = existsSync(filename)
-    ? YAML.parse(readFileSync(filename).toString())
+  const originalYaml = system.exists(filename)
+    ? YAML.parse(system.read(filename))
     : {}
 
   if (Array.isArray(originalYaml)) {
@@ -203,5 +202,5 @@ const amendYaml = (
     preferExisting ? merge(changes, originalYaml) : merge(originalYaml, changes)
   )
 
-  outputFileSync(filename, YAML.stringify(newYaml))
+  system.write(filename, YAML.stringify(newYaml))
 }
