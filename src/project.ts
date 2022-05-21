@@ -29,7 +29,8 @@ export class Project {
     const generatedCommands = []
 
     for (const presetName of this.presetNames) {
-      console.log(`Generating commands for preset [${presetName}]...`)
+      this.system.silent ||
+        console.log(`Generating commands for preset [${presetName}]...`)
       const generated = presets[presetName](
         this.presetNames,
         this.argsByPresetName

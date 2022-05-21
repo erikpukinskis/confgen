@@ -3,6 +3,8 @@ import { existsSync, readFileSync } from "fs"
 import { outputFileSync } from "fs-extra"
 
 export type System = {
+  silent: boolean
+
   run(command: string): void
   exists(path: string): boolean
   read(path: string): string
@@ -11,6 +13,8 @@ export type System = {
 }
 
 export class RealSystem implements System {
+  silent = false
+
   run(command: string) {
     execSync(command, { stdio: "inherit" })
   }
@@ -30,7 +34,9 @@ export class RealSystem implements System {
 }
 
 export class MockSystem implements System {
+  silent = true
   contentsByPath: Record<string, string> = {}
+
   run() {
     // noop
   }
