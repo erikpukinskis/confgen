@@ -38,7 +38,6 @@
   "scripts": {
     "confgen": "yarn run build && ./dist/index.umd.js git yarn typescript vite vitest library:Confgen bin node:fs:child_process:path eslint prettier",
     "gen": "npx ts-node --transpile-only ./src/index.ts",
-    "gen:examples": "./examples/gen.sh",
     "build": "rm -rf dist/* && yarn run build:vite && yarn run build:types && yarn run build:bin",
     "build:vite": "vite build",
     "build:bin": "echo '#!/usr/bin/env node'|cat - dist/index.umd.js > /tmp/out && mv /tmp/out dist/index.umd.js && chmod a+x dist/index.umd.js",

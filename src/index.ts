@@ -1,11 +1,7 @@
-import {
-  PRESETS,
-  isPreset,
-  Args,
-} from "./types"
+import { PRESETS, isPreset, Args } from "./types"
 import path from "path"
 import { existsSync, readFileSync } from "fs"
-import { Project } from './project'
+import { Project } from "./project"
 
 const [, , ...args] = process.argv
 

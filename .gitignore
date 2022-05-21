@@ -3,5 +3,4 @@ node_modules
 .DS_Store
 dist
 vendor
-examples/**/yarn.lock
 __generated__
