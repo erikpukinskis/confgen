@@ -55,7 +55,7 @@ All of these are optional, depending on which presets you choose:
 - `devServer:[folder]` Configures command for starting a dev server. If [folder] is provided, the command will be `start:[folder]`, otherwise it will be `start:dev` by default.
 - `eslint` sets up linting with fix-on-save in Codespaces
 - `git` Pre-populates gitignore
-- `library:[PackageName]:[mode]` Makes your package importable via UMD and ES
+- `library:[PackageName]:[mode]` Makes your package importable via UMD and ES for a given env mode (development, production, etc)
 - `macros` enables babel macros in Vite
 - `node:[fs]:[child_process]:[etc...]` Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
 - `prettier` set up code formatting with format-on-save in Codespaces
@@ -160,8 +160,10 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] We should probably have some tests!
 - [x] ~Use https://www.npmjs.com/package/@rollup/plugin-typescript or https://github.com/ezolenko/rollup-plugin-typescript2 instead of tsc to generate types. Right now, tsc is just generating a .d.ts for every ts file, and these have path aliases and stuff in them that don't work after build. Maybe the rollup plugin will be smarter?~ Edit: Turns out the simplest way to do this is just use [tsc-alias](https://www.npmjs.com/package/tsc-alias). All that other stuff is insanely complex (ttypescript seems like a real hack).
 - [x] Add Apollo Client query type generation
-- [ ] Add `else exit 1;` to the celebrations
-- [ ] Lint should not fail on an empty project
+- [x] Add `else exit 1;` to the celebrations
+- [x] Lint should not fail on an empty project
+- [ ] Add githubPkg:scope preset
+- [ ] Sort scripts
 - [ ] Don't add a demo test file if there already is a .test.ts file
 - [ ] Don't add react demo test file if react preset isn't used
 - [ ] Add debug:test and debug:start commands
