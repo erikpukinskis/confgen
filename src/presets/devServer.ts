@@ -1,3 +1,3 @@
 import { type CommandGenerator } from "@/commands"
 
-export const devServer: CommandGenerator = () => []
+export const generator: CommandGenerator = () => []

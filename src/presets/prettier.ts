@@ -1,6 +1,6 @@
 import type { CommandGenerator } from "@/commands"
 
-export const prettier: CommandGenerator = (presets) => [
+export const generator: CommandGenerator = (presets) => [
   {
     command: "yarn",
     dev: true,

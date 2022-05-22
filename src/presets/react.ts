@@ -1,6 +1,6 @@
 import type { CommandGenerator } from "@/commands"
 
-export const react: CommandGenerator = (presets) => [
+export const generator: CommandGenerator = (presets) => [
   {
     command: "yarn",
     pkg: "react",

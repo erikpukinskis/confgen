@@ -1,7 +1,7 @@
 import { type CommandGenerator } from "@/commands"
 import { type Presets } from "@/presets"
 
-export const eslint: CommandGenerator = (presets) => [
+export const generator: CommandGenerator = (presets) => [
   {
     command: "yarn",
     dev: true,

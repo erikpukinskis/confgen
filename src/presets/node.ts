@@ -1,6 +1,6 @@
 import type { CommandGenerator } from "@/commands"
 
-export const node: CommandGenerator = (presets) => [
+export const generator: CommandGenerator = (presets) => [
   ...(presets.includes("codespaces")
     ? ([
         {

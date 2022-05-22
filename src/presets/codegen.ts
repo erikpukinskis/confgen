@@ -1,9 +1,13 @@
-import { type CommandGenerator, type CommandWithArgs } from "@/commands"
+import {
+  type CommandGenerator,
+  type CommandWithArgs,
+  type Precheck,
+} from "@/commands"
 import { type Args } from "@/args"
 import type { System } from "@/system"
 import YAML from "yaml"
 
-export const codegen: CommandGenerator = (presets, args, system) => {
+export const precheck: Precheck = (presets, args) => {
   if (!presets.includes("typescript")) {
     throw new Error(
       'GraphQL codegen only makes sense in a Typescript project. Add the "typescript" preset to your confgen.'
@@ -15,7 +19,9 @@ export const codegen: CommandGenerator = (presets, args, system) => {
       "Codegen presets needs to know what to generate. Try codegen:resolvers, codegen:schema, codegen:operations, or some combination of the three (codegen:resolvers:schema:operations)"
     )
   }
+}
 
+export const generator: CommandGenerator = (presets, args, system) => {
   const commands: CommandWithArgs[] = [
     {
       command: "yarn",

@@ -1,6 +1,6 @@
 import type { CommandGenerator } from "@/commands"
 
-export const api: CommandGenerator = (presets, args) => [
+export const generator: CommandGenerator = (presets, args) => [
   ...(presets.includes("vite")
     ? ([
         {

@@ -1,9 +1,25 @@
-import { type CommandGenerator } from "@/commands"
+import type { CommandGenerator, Precheck } from "@/commands"
 import { type Presets } from "@/presets"
 import { type Args } from "@/args"
 import type { System } from "@/system"
 
-export const vite: CommandGenerator = (presets, args, system) => [
+export const precheck: Precheck = (presets, args) => {
+  if (presets.includes("library") && presets.includes("appBuild")) {
+    throw new Error(
+      'Confgen can only generate EITHER a config for building an app OR a config for building a library, but not both. You included both the "appBuild" and "library" presets.'
+    )
+  }
+
+  const libraryName = presets.includes("library") ? args.library[0] : undefined
+
+  if (presets.includes("library") && !libraryName) {
+    throw new Error(
+      "library preset requires a global name: npx configgen library:MyLibrary"
+    )
+  }
+}
+
+export const generator: CommandGenerator = (presets, args, system) => [
   {
     command: "yarn",
     dev: true,
@@ -110,17 +126,8 @@ const buildDistConfig = () => ({
 })
 
 const buildViteConfig = (presets: Presets, args: Args, system: System) => {
-  if (presets.includes("library") && presets.includes("appBuild")) {
-    throw new Error(
-      'Confgen can only generate EITHER a config for building an app OR a config for building a library, but not both. You included both the "appBuild" and "library" presets.'
-    )
-  }
   const libraryName = presets.includes("library") ? args.library[0] : undefined
-  if (presets.includes("library") && !libraryName) {
-    throw new Error(
-      "library preset requires a global name: npx configgen library:MyLibrary"
-    )
-  }
+
   const dependencies = getDependencies(system)
   const globals = getGlobals(dependencies)
 

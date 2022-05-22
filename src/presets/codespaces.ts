@@ -1,6 +1,6 @@
 import { type CommandGenerator } from "@/commands"
 
-export const codespaces: CommandGenerator = (presets) => [
+export const generator: CommandGenerator = (presets) => [
   {
     command: "file",
     path: ".vscode/settings.json",

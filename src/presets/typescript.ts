@@ -3,7 +3,7 @@ import type { Args } from "@/args"
 
 const tsconfigPath = (args: Args) => args.typescript[0] || "tsconfig.json"
 
-export const typescript: CommandGenerator = (presets, args) => [
+export const generator: CommandGenerator = (presets, args) => [
   {
     command: "yarn",
     dev: true,
