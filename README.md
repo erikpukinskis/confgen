@@ -152,13 +152,28 @@ Then [submit a pull request](https://github.com/erikpukinskis/confgen/pulls)!
 ## Running tests
 
 Run the tests:
-`yarn test`
+
+```
+yarn test
+```
+
 In watch mode:
-`yarn test:watch`
+
+```
+yarn test:watch
+```
+
 Just one test suite:
-`yarn test -t presets/library`
+
+```
+yarn test -t presets/library
+```
+
 Just one test:
-`yarn test -t "should not clobber existing build commands"`
+
+```
+yarn test -t "should not clobber existing build commands"
+```
 
 ## The Future
 
