@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest"
-import { Project } from "../project"
-import { MockSystem } from "../system"
+import { Project } from "@/project"
+import { MockSystem } from "@/system"
 
 describe("the library preset", () => {
   describe("when there is already a vite build script and some unrecognized ones", () => {

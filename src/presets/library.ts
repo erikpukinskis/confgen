@@ -1,4 +1,6 @@
-import { CommandGenerator, Presets, System } from "@/types"
+import type { CommandGenerator } from "@/commands"
+import type { Presets } from "@/presets"
+import type { System } from "@/system"
 
 export const library: CommandGenerator = (presets, _, system) => [
   {

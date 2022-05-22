@@ -1,4 +1,5 @@
-import { CommandGenerator, Args } from "@/types"
+import type { CommandGenerator } from "@/commands"
+import type { Args } from "@/args"
 
 const tsconfigPath = (args: Args) => args.typescript[0] || "tsconfig.json"
 

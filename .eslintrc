@@ -10,6 +10,10 @@
   "rules": {
     "@typescript-eslint/no-explicit-any": ["error"],
     "@typescript-eslint/no-unused-vars": ["error"],
+    "@typescript-eslint/consistent-type-imports": [
+      "error",
+      { "prefer": "type-imports" }
+    ],
     "semi": ["error", "never"],
     "eol-last": ["error", "always"],
     "quote-props": ["error", "consistent-as-needed"],

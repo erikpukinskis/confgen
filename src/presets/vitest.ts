@@ -1,7 +1,7 @@
-import { CommandGenerator, Presets } from "@/types"
-import { spawnSync } from "child_process"
+import type { CommandGenerator } from "@/commands"
+import type { System } from "@/system"
 
-export const vitest: CommandGenerator = (presets: Presets) => [
+export const vitest: CommandGenerator = (presets, _, system) => [
   {
     command: "yarn",
     dev: true,
@@ -17,7 +17,7 @@ export const vitest: CommandGenerator = (presets: Presets) => [
     name: "test:watch",
     script: "vitest watch",
   },
-  ...(!hasTestFiles()
+  ...(!hasTestFiles(system)
     ? ([
         {
           command: "file",
@@ -43,8 +43,8 @@ export const vitest: CommandGenerator = (presets: Presets) => [
     : []),
 ]
 
-const hasTestFiles = () => {
-  const { status } = spawnSync(
+const hasTestFiles = (system: System) => {
+  const { status } = system.run(
     `find . -regex '^.+[.]test[.][tj]sx?$' -not -path "./node_modules/*" | grep .`
   )
   return status === 0

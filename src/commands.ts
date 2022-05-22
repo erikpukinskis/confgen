@@ -1,16 +1,66 @@
-import {
-  CommandWithArgs,
-  isDevPackageCommand,
-  FileCommand,
-  ScriptCommand,
-  RunCommand,
-  PackageCommand,
-} from "./types"
 import merge from "merge-objects"
 import uniq from "lodash/uniq"
 import get from "lodash/get"
 import YAML from "yaml"
 import { type System } from "./system"
+import { type PresetName, type Presets } from "./presets"
+import { type Args } from "./args"
+
+export type Command = "file" | "run" | "script" | "yarn"
+
+export type FileCommand = {
+  command: "file"
+  path: string
+  contents: string | string[] | Record<string, unknown>
+  merge?: "if-not-exists" | "prefer-existing" | "prefer-preset"
+}
+
+export type RunCommand = {
+  command: "run"
+  script: string
+}
+
+export type ScriptCommand = {
+  command: "script"
+  name: string
+  script: string
+}
+
+export type CommandWithArgs = { preset?: PresetName } & (
+  | FileCommand
+  | RunCommand
+  | ScriptCommand
+  | PackageCommand
+)
+
+export function isDistPackageCommand(
+  command: CommandWithArgs
+): command is DistPackageCommand {
+  return command.command === "yarn" && !(command as DevPackageCommand).dev
+}
+
+export type DistPackageCommand = {
+  command: "yarn"
+  pkg: string
+}
+
+export type DevPackageCommand = DistPackageCommand & {
+  dev: true
+}
+
+export type PackageCommand = DistPackageCommand | DevPackageCommand
+
+export function isDevPackageCommand(
+  command: CommandWithArgs
+): command is DevPackageCommand {
+  return command.command === "yarn" && (command as DevPackageCommand).dev
+}
+
+export type CommandGenerator = (
+  presets: Presets,
+  args: Args,
+  system: System
+) => CommandWithArgs[]
 
 type FileChanges = string | string[] | Record<string, unknown>
 

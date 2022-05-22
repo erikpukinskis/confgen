@@ -1,7 +1,9 @@
-import { CommandGenerator, Presets, Args } from "@/types"
-import { readFileSync } from "fs"
+import { type CommandGenerator } from "@/commands"
+import { type Presets } from "@/presets"
+import { type Args } from "@/args"
+import type { System } from "@/system"
 
-export const vite: CommandGenerator = (presets, args) => [
+export const vite: CommandGenerator = (presets, args, system) => [
   {
     command: "yarn",
     dev: true,
@@ -82,7 +84,7 @@ export const vite: CommandGenerator = (presets, args) => [
   {
     command: "file",
     path: "vite.config.js",
-    contents: buildViteConfig(presets, args),
+    contents: buildViteConfig(presets, args, system),
   },
 ]
 
@@ -107,7 +109,7 @@ const buildDistConfig = () => ({
   },
 })
 
-const buildViteConfig = (presets: Presets, args: Args) => {
+const buildViteConfig = (presets: Presets, args: Args, system: System) => {
   if (presets.includes("library") && presets.includes("appBuild")) {
     throw new Error(
       'Confgen can only generate EITHER a config for building an app OR a config for building a library, but not both. You included both the "appBuild" and "library" presets.'
@@ -119,7 +121,7 @@ const buildViteConfig = (presets: Presets, args: Args) => {
       "library preset requires a global name: npx configgen library:MyLibrary"
     )
   }
-  const dependencies = getDependencies()
+  const dependencies = getDependencies(system)
   const globals = getGlobals(dependencies)
 
   const buildStuff = presets.includes("library")
@@ -227,8 +229,8 @@ export default defineConfig({
   `
 }
 
-const getDependencies = () => {
-  const source = readFileSync("package.json").toString()
+const getDependencies = (system: System) => {
+  const source = system.read("package.json")
   const json = JSON.parse(source)
   if (!json.dependencies) return []
   return Object.keys(json["dependencies"])

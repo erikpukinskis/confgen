@@ -1,4 +1,5 @@
-import { CommandGenerator, Presets } from "@/types"
+import { type CommandGenerator } from "@/commands"
+import { type Presets } from "@/presets"
 
 export const eslint: CommandGenerator = (presets) => [
   {
@@ -110,6 +111,10 @@ const buildEslintrc = (presets: Presets) => ({
     ...(presets.includes("typescript")
       ? {
           "@typescript-eslint/no-explicit-any": ["error"],
+          "@typescript-eslint/consistent-type-imports": [
+            "error",
+            { prefer: "type-imports" },
+          ],
           "no-unused-vars": "off",
           "@typescript-eslint/no-unused-vars": [
             "error",

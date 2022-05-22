@@ -1,9 +1,9 @@
-import { CommandGenerator, Args, CommandWithArgs } from "@/types"
-import { existsSync, readFileSync } from "fs"
+import { type CommandGenerator, type CommandWithArgs } from "@/commands"
+import { type Args } from "@/args"
+import type { System } from "@/system"
 import YAML from "yaml"
-import { spawnSync } from "child_process"
 
-export const codegen: CommandGenerator = (presets, args) => {
+export const codegen: CommandGenerator = (presets, args, system) => {
   if (!presets.includes("typescript")) {
     throw new Error(
       'GraphQL codegen only makes sense in a Typescript project. Add the "typescript" preset to your confgen.'
@@ -69,7 +69,7 @@ export const codegen: CommandGenerator = (presets, args) => {
     )
   }
 
-  if (!codegenHasSchema()) {
+  if (!codegenHasSchema(system)) {
     commands.push(
       ...([
         {
@@ -136,9 +136,9 @@ type Mutation {
       ] as const)
     )
 
-    if (!hasAnyOperations()) {
+    if (!hasAnyOperations(system)) {
       let path = "src/index.tsx"
-      if (existsSync(path)) {
+      if (system.exists(path)) {
         path = "src/example.tsx"
       }
       commands.push({
@@ -152,8 +152,8 @@ type Mutation {
   return commands
 }
 
-const hasAnyOperations = () => {
-  const { status } = spawnSync("grep -rnw . -e 'gql('")
+const hasAnyOperations = (system: System) => {
+  const { status } = system.run("grep -rnw . -e 'gql('")
   return status === 0
 }
 
@@ -215,9 +215,9 @@ const buildResolverCodegen = (args: Args) => {
   }
 }
 
-const codegenHasSchema = () => {
-  if (!existsSync("codegen.yml")) return false
-  const contents = readFileSync("codegen.yml").toString()
+const codegenHasSchema = (system: System) => {
+  if (!system.exists("codegen.yml")) return false
+  const contents = system.read("codegen.yml")
   const object = YAML.parse(contents)
   return Boolean(object.schema)
 }
