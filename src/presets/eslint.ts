@@ -81,6 +81,7 @@ const buildEslintrc = (presets: Presets) => ({
   root: true,
   parserOptions: {
     warnOnUnsupportedTypeScriptVersion: false,
+    project: ["./tsconfig.json"],
   },
   ...(presets.includes("typescript")
     ? {
