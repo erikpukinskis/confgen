@@ -1,7 +1,7 @@
 import type { CommandGenerator } from "@/commands"
 import type { System } from "@/system"
 
-export const vitest: CommandGenerator = (presets, _, system) => [
+export const generator: CommandGenerator = (presets, _, system) => [
   {
     command: "yarn",
     dev: true,

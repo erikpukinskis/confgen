@@ -1,6 +1,6 @@
 import { type CommandGenerator } from "@/commands"
 
-export const git: CommandGenerator = (presets) => [
+export const generator: CommandGenerator = (presets) => [
   {
     command: "file",
     path: ".gitignore",

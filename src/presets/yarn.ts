@@ -1,6 +1,6 @@
 import type { CommandGenerator } from "@/commands"
 
-export const yarn: CommandGenerator = () => [
+export const generator: CommandGenerator = () => [
   {
     command: "run",
     script: "rm -f package-lock.json",

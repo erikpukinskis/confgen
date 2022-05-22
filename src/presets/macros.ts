@@ -1,3 +1,3 @@
 import type { CommandGenerator } from "@/commands"
 
-export const macros: CommandGenerator = () => []
+export const generator: CommandGenerator = () => []

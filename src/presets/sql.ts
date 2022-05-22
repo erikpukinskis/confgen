@@ -1,3 +1,3 @@
 import type { CommandGenerator } from "../commands"
 
-export const sql: CommandGenerator = () => []
+export const generator: CommandGenerator = () => []

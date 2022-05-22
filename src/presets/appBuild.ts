@@ -1,3 +1,3 @@
 import type { CommandGenerator } from "@/commands"
 
-export const appBuild: CommandGenerator = () => []
+export const generator: CommandGenerator = () => []

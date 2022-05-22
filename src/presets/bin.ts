@@ -1,6 +1,6 @@
 import type { CommandGenerator } from "@/commands"
 
-export const bin: CommandGenerator = () => [
+export const generator: CommandGenerator = () => [
   {
     command: "script",
     name: "build:bin",

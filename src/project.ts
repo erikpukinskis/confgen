@@ -1,4 +1,4 @@
-import { presets } from "@/presets"
+import { precheck, generate } from "@/presets"
 import { type Args, EMPTY_ARGS } from "@/args"
 import { type Presets } from "@/presets"
 import {
@@ -30,17 +30,24 @@ export class Project {
   }
 
   confgen() {
+    const args = {
+      ...EMPTY_ARGS,
+      ...this.argsByPresetName,
+    }
+
+    for (const presetName of this.presetNames) {
+      precheck(presetName, this.presetNames, args, this.system)
+    }
+
     const generatedCommands = []
 
     for (const presetName of this.presetNames) {
       this.system.silent ||
         console.log(`Generating commands for preset [${presetName}]...`)
-      const generated = presets[presetName](
+      const generated = generate(
+        presetName,
         this.presetNames,
-        {
-          ...EMPTY_ARGS,
-          ...this.argsByPresetName,
-        },
+        args,
         this.system
       )
       generated.forEach((command) => (command.preset = presetName))

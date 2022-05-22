@@ -62,6 +62,8 @@ export type CommandGenerator = (
   system: System
 ) => CommandWithArgs[]
 
+export type Precheck = (presets: Presets, args: Args, system: System) => void
+
 type FileChanges = string | string[] | Record<string, unknown>
 
 const descriptions: Record<string, string> = {

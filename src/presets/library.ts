@@ -2,7 +2,7 @@ import type { CommandGenerator } from "@/commands"
 import type { Presets } from "@/presets"
 import type { System } from "@/system"
 
-export const library: CommandGenerator = (presets, _, system) => [
+export const generator: CommandGenerator = (presets, _, system) => [
   {
     command: "script",
     name: "build",
