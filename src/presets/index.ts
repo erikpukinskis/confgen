@@ -8,6 +8,7 @@ import { devServer } from "./devServer"
 import { macros } from "./macros"
 import { eslint } from "./eslint"
 import { git } from "./git"
+import { githubPackage } from "./githubPackage"
 import { library } from "./library"
 import { node } from "./node"
 import { prettier } from "./prettier"
@@ -34,6 +35,7 @@ export const presets: CommandGeneratorsByPreset = {
   devServer,
   eslint,
   git,
+  githubPackage,
   library,
   macros,
   node,
