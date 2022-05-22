@@ -1,23 +1,22 @@
-import { PRESETS, isPreset, Args } from "./types"
 import path from "path"
 import { existsSync, readFileSync } from "fs"
 import { Project } from "./project"
 
-const [, , ...args] = process.argv
+const [, , ...configs] = process.argv
 
-args.unshift("all", "git")
+configs.unshift("all", "git")
 
 // Eslint makes things better, and Prettier makes things pretty so we want
 // prettier to be last and eslint to be second-to-last
-if (args.includes("eslint")) {
-  const index = args.indexOf("eslint")
-  args.splice(index, 1)
-  args.push("eslint")
+if (configs.includes("eslint")) {
+  const index = configs.indexOf("eslint")
+  configs.splice(index, 1)
+  configs.push("eslint")
 }
-if (args.includes("prettier")) {
-  const index = args.indexOf("prettier")
-  args.splice(index, 1)
-  args.push("prettier")
+if (configs.includes("prettier")) {
+  const index = configs.indexOf("prettier")
+  configs.splice(index, 1)
+  configs.push("prettier")
 }
 
 const getVersion = () => {
@@ -37,27 +36,6 @@ console.log(`----------------------------------------
 👷 Running confgen@${getVersion()}
 ----------------------------------------`)
 
-const argsByPresetName = PRESETS.reduce(
-  (args, preset) => ({
-    ...args,
-    [preset]: [],
-  }),
-  {} as Args
-)
-
-const presetNames = args.map((arg) => {
-  const [presetName, ...presetArgs] = arg.split(":")
-  if (!isPreset(presetName)) {
-    throw new Error(
-      `${presetName} is not a valid preset.\n\nUsage:\nnpx confgen [${PRESETS.join(
-        " | "
-      )}]\n`
-    )
-  }
-  argsByPresetName[presetName] = presetArgs
-  return presetName
-})
-
-const project = new Project({ presetNames, argsByPresetName })
+const project = new Project({ presetConfigs: configs })
 
 project.confgen()

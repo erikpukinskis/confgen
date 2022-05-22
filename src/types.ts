@@ -75,9 +75,12 @@ export function isDevPackageCommand(
   return command.command === "yarn" && (command as DevPackageCommand).dev
 }
 
-export type Args = Record<Preset, string[]>
+// export type Args = Record<Preset, string[]>
 
-export const EMPTY_ARGS = PRESETS.reduce(
+export type Args = { readonly [index in Preset]: string[] }
+export type Presets = readonly Preset[]
+
+export const EMPTY_ARGS: Args = PRESETS.reduce(
   (argsByPresetName, preset) => ({
     ...argsByPresetName,
     [preset]: [],
@@ -86,6 +89,17 @@ export const EMPTY_ARGS = PRESETS.reduce(
 )
 
 export type CommandGenerator = (
-  presets: Preset[],
-  args: Args
+  presets: Presets,
+  args: Args,
+  system: System
 ) => CommandWithArgs[]
+
+export type System = {
+  silent: boolean
+
+  run(command: string): void
+  exists(path: string): boolean
+  read(path: string): string
+  write(path: string, contents: string | object): void
+  addPackage(pkg: string, isDevOnly: boolean): void
+}

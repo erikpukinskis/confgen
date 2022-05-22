@@ -1,27 +1,32 @@
 import { presets } from "./presets"
 import {
-  Preset,
+  type Presets,
   DistPackageCommand,
   isDistPackageCommand,
   DevPackageCommand,
   isDevPackageCommand,
-  Args,
+  type Args,
   EMPTY_ARGS,
+  PRESETS,
+  isPreset,
 } from "./types"
 import { runCommand } from "./commands"
 import { RealSystem, type System } from "./system"
 
 export class Project {
   system: System
-  presetNames: Preset[]
-  argsByPresetName: Partial<Args>
+  presetNames: Presets
+  argsByPresetName: Args
 
   constructor({
-    presetNames,
-    argsByPresetName,
+    presetConfigs,
     system,
-  }: Pick<Project, "presetNames" | "argsByPresetName"> & { system?: System }) {
+  }: {
+    presetConfigs: string[]
+    system?: System
+  }) {
     this.system = system || new RealSystem()
+    const { presetNames, argsByPresetName } = parsePresetConfigs(presetConfigs)
     this.presetNames = presetNames
     this.argsByPresetName = argsByPresetName
   }
@@ -32,10 +37,14 @@ export class Project {
     for (const presetName of this.presetNames) {
       this.system.silent ||
         console.log(`Generating commands for preset [${presetName}]...`)
-      const generated = presets[presetName](this.presetNames, {
-        ...EMPTY_ARGS,
-        ...this.argsByPresetName,
-      })
+      const generated = presets[presetName](
+        this.presetNames,
+        {
+          ...EMPTY_ARGS,
+          ...this.argsByPresetName,
+        },
+        this.system
+      )
       generated.forEach((command) => (command.preset = presetName))
       generatedCommands.push(...generated)
     }
@@ -64,4 +73,27 @@ export class Project {
       runCommand(command, this.system)
     }
   }
+}
+
+const parsePresetConfigs = (
+  configs: string[]
+): { argsByPresetName: Args; presetNames: Presets } => {
+  const argsByPresetName = {
+    ...EMPTY_ARGS,
+  }
+
+  const presetNames = configs.map((config) => {
+    const [presetName, ...presetArgs] = config.split(":")
+    if (!isPreset(presetName)) {
+      throw new Error(
+        `${presetName} is not a valid preset.\n\nUsage:\nnpx confgen [${PRESETS.join(
+          " | "
+        )}]\n`
+      )
+    }
+    argsByPresetName[presetName] = presetArgs
+    return presetName
+  })
+
+  return { argsByPresetName, presetNames }
 }

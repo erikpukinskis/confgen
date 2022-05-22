@@ -1,4 +1,4 @@
-import { CommandGenerator, Preset, Args } from "@/types"
+import { CommandGenerator, Presets, Args } from "@/types"
 import { readFileSync } from "fs"
 
 export const vite: CommandGenerator = (presets, args) => [
@@ -107,7 +107,7 @@ const buildDistConfig = () => ({
   },
 })
 
-const buildViteConfig = (presets: Preset[], args: Args) => {
+const buildViteConfig = (presets: Presets, args: Args) => {
   const libraryName = presets.includes("library") ? args.library[0] : undefined
   if (presets.includes("library") && !libraryName) {
     throw new Error(
@@ -247,7 +247,7 @@ ${plugins
 
 `
 
-const buildEntryPointpath = (presets: Preset[]) =>
+const buildEntryPointpath = (presets: Presets) =>
   `src/index.${presets.includes("typescript") ? "ts" : "js"}`
 
 const buildDefaultIndex = (args: Args) => `

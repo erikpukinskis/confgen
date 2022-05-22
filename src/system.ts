@@ -1,16 +1,8 @@
 import { execSync } from "child_process"
 import { existsSync, readFileSync } from "fs"
 import { outputFileSync } from "fs-extra"
-
-export type System = {
-  silent: boolean
-
-  run(command: string): void
-  exists(path: string): boolean
-  read(path: string): string
-  write(path: string, contents: string): void
-  addPackage(pkg: string, isDevOnly: boolean): void
-}
+import { System } from "./types"
+export { System } from "./types"
 
 export class RealSystem implements System {
   silent = false
@@ -24,8 +16,8 @@ export class RealSystem implements System {
   read(path: string) {
     return readFileSync(path).toString()
   }
-  write(path: string, contents: string) {
-    outputFileSync(path, contents)
+  write(path: string, contents: string | object) {
+    outputFileSync(path, stringify(contents))
   }
   addPackage(pkg: string, isDevOnly: boolean) {
     const dashDev = isDevOnly ? "-D " : ""
@@ -46,8 +38,8 @@ export class MockSystem implements System {
   read(path: string) {
     return this.contentsByPath[path]
   }
-  write(path: string, contents: string) {
-    this.contentsByPath[path] = contents
+  write(path: string, contents: string | object) {
+    this.contentsByPath[path] = stringify(contents)
   }
   addPackage(pkgStrings: string, isDevOnly: boolean) {
     if (!this.exists("package.json")) {
@@ -66,6 +58,12 @@ export class MockSystem implements System {
       deps[name] = version || "*"
     }
 
-    this.write("package.json", JSON.stringify(packageJson, null, 2))
+    this.write("package.json", stringify(packageJson))
   }
+}
+
+const stringify = (contents: string | object) => {
+  return typeof contents === "string"
+    ? contents
+    : JSON.stringify(contents, null, 2)
 }

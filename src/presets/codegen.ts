@@ -33,11 +33,6 @@ export const codegen: CommandGenerator = (presets, args) => {
       script: "rm -f ./src/__generated__/* && graphql-codegen",
     },
     {
-      command: "script",
-      name: "build",
-      script: "yarn run build:generate",
-    },
-    {
       command: "file",
       path: ".gitignore",
       contents: ["__generated__"],
