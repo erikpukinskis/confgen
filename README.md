@@ -196,6 +196,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Add Apollo Client query type generation
 - [x] Add `else exit 1;` to the celebrations
 - [x] Lint should not fail on an empty project
+- [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
 - [ ] Add githubPkg:scope preset
 - [ ] Sort scripts
 - [ ] Don't add a demo test file if there already is a .test.ts file
@@ -204,7 +205,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Add watch:test, watch:build, watch:generate, and watch commands
 - [ ] Include graphql.vscode-graphql extension when... well we don't have an apollo preset anymore, so just when we include codegen?
 - [ ] Add `"@typescript-eslint/no-floating-promises": ["error"]` and `"parserOptions": { "project": ["./tsconfig.json"] }` as needed
-- [ ] Enable `"typescript.tsserver.experimental.enableProjectDiagnostics": true`
+- [ ] Enable `"typescript.tsserver.experimental.enableProjectDiagnostics": true`?
 
 ### Might happen
 
