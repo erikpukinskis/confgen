@@ -5,7 +5,8 @@
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
-    "plugin:@typescript-eslint/recommended"
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking"
   ],
   "rules": {
     "@typescript-eslint/no-explicit-any": ["error"],
@@ -13,6 +14,10 @@
     "@typescript-eslint/consistent-type-imports": [
       "error",
       { "prefer": "type-imports" }
+    ],
+    "@typescript-eslint/restrict-template-expressions": [
+      "error",
+      { "allowNullish": true }
     ],
     "semi": ["error", "never"],
     "eol-last": ["error", "always"],
@@ -22,6 +27,7 @@
   },
   "ignorePatterns": ["*.js"],
   "parserOptions": {
-    "warnOnUnsupportedTypeScriptVersion": false
+    "warnOnUnsupportedTypeScriptVersion": false,
+    "project": ["./tsconfig.json"]
   }
 }

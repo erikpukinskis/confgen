@@ -238,7 +238,7 @@ export default defineConfig({
 
 const getDependencies = (system: System) => {
   const source = system.read("package.json")
-  const json = JSON.parse(source)
+  const json = JSON.parse(source) as { dependencies?: Record<string, string> }
   if (!json.dependencies) return []
   return Object.keys(json["dependencies"])
 }

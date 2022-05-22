@@ -28,7 +28,7 @@ const getVersion = () => {
     return "unknown"
   }
   const contents = readFileSync(packageJsonPath).toString()
-  const json = JSON.parse(contents)
+  const json = JSON.parse(contents) as { version?: string }
   return json.version
 }
 

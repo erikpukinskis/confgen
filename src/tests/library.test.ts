@@ -21,8 +21,10 @@ describe("the library preset", () => {
 
       project.confgen()
 
-      const packageJson = JSON.parse(system.read("package.json"))
-      buildScripts = (packageJson.scripts.build as string).split(" && ")
+      const packageJson = JSON.parse(system.read("package.json")) as {
+        scripts: Record<string, string>
+      }
+      buildScripts = packageJson.scripts.build.split(" && ")
     })
 
     it("should not clobber existing build commands", () => {

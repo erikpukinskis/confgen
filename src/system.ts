@@ -55,10 +55,13 @@ export class MockSystem implements System {
       this.write("package.json", "{}")
     }
 
-    const packageJson = JSON.parse(this.read("package.json"))
+    const packageJson = JSON.parse(this.read("package.json")) as {
+      dependencies?: Record<string, string>
+      devDependencies?: Record<string, string>
+    }
     const depsKey = isDevOnly ? "devDependencies" : "dependencies"
     if (!packageJson[depsKey]) packageJson[depsKey] = {}
-    const deps: Record<string, string> = packageJson[depsKey]
+    const deps = packageJson[depsKey] as Record<string, string>
 
     const pkgs = pkgStrings.split(" ")
 
