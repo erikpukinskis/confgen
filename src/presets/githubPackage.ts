@@ -22,6 +22,11 @@ export const generator: CommandGenerator = (presets, args) => {
       },
     },
     {
+      command: "file",
+      path: ".gitignore",
+      contents: [".npmrc"],
+    },
+    {
       command: "script",
       name: "auth:registry",
       script:

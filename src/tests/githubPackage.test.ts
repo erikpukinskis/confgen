@@ -10,6 +10,7 @@ describe("presets/githubPackage", () => {
 
   beforeAll(() => {
     system = new MockSystem()
+    system.write(".gitignore", "foo\n")
     const project = new Project({
       presetConfigs: ["githubPackage:@my-scope"],
       system,
@@ -21,6 +22,11 @@ describe("presets/githubPackage", () => {
     }
 
     authRegistryScript = scripts["auth:registry"]
+  })
+
+  it("should put .npmrc in the .gitignore", () => {
+    expect(system.read(".gitignore")).toContain(".npmrc")
+    expect(system.read(".gitignore")).toContain("foo")
   })
 
   it("should tell the user they need a $NPM_PKG_TOKEN", () => {
@@ -39,7 +45,7 @@ describe("presets/githubPackage", () => {
 
     beforeAll(() => mkdirSync(root))
 
-    // afterAll(() => rmdirSync(root, { recursive: true }))
+    afterAll(() => rmdirSync(root, { recursive: true }))
 
     it("should write an .npmrc", () => {
       spawnSync("bash", ["-c", authRegistryScript], {
