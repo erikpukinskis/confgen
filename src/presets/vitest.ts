@@ -44,11 +44,9 @@ export const generator: CommandGenerator = (presets, _, system) => [
 ]
 
 const hasTestFiles = (system: System) => {
-  const result = system.run(
+  const { status } = system.run(
     `find . -regex '^.+[.]test[.][tj]sx?$' -not -path "./node_modules/*" | grep .`
   )
-  console.log("result is", result)
-  const { status } = result
   return status === 0
 }
 
