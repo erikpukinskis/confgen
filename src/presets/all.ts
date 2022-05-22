@@ -1,4 +1,4 @@
-import { CommandGenerator, Preset } from "../types"
+import { CommandGenerator, Presets } from "../types"
 
 export const all: CommandGenerator = (presets) => [
   ...(presets.includes("eslint") || presets.includes("prettier")
@@ -17,14 +17,14 @@ export const all: CommandGenerator = (presets) => [
   },
 ]
 
-const buildFixCommand = (presets: Preset[]) => {
+const buildFixCommand = (presets: Presets) => {
   const scripts = []
   if (presets.includes("eslint")) scripts.push("yarn fix:lint")
   if (presets.includes("prettier")) scripts.push("yarn fix:format")
   return scripts.join(" && ")
 }
 
-const buildAllOfTheThingsCommand = (presets: Preset[]) => {
+const buildAllOfTheThingsCommand = (presets: Presets) => {
   const scripts = ["yarn"]
 
   if (presets.includes("library") || presets.includes("codegen")) {

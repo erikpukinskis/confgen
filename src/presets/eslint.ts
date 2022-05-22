@@ -1,4 +1,4 @@
-import { CommandGenerator, Preset } from "@/types"
+import { CommandGenerator, Presets } from "@/types"
 
 export const eslint: CommandGenerator = (presets) => [
   {
@@ -76,7 +76,7 @@ vendor
   },
 ]
 
-const buildEslintrc = (presets: Preset[]) => ({
+const buildEslintrc = (presets: Presets) => ({
   root: true,
   parserOptions: {
     warnOnUnsupportedTypeScriptVersion: false,
@@ -111,7 +111,10 @@ const buildEslintrc = (presets: Preset[]) => ({
       ? {
           "@typescript-eslint/no-explicit-any": ["error"],
           "no-unused-vars": "off",
-          "@typescript-eslint/no-unused-vars": ["error"],
+          "@typescript-eslint/no-unused-vars": [
+            "error",
+            { args: "after-used" },
+          ],
           "semi": ["error", "never"],
         }
       : undefined),

@@ -1,7 +1,7 @@
-import { CommandGenerator, Preset } from "@/types"
+import { CommandGenerator, Presets } from "@/types"
 import { spawnSync } from "child_process"
 
-export const vitest: CommandGenerator = (presets: Preset[]) => [
+export const vitest: CommandGenerator = (presets: Presets) => [
   {
     command: "yarn",
     dev: true,

@@ -9,8 +9,7 @@ describe("the eslint preset", () => {
   beforeEach(() => {
     system = new MockSystem()
     project = new Project({
-      presetNames: ["eslint"],
-      argsByPresetName: {},
+      presetConfigs: ["eslint"],
       system,
     })
     project.confgen()
@@ -23,8 +22,7 @@ describe("the eslint preset", () => {
   describe("plus the react preset", () => {
     beforeEach(() => {
       project = new Project({
-        presetNames: ["eslint", "react"],
-        argsByPresetName: {},
+        presetConfigs: ["eslint", "react"],
         system,
       })
       project.confgen()
