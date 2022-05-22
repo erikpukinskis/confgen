@@ -16,6 +16,7 @@ export class RealSystem implements System {
   silent = false
 
   run(command: string) {
+    console.log("actually running", command)
     const { status } = spawnSync(command, { stdio: "inherit" })
     return { status }
   }
@@ -38,7 +39,8 @@ export class MockSystem implements System {
   silent = true
   contentsByPath: Record<string, string> = {}
 
-  run() {
+  run(command: string) {
+    console.log("fake command", command)
     return { status: null }
   }
   exists(path: string) {
