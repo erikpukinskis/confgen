@@ -1,7 +1,7 @@
 {
   "name": "confgen",
   "license": "MIT",
-  "version": "0.75.0",
+  "version": "0.76.0",
   "bin": "./dist/index.umd.js",
   "dependencies": {
     "deep-equal": "^2.0.5",
