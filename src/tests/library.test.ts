@@ -29,7 +29,6 @@ describe("presets/library", () => {
         scripts: Record<string, string>
       }
       buildScripts = packageJson.scripts.build.split(" && ")
-      console.log({ buildScripts })
     })
 
     it("should not clobber existing build commands", () => {
