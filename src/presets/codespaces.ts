@@ -1,4 +1,5 @@
 import { type CommandGenerator } from "@/commands"
+import type { Presets } from "@/presets"
 
 export const generator: CommandGenerator = (presets) => [
   {
@@ -31,9 +32,17 @@ export const generator: CommandGenerator = (presets) => [
           command: "file",
           path: ".devcontainer/devcontainer.json",
           contents: {
-            postCreateCommand: ["yarn"],
+            postCreateCommand: buildPostCreateCommand(presets),
           },
         },
       ] as const)
     : []),
 ]
+
+const buildPostCreateCommand = (presets: Presets) => {
+  let command = "yarn"
+  if (presets.includes("githubPackage")) {
+    command += " && yarn auth:registry"
+  }
+  return command
+}
