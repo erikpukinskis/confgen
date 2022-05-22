@@ -141,6 +141,17 @@ add an entirely new preset by copying one of the scripts in that folder and addi
 
 Then [submit a pull request](https://github.com/erikpukinskis/confgen/pulls)!
 
+## Running tests
+
+Run the tests:
+`yarn test`
+In watch mode:
+`yarn test:watch`
+Just one test suite:
+`yarn test -t presets/library`
+Just one test:
+`yarn test -t "should not clobber existing build commands"`
+
 ## The Future
 
 I'm still not sure whether confgen is a good idea or a horrible idea.
