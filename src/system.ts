@@ -46,8 +46,7 @@ export class MockSystem implements System {
   silent = true
   contentsByPath: Record<string, string> = {}
 
-  run(command: string) {
-    console.log("fake command", command)
+  run() {
     return { status: null }
   }
   exists(path: string) {
