@@ -1,4 +1,4 @@
-import { CommandGenerator } from "@/commands"
+import type { CommandGenerator } from "@/commands"
 
 export const api: CommandGenerator = (presets, args) => [
   ...(presets.includes("vite")

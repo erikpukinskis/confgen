@@ -1,4 +1,4 @@
-import { CommandGenerator } from "@/commands"
+import type { CommandGenerator } from "@/commands"
 
 export const bin: CommandGenerator = () => [
   {
