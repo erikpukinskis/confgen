@@ -15,7 +15,7 @@ const buildScript = (presets: Presets, system: System) => {
 
   const scripts = ((): string[] => {
     if (!packageJson) return []
-    const json = JSON.parse(packageJson)
+    const json = JSON.parse(packageJson) as { scripts?: Record<string, string> }
     const buildScript = json.scripts?.build
     if (!buildScript) return []
     return buildScript.split(" && ")

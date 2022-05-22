@@ -79,12 +79,13 @@ export const runCommand = (command: CommandWithArgs, system: System) => {
     ? "yarnDev"
     : command.command
 
+  const foo = command[Object.keys(command)[1] as keyof CommandWithArgs]
   system.silent ||
     console.log(`----------------------------------------
 👷 ${descriptions[descriptionKey]}${
       command.preset ? ` for preset [${command.preset}]` : ""
     }...
-   ${command[Object.keys(command)[1] as keyof CommandWithArgs]}`)
+   ${foo}`)
 
   // @ts-expect-error Typescript doesn't know that command.command narrows the type sufficiently here
   commands[command.command](command, system)
@@ -151,7 +152,7 @@ const amendJson = (
   const originalContents = system.exists(filename)
     ? system.read(filename)
     : "{}"
-  const originalJson = JSON.parse(originalContents)
+  const originalJson = JSON.parse(originalContents) as Record<string, unknown>
   const newJson = dedupe(
     preferExisting ? merge(json, originalJson) : merge(originalJson, json)
   )
@@ -197,7 +198,7 @@ const specialUnique = (arr: unknown[]) => {
     // For now we only look for tags on items like:
     //   { add: { content: "... //@tag" } }
     // but in the future we may need to apply this to more types of objects!
-    const content = get(item, "add.content")
+    const content = get(item, "add.content") as string | undefined
     if (!content) continue
 
     const matches = content.match(/\/\/@([a-z]+)/i)
@@ -242,7 +243,7 @@ const amendYaml = (
   }
 
   const originalYaml = system.exists(filename)
-    ? YAML.parse(system.read(filename))
+    ? (YAML.parse(system.read(filename)) as Record<string, unknown>)
     : {}
 
   if (Array.isArray(originalYaml)) {

@@ -224,7 +224,7 @@ const buildResolverCodegen = (args: Args) => {
 const codegenHasSchema = (system: System) => {
   if (!system.exists("codegen.yml")) return false
   const contents = system.read("codegen.yml")
-  const object = YAML.parse(contents)
+  const object = YAML.parse(contents) as { schema?: unknown }
   return Boolean(object.schema)
 }
 
