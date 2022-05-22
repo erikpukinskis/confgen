@@ -123,6 +123,18 @@ const buildEslintrc = (presets: Presets) => ({
             { args: "after-used" },
           ],
           "semi": ["error", "never"],
+          ...(presets.includes("react") // Sometimes you want to pass async event handlers
+            ? {
+                "@typescript-eslint/no-misused-promises": [
+                  "error",
+                  {
+                    checksVoidReturn: {
+                      attributes: false,
+                    },
+                  },
+                ],
+              }
+            : undefined),
         }
       : undefined),
     ...(presets.includes("react") && presets.includes("typescript")
