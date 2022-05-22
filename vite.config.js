@@ -25,16 +25,16 @@ export default defineConfig({
     rollupOptions: {
       // make sure to externalize deps that shouldn't be bundled
       // into your library
-      external: ["fs-extra", "lodash", "merge-objects", "yaml", "deep-equal"],
+      external: ["deep-equal", "fs-extra", "lodash", "merge-objects", "yaml"],
       output: {
         // Provide global variables to use in the UMD build
         // for externalized deps
         globals: {
+          "deep-equal": "deepequal",
           "fs-extra": "fsextra",
           "lodash": "lodash",
           "merge-objects": "mergeobjects",
           "yaml": "yaml",
-          "deep-equal": "deepequal",
         },
       },
     },

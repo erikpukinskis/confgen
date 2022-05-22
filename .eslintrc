@@ -10,14 +10,23 @@
   ],
   "rules": {
     "@typescript-eslint/no-explicit-any": ["error"],
-    "@typescript-eslint/no-unused-vars": ["error"],
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "args": "after-used"
+      }
+    ],
     "@typescript-eslint/consistent-type-imports": [
       "error",
-      { "prefer": "type-imports" }
+      {
+        "prefer": "type-imports"
+      }
     ],
     "@typescript-eslint/restrict-template-expressions": [
       "error",
-      { "allowNullish": true }
+      {
+        "allowNullish": true
+      }
     ],
     "semi": ["error", "never"],
     "eol-last": ["error", "always"],
