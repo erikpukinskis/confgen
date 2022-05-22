@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest"
 import { Project } from "../project"
 import { MockSystem, type System } from "../system"
 
-describe("the eslint preset", () => {
+describe("presets/react+eslint", () => {
   let project: Project
   let system: System
 

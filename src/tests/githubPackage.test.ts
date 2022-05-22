@@ -3,7 +3,7 @@ import { Project } from "@/project"
 import { MockSystem } from "@/system"
 import { spawnSync } from "child_process"
 
-describe("the githubPackage preset", () => {
+describe("presets/githubPackage", () => {
   let system: MockSystem
   beforeAll(() => {
     system = new MockSystem()
