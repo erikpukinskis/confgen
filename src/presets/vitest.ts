@@ -52,7 +52,6 @@ const hasTestFiles = (system: System) => {
 }
 
 const buildExampleTestPath = (presets: Presets) => {
-  console.log("building test path for presets", presets)
   return presets.includes("react") && presets.includes("typescript")
     ? "src/index.test.tsx"
     : presets.includes("react")

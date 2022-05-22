@@ -17,7 +17,7 @@ describe("@dist", () => {
   beforeAll(() => {
     mkdirSync(root)
     run(`${bin} git codespaces yarn typescript eslint prettier vitest`)
-    console.log(`\n👷  Ran confgen in ${root} with binary ${bin}`)
+    console.log(`\n👷  Ran confgen in test folder ${root} with binary ${bin}`)
   })
 
   afterAll(() => {
