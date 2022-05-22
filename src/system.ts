@@ -1,4 +1,4 @@
-import { spawnSync } from "child_process"
+import { execSync } from "child_process"
 import { existsSync, readFileSync } from "fs"
 import { outputFileSync } from "fs-extra"
 
@@ -15,10 +15,17 @@ export type System = {
 export class RealSystem implements System {
   silent = false
 
+  constructor({ silent = false }: { silent?: boolean } = {}) {
+    this.silent = silent
+  }
+
   run(command: string) {
-    console.log("actually running", command)
-    const { status } = spawnSync(command, { stdio: "inherit" })
-    return { status }
+    try {
+      execSync(command, { stdio: this.silent ? "ignore" : "inherit" })
+      return { status: 0 }
+    } catch (e: unknown) {
+      return e as { status: number | null }
+    }
   }
   exists(path: string) {
     return existsSync(path)
