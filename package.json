@@ -4,12 +4,14 @@
   "version": "0.74.0",
   "bin": "./dist/index.umd.js",
   "dependencies": {
+    "deep-equal": "^2.0.5",
     "fs-extra": "^10.0.0",
     "lodash": "^4.17.21",
     "merge-objects": "^1.0.5",
     "yaml": "^1.10.2"
   },
   "devDependencies": {
+    "@types/deep-equal": "^1.0.1",
     "@types/fs-extra": "^9.0.13",
     "@types/lodash": "^4.14.182",
     "@types/merge-objects": "^1.0.0",
