@@ -22,6 +22,16 @@ export const dedupeArray = (array: unknown[]) => {
   return array
 }
 
+const getContentTag = (item: unknown) => {
+  const content = get(item, "add.content") as string | undefined
+  if (!content) return item
+
+  const matches = content.match(/\/\/@([a-z]+)$/i)
+  if (!matches) return item
+
+  return matches[1]
+}
+
 /**
  * We want to dedupe arrays, otherwise something like the files config in a
  * package.json would eventually look like "files": ["dist", "dist", etc...]
