@@ -5,7 +5,7 @@
     "rohit-gohri.format-code-action",
     "esbenp.prettier-vscode"
   ],
-  "postCreateCommand": ["yarn"],
+  "postCreateCommand": "yarn",
   "name": "Node.js",
   "build": {
     "dockerfile": "Dockerfile",
