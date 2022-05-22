@@ -3,7 +3,7 @@ import YAML from "yaml"
 import { type System } from "./system"
 import { type PresetName, type Presets } from "./presets"
 import { type Args } from "./args"
-import { specialUnique } from "./specialUnique"
+import { dedupe } from "./dedupe"
 
 export type Command = "file" | "run" | "script" | "yarn"
 
@@ -156,19 +156,6 @@ const amendJson = (
     preferExisting ? merge(json, originalJson) : merge(originalJson, json)
   )
   system.write(filename, JSON.stringify(newJson, null, 2))
-}
-
-type Json = Record<string, unknown>
-
-const dedupe = (json: Json) => {
-  for (const [key, value] of Object.entries(json)) {
-    if (Array.isArray(value)) {
-      json[key] = specialUnique(value)
-    } else if (typeof value === "object") {
-      json[key] = dedupe(value as Json)
-    }
-  }
-  return json
 }
 
 const amendYaml = (
