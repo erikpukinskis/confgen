@@ -1,6 +1,7 @@
 export const PRESETS = [
   "all",
   "api",
+  "appBuild",
   "bin",
   "codegen",
   "codespaces",

@@ -108,6 +108,11 @@ const buildDistConfig = () => ({
 })
 
 const buildViteConfig = (presets: Presets, args: Args) => {
+  if (presets.includes("library") && presets.includes("appBuild")) {
+    throw new Error(
+      'Confgen can only generate EITHER a config for building an app OR a config for building a library, but not both. You included both the "appBuild" and "library" presets.'
+    )
+  }
   const libraryName = presets.includes("library") ? args.library[0] : undefined
   if (presets.includes("library") && !libraryName) {
     throw new Error(
@@ -116,7 +121,8 @@ const buildViteConfig = (presets: Presets, args: Args) => {
   }
   const dependencies = getDependencies()
   const globals = getGlobals(dependencies)
-  const libraryStuff = presets.includes("library")
+
+  const buildStuff = presets.includes("library")
     ? `
   build: {
     sourcemap: true,
@@ -137,6 +143,16 @@ const buildViteConfig = (presets: Presets, args: Args) => {
     },
   },
   `
+    : presets.includes("appBuild")
+    ? `
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "src", "index.html"),
+      },
+    },
+  },
+    `
     : ""
 
   const apiStuff =
@@ -206,7 +222,7 @@ export default defineConfig({
     },
   },
   ${pluginConfig(plugins)}
-  ${libraryStuff}
+  ${buildStuff}
 })
   `
 }
