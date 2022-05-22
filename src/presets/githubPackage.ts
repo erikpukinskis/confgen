@@ -25,7 +25,7 @@ export const generator: CommandGenerator = (presets, args) => {
       command: "script",
       name: "auth:registry",
       script:
-        'if test -f ".npmrc"; then echo "Error: registry auth overwrites .npmrc, delete yours and run this command again"; elif [ -z "$var" ]; then echo "Error: publishing a package to github requires a personal access token in \\$NPM_PKG_TOKEN"; else echo "@outerframe:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=$NPM_PKG_TOKEN" > .npmrc; fi',
+        'if test -f ".npmrc"; then echo "Error: registry auth overwrites .npmrc, delete yours and run this command again"; elif [ -z "$NPM_PKG_TOKEN" ]; then echo "Error: publishing a package to github requires a personal access token in \\$NPM_PKG_TOKEN"; else echo "@outerframe:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=$NPM_PKG_TOKEN" > .npmrc; fi',
     },
   ]
 }
