@@ -52,6 +52,7 @@
     "fix": "yarn fix:lint && yarn fix:format",
     "all": "yarn && yarn build && yarn fix && yarn check:types && yarn test && echo 🎉 Did all",
     "test": "vitest run",
+    "test:dist": "yarn build && yarn test -t @dist",
     "test:watch": "vitest watch"
   }
 }

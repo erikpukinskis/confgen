@@ -1,5 +1,6 @@
 import type { CommandGenerator } from "@/commands"
 import type { System } from "@/system"
+import type { Presets } from "@/presets"
 
 export const generator: CommandGenerator = (presets, _, system) => [
   {
@@ -21,9 +22,9 @@ export const generator: CommandGenerator = (presets, _, system) => [
     ? ([
         {
           command: "file",
-          path: "src/index.test.tsx",
+          path: buildExampleTestPath(presets),
           merge: "if-not-exists",
-          contents: buildExampleTest(),
+          contents: buildExampleTest(presets),
         },
       ] as const)
     : []),
@@ -50,8 +51,20 @@ const hasTestFiles = (system: System) => {
   return status === 0
 }
 
-const buildExampleTest = () => {
-  return `import React from "react"
+const buildExampleTestPath = (presets: Presets) => {
+  console.log("building test path for presets", presets)
+  return presets.includes("react") && presets.includes("typescript")
+    ? "src/index.test.tsx"
+    : presets.includes("react")
+    ? "src/index.test.jsx"
+    : presets.includes("typescript")
+    ? "src/index.test.ts"
+    : "src/index.test.js"
+}
+
+const buildExampleTest = (presets: Presets) => {
+  return presets.includes("react")
+    ? `import React from "react"
 import { App } from "./"
 import { describe, it } from "vitest"
 import { render } from "@testing-library/react"
@@ -60,6 +73,12 @@ describe("App", () => {
   it("should render without errors", () => {
     render(<App />)
   })
+})
+`
+    : `import { test, expect } from "vitest"
+
+test("true is true", () => {
+  expect(true).toBeTruthy()
 })
 `
 }
