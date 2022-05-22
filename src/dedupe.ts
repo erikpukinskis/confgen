@@ -3,7 +3,20 @@ import get from "lodash/get"
 import deepEqual from "deep-equal"
 import uniqWith from "lodash/uniqWith"
 
-export const specialUnique = (array: unknown[]) => {
+type Json = Record<string, unknown>
+
+export const dedupe = (json: Json) => {
+  for (const [key, value] of Object.entries(json)) {
+    if (Array.isArray(value)) {
+      json[key] = dedupeArray(value)
+    } else if (typeof value === "object") {
+      json[key] = dedupe(value as Json)
+    }
+  }
+  return json
+}
+
+export const dedupeArray = (array: unknown[]) => {
   array = uniqWith(array, deepEqual)
   array = uniqueTags(array)
   return array
