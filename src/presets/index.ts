@@ -1,5 +1,6 @@
 import { all } from "./all"
 import { api } from "./api"
+import { appBuild } from "./appBuild"
 import { bin } from "./bin"
 import { codegen } from "./codegen"
 import { codespaces } from "./codespaces"
@@ -16,11 +17,17 @@ import { typescript } from "./typescript"
 import { vite } from "./vite"
 import { vitest } from "./vitest"
 import { yarn } from "./yarn"
-import { Preset, CommandGenerator } from "@/types"
+import type { PresetName } from "./types"
+import type { CommandGenerator } from "@/commands"
 
-export const presets: Record<Preset, CommandGenerator> = {
+type CommandGeneratorsByPreset = {
+  readonly [index in PresetName]: CommandGenerator
+}
+
+export const presets: CommandGeneratorsByPreset = {
   all,
   api,
+  appBuild,
   bin,
   codegen,
   codespaces,
@@ -37,4 +44,6 @@ export const presets: Record<Preset, CommandGenerator> = {
   vite,
   vitest,
   yarn,
-}
+} as const
+
+export * from "./types"

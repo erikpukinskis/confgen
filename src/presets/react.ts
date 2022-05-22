@@ -1,6 +1,6 @@
-import { CommandGenerator, Presets } from "@/types"
+import type { CommandGenerator } from "@/commands"
 
-export const react: CommandGenerator = (presets: Presets) => [
+export const react: CommandGenerator = (presets) => [
   {
     command: "yarn",
     pkg: "react",

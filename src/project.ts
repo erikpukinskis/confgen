@@ -1,17 +1,15 @@
-import { presets } from "./presets"
+import { presets } from "@/presets"
+import { type Args, EMPTY_ARGS } from "@/args"
+import { type Presets } from "@/presets"
 import {
-  type Presets,
-  DistPackageCommand,
+  runCommand,
+  type DistPackageCommand,
   isDistPackageCommand,
-  DevPackageCommand,
+  type DevPackageCommand,
   isDevPackageCommand,
-  type Args,
-  EMPTY_ARGS,
-  PRESETS,
-  isPreset,
-} from "./types"
-import { runCommand } from "./commands"
+} from "./commands"
 import { RealSystem, type System } from "./system"
+import { parsePresetConfigs } from "./args"
 
 export class Project {
   system: System
@@ -73,27 +71,4 @@ export class Project {
       runCommand(command, this.system)
     }
   }
-}
-
-const parsePresetConfigs = (
-  configs: string[]
-): { argsByPresetName: Args; presetNames: Presets } => {
-  const argsByPresetName = {
-    ...EMPTY_ARGS,
-  }
-
-  const presetNames = configs.map((config) => {
-    const [presetName, ...presetArgs] = config.split(":")
-    if (!isPreset(presetName)) {
-      throw new Error(
-        `${presetName} is not a valid preset.\n\nUsage:\nnpx confgen [${PRESETS.join(
-          " | "
-        )}]\n`
-      )
-    }
-    argsByPresetName[presetName] = presetArgs
-    return presetName
-  })
-
-  return { argsByPresetName, presetNames }
 }

@@ -1,14 +1,23 @@
-import { execSync } from "child_process"
+import { spawnSync } from "child_process"
 import { existsSync, readFileSync } from "fs"
 import { outputFileSync } from "fs-extra"
-import { System } from "./types"
-export { System } from "./types"
+
+export type System = {
+  silent: boolean
+
+  run(command: string): { status: number | null }
+  exists(path: string): boolean
+  read(path: string): string
+  write(path: string, contents: string | object): void
+  addPackage(pkg: string, isDevOnly: boolean): void
+}
 
 export class RealSystem implements System {
   silent = false
 
   run(command: string) {
-    execSync(command, { stdio: "inherit" })
+    const { status } = spawnSync(command, { stdio: "inherit" })
+    return { status }
   }
   exists(path: string) {
     return existsSync(path)
@@ -30,7 +39,7 @@ export class MockSystem implements System {
   contentsByPath: Record<string, string> = {}
 
   run() {
-    // noop
+    return { status: null }
   }
   exists(path: string) {
     return Boolean(this.contentsByPath[path])
