@@ -75,12 +75,20 @@ It's recommended to add a `confgen` script to your package.json:
 ```
 {
   "scripts: {
-    "confgen": "npx confgen@latest git node yarn vite vitest library:MyPackage prettier"
+    "confgen": "npx confgen@latest codespaces git vite vitest typescript library:VoiceChat prettier eslint"
   }
 }
 ```
 
 Then you can run `yarn confgen` or `npm run confgen` and the relevant configs will be updated. It's important to add `@latest` so you get the most recent updates each time!
+
+### Typical confgens
+
+A Node library:
+
+```
+npx confgen@latest codespaces git vite vitest typescript library:VoiceChat prettier eslin
+```
 
 ### Running the scripts
 
@@ -174,6 +182,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 ### Might happen
 
+- Adding an init command that lets you check off which presets you want
 - Adding a system notification when commands have finished
 - PM2 preset
 - Making room for other "ecosystems". E.g. maybe there's a separate Webpack ecosystem preset like:
