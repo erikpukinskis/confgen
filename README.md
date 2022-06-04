@@ -182,6 +182,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 ### Might happen
 
+- Update a section in the README
 - Adding an init command that lets you check off which presets you want
 - Adding a system notification when commands have finished
 - PM2 preset
