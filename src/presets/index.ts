@@ -1,15 +1,13 @@
 import * as all from "./all"
 import * as api from "./api"
-import * as appBuild from "./appBuild"
 import * as bin from "./bin"
+import * as build from "./build"
 import * as codegen from "./codegen"
 import * as codespaces from "./codespaces"
-import * as devServer from "./devServer"
 import * as macros from "./macros"
 import * as eslint from "./eslint"
 import * as git from "./git"
 import * as githubPackage from "./githubPackage"
-import * as library from "./library"
 import * as node from "./node"
 import * as prettier from "./prettier"
 import * as react from "./react"
@@ -27,15 +25,13 @@ import type { System } from "@/system"
 const PRESETS = {
   all,
   api,
-  appBuild,
   bin,
+  build,
   codegen,
   codespaces,
-  devServer,
   eslint,
   git,
   githubPackage,
-  library,
   macros,
   node,
   prettier,
