@@ -1,23 +1,11 @@
 import path from "path"
 import { existsSync, readFileSync } from "fs"
 import { Project } from "./project"
+import { parseArgs } from "./parseArgs"
 
-const [, , ...configs] = process.argv
+const [, , ...args] = process.argv
 
-configs.unshift("all", "git")
-
-// Eslint makes things better, and Prettier makes things pretty so we want
-// prettier to be last and eslint to be second-to-last
-if (configs.includes("eslint")) {
-  const index = configs.indexOf("eslint")
-  configs.splice(index, 1)
-  configs.push("eslint")
-}
-if (configs.includes("prettier")) {
-  const index = configs.indexOf("prettier")
-  configs.splice(index, 1)
-  configs.push("prettier")
-}
+const { presetConfigs, sourceContexts } = parseArgs(args)
 
 const getVersion = () => {
   let packageJsonPath = path.join(__dirname, "..", "package.json")
