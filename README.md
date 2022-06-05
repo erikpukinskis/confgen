@@ -52,10 +52,9 @@ All of these are optional, depending on which presets you choose:
 - `codegen:operations` Compiles a typed `gql` function for all of your Apollo Client queries and mutations
 - `bin` Adds a "bin" to your package JSON
 - `codespaces` sets up some good VSCode defaults, and adds extensions eslint, prettier, etc presets
-- `devServer:[folder]` Configures command for starting a dev server. If [folder] is provided, the command will be `start:[folder]`, otherwise it will be `start:dev` by default.
 - `eslint` sets up linting with fix-on-save in Codespaces
 - `git` Pre-populates gitignore
-- `library:[PackageName]:[mode]` Makes your package importable via UMD and ES for a given env mode (development, production, etc)
+- `build` Makes your package importable via UMD and ES for a given env mode (development, production, etc)
 - `macros` enables babel macros in Vite
 - `node:[fs]:[child_process]:[etc...]` Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
 - `prettier` set up code formatting with format-on-save in Codespaces
@@ -252,3 +251,9 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   },
 },
 ```
+
+### Todo
+
+- [ ] Fix references to devServer
+- [ ] Fix references to library
+- [ ] Fix references to appBuild
