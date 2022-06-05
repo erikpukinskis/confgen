@@ -175,6 +175,16 @@ Just one test:
 yarn test -t "should not clobber existing build commands"
 ```
 
+## Foundational Principles
+
+* **Support single purpose repos** — This is the bottom line goal of Confgen. It is not meant to work in a monorepo. Although repos often need secondary modes of running—dev server, documentation server, dist tests, etc—Confgen presumes that each repo has a single primary purpose. It will not configure two substantial bodies of code in a single repo. See Issue #1.
+
+* **Don't clobber the configs** — Confgen is meant to handle basic configuration of common tools. However some amount of additional configuration will always be needed. In order to get out of peoples' way, we try to leave existing configuration files intact as much as possible.
+ 
+* **Don't config the configs** — Confgen does not provide any API for fine-tuning your configs. The parameters are just a list of presets with minimal per-preset flags. If a config file needs fine-tuned, the associated presets can simply be omitted, and you can configure it yourself. Confgen is not meant to be a universal "configuration configuration" language. See Issue #2.
+
+* **Convention over configuration** — Like Rails, Confgen supports composing together many different pieces of functionality from a vast catalog of presets. In order for this to be a tractable problem, we rely on strict conventions for folder structure, the location of configuration files, etc. It will never support arbitrary module structures.
+
 ## The Future
 
 I'm still not sure whether confgen is a good idea or a horrible idea.
@@ -199,6 +209,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
 - [ ] Add githubPkg:scope preset
 - [ ] Sort scripts
+- [ ] Sort imports
 - [ ] Don't add a demo test file if there already is a .test.ts file
 - [ ] Don't add react demo test file if react preset isn't used
 - [ ] Add debug:test and debug:start commands
@@ -230,6 +241,9 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   path: 'vite.config.js',
   start: 'export default defineConfig(',
   content: {
+    test: {
+      environment: `"jsdom"`,
+    },
     build: {
       lib: {
         entry: `path.resolve(__dirname, "src/index.ts")`,
