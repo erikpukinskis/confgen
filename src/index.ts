@@ -1,11 +1,13 @@
 import path from "path"
 import { existsSync, readFileSync } from "fs"
 import { Project } from "./project"
-import { parseArgs } from "./parseArgs"
+import { parseArgs, addDefaultPresets } from "./parseArgs"
 
 const [, , ...args] = process.argv
 
-const { presetConfigs, sourceContexts } = parseArgs(args)
+const { presetConfigs, builds, globalArgs } = parseArgs(args)
+
+addDefaultPresets(presetConfigs)
 
 const getVersion = () => {
   let packageJsonPath = path.join(__dirname, "..", "package.json")
@@ -24,6 +26,6 @@ console.log(`----------------------------------------
 👷 Running confgen@${getVersion()}
 ----------------------------------------`)
 
-const project = new Project({ presetConfigs: configs })
+const project = new Project({ presetConfigs, builds, globalArgs })
 
 project.confgen()

@@ -1,7 +1,6 @@
-import type { CommandGenerator } from "@/commands"
-import type { Presets } from "./types"
+import type { CommandGenerator, Presets } from "@/commands"
 
-export const generator: CommandGenerator = (presets) => [
+export const generator: CommandGenerator = ({ presets }) => [
   ...(presets.includes("eslint") || presets.includes("prettier")
     ? ([
         {
@@ -28,7 +27,7 @@ const buildFixCommand = (presets: Presets) => {
 const buildAllOfTheThingsCommand = (presets: Presets) => {
   const scripts = ["yarn"]
 
-  if (presets.includes("library") || presets.includes("codegen")) {
+  if (presets.includes("dist")) {
     scripts.push("yarn build")
   }
   if (presets.includes("eslint") || presets.includes("prettier")) {

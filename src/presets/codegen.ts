@@ -1,27 +1,51 @@
-import {
-  type CommandGenerator,
-  type CommandWithArgs,
-  type Precheck,
+import type {
+  CommandGenerator,
+  CommandWithArgs,
+  Precheck,
+  Args,
+  System,
 } from "@/commands"
-import { type Args } from "@/args"
-import type { System } from "@/system"
+import { type Build, isBuild } from "@/builds"
 import YAML from "yaml"
 
-export const precheck: Precheck = (presets, args) => {
+const GENERATORS = ["resolvers", "schema", "operations"] as const
+type Generator = typeof GENERATORS[number]
+const isGenerator = (string: string): string is Generator =>
+  GENERATORS.includes(string as Generator)
+
+export const precheck: Precheck = ({ presets, args }) => {
+  const [build, generators] = args.codegen
+
   if (!presets.includes("typescript")) {
     throw new Error(
       'GraphQL codegen only makes sense in a Typescript project. Add the "typescript" preset to your confgen.'
     )
   }
 
-  if (args.codegen.length < 1) {
+  if (!isBuild(build)) {
     throw new Error(
-      "Codegen presets needs to know what to generate. Try codegen:resolvers, codegen:schema, codegen:operations, or some combination of the three (codegen:resolvers:schema:operations)"
+      "The codegen preset needs a build target as its first arg. Try codegen:lib:..., codegen:app:..., etc"
     )
+  }
+
+  if (generators.length < 1) {
+    throw new Error(
+      `The codegen presets needs to know what to generate.\n\nTry some combination of codegen:${build}:resolvers:schema:operations`
+    )
+  }
+
+  for (const generator of generators) {
+    if (!isGenerator(generator)) {
+      throw new Error(
+        `${generator} is not a known GraphQL code generator.\n\n\n\nTry some combination of codegen:${build}:resolvers:schema:operations`
+      )
+    }
   }
 }
 
-export const generator: CommandGenerator = (presets, args, system) => {
+export const generator: CommandGenerator = ({ args, system }) => {
+  const [build, generators] = args.codegen as [Build, ...Generator[]]
+
   const commands: CommandWithArgs[] = [
     {
       command: "yarn",
@@ -36,7 +60,7 @@ export const generator: CommandGenerator = (presets, args, system) => {
     {
       command: "script",
       name: "build:generate",
-      script: "rm -f ./src/__generated__/* && graphql-codegen",
+      script: `rm -f ./${build}/__generated__/* && graphql-codegen`,
     },
     {
       command: "file",
@@ -45,7 +69,7 @@ export const generator: CommandGenerator = (presets, args, system) => {
     },
   ]
 
-  if (args.codegen.includes("resolvers")) {
+  if (generators.includes("resolvers")) {
     commands.push(
       ...([
         {
@@ -60,7 +84,7 @@ export const generator: CommandGenerator = (presets, args, system) => {
         },
         {
           command: "file",
-          path: "src/context.ts",
+          path: `${build}/context.ts`,
           merge: "if-not-exists",
           contents: `export type ResolverContext = {
   db: "..." // replace with your resolver context
@@ -69,7 +93,7 @@ export const generator: CommandGenerator = (presets, args, system) => {
         {
           command: "file",
           path: "codegen.yml",
-          contents: buildResolverCodegen(args),
+          contents: buildResolverCodegen(build),
         },
       ] as const)
     )
@@ -81,18 +105,7 @@ export const generator: CommandGenerator = (presets, args, system) => {
         {
           command: "file",
           path: "schema.graphql",
-          contents: `type ExampleResponse {
-  message: String!
-}
-
-type Query {
-  exampleQuery(text: String!): ExampleResponse!
-}
-
-type Mutation {
-  exampleMutation(text: String!): ExampleResponse!
-}
-`,
+          contents: buildSampleSchema(),
         },
         {
           command: "file",
@@ -105,7 +118,7 @@ type Mutation {
     )
   }
 
-  if (args.codegen.includes("schema")) {
+  if (generators.includes("schema")) {
     commands.push(
       ...([
         {
@@ -116,13 +129,13 @@ type Mutation {
         {
           command: "file",
           path: "codegen.yml",
-          contents: buildSchemaCodegen(),
+          contents: buildSchemaCodegen(build),
         },
       ] as const)
     )
   }
 
-  if (args.codegen.includes("operations")) {
+  if (generators.includes("operations")) {
     commands.push(
       ...([
         {
@@ -137,45 +150,41 @@ type Mutation {
         {
           command: "file",
           path: "codegen.yml",
-          contents: buildOperationsCodegen(),
+          contents: buildOperationsCodegen(build),
         },
       ] as const)
     )
-
-    if (!hasAnyOperations(system)) {
-      let path = "src/index.tsx"
-      if (system.exists(path)) {
-        path = "src/example.tsx"
-      }
-      commands.push({
-        command: "file",
-        path,
-        contents: buildExampleIndex(),
-      })
-    }
   }
 
   return commands
 }
 
-const hasAnyOperations = (system: System) => {
-  const { status } = system.run("grep -rnw . -e 'gql('")
-  return status === 0
+const buildSampleSchema = () => `type ExampleResponse {
+  message: String!
 }
 
-const buildOperationsCodegen = () => ({
+type Query {
+  exampleQuery(text: String!): ExampleResponse!
+}
+
+type Mutation {
+  exampleMutation(text: String!): ExampleResponse!
+}
+`
+
+const buildOperationsCodegen = (build: Build) => ({
   documents: ["src/**/*.tsx"],
   generates: {
-    "./src/__generated__/": {
+    [`./${build}/__generated__/`]: {
       preset: "gql-tag-operations-preset",
     },
   },
 })
 
-const buildSchemaCodegen = () => ({
+const buildSchemaCodegen = (build: Build) => ({
   generates: {
-    "./src/__generated__/schema.ts": ["graphql-codegen-schema-script"],
-    "./src/__generated__/index.ts": {
+    [`./${build}/__generated__/schema.ts`]: ["graphql-codegen-schema-script"],
+    [`./${build}/__generated__/index.ts`]: {
       plugins: [
         {
           add: {
@@ -187,39 +196,35 @@ const buildSchemaCodegen = () => ({
   },
 })
 
-const buildResolverCodegen = (args: Args) => {
-  const srcDir = args.devServer[0] || "src"
-
-  return {
-    generates: {
-      [`./${srcDir}/__generated__/resolvers.ts`]: {
-        plugins: [
-          "typescript",
-          "typescript-resolvers",
-          {
-            add: {
-              content:
-                "import { ResolverContext } from '../context'; //@contextType",
-            },
+const buildResolverCodegen = (build: Build) => ({
+  generates: {
+    [`./${build}/__generated__/resolvers.ts`]: {
+      plugins: [
+        "typescript",
+        "typescript-resolvers",
+        {
+          add: {
+            content:
+              "import { ResolverContext } from '../context'; //@contextType",
           },
-        ],
-        config: {
-          contextType: "ResolverContext",
         },
-      },
-
-      "./src/__generated__/index.ts": {
-        plugins: [
-          {
-            add: {
-              content: `export { MutationResolvers, QueryResolvers } from "./resolvers" //@resolversExport`,
-            },
-          },
-        ],
+      ],
+      config: {
+        contextType: "ResolverContext",
       },
     },
-  }
-}
+
+    [`./${build}/__generated__/index.ts`]: {
+      plugins: [
+        {
+          add: {
+            content: `export { MutationResolvers, QueryResolvers } from "./resolvers" //@resolversExport`,
+          },
+        },
+      ],
+    },
+  },
+})
 
 const codegenHasSchema = (system: System) => {
   if (!system.exists("codegen.yml")) return false
@@ -227,42 +232,3 @@ const codegenHasSchema = (system: System) => {
   const object = YAML.parse(contents) as { schema?: unknown }
   return Boolean(object.schema)
 }
-
-const buildExampleIndex = () => `import React from 'react'
-import {
-  ApolloProvider,
-  ApolloClient,
-  HttpLink,
-  InMemoryCache,
-  useQuery,
-} from "@apollo/client"
-import { gql } from "@/__generated__"
-import fetch from "cross-fetch"
-
-const client = new ApolloClient({
-  cache: new InMemoryCache(),
-  link: new HttpLink({
-    uri: \`\${window.location.protocol}//\${window.location.host}/graphql\`,
-    fetch,
-  }),
-})
-
-const EXAMPLE_OPERATION = gql(\`
-  query ExampleOperation($text: String!) {
-    exampleQuery(text: $text) {
-      message
-    }
-  }
-\`)
-
-const Example = () => {
-  const { data } = useQuery(EXAMPLE_OPERATION)
-  return <>{data?.exampleQuery.message || "No data"}</>
-}
-
-export const App = () => (
-  <ApolloProvider client={client}>
-    <Example />
-  </ApolloProvider>
-)
-`

@@ -1,7 +1,7 @@
 import { type CommandGenerator } from "@/commands"
 import type { Presets } from "@/presets"
 
-export const generator: CommandGenerator = (presets) => [
+export const generator: CommandGenerator = ({ presets }) => [
   {
     command: "file",
     path: ".vscode/settings.json",
@@ -23,7 +23,7 @@ export const generator: CommandGenerator = (presets) => [
     command: "file",
     path: ".devcontainer/devcontainer.json",
     contents: {
-      extensions: ["erikpukinskis.chrome-codespaces-keymap"],
+      extensions: ["erikpukinskis.chrome-codespaces-keymap", "stkb.rewrap"],
     },
   },
   ...(presets.includes("yarn")

@@ -1,9 +1,16 @@
 import merge from "merge-objects"
 import YAML from "yaml"
-import { type System } from "./system"
-import { type PresetName, type Presets } from "./presets"
-import { type Args } from "./args"
-import { dedupe } from "./dedupe"
+import { type System } from "@/system"
+import { type PresetName } from "@/presets"
+import { type Args } from "@/args"
+import { dedupe } from "@/dedupe"
+import type { Build } from "@/builds"
+
+export type Builds = Build[]
+
+export type { System } from "@/system"
+
+export type { Args } from "@/args"
 
 export type Command = "file" | "run" | "script" | "yarn"
 
@@ -55,13 +62,20 @@ export function isDevPackageCommand(
   return command.command === "yarn" && (command as DevPackageCommand).dev
 }
 
-export type CommandGenerator = (
-  presets: Presets,
-  args: Args,
-  system: System
-) => CommandWithArgs[]
+export type Presets = PresetName[]
 
-export type Precheck = (presets: Presets, args: Args, system: System) => void
+export type CommandGenerator = (input: {
+  builds: Build[]
+  presets: Presets
+  args: Args
+  system: System
+}) => CommandWithArgs[]
+
+export type Precheck = (input: {
+  presets: Presets
+  args: Args
+  system: System
+}) => void
 
 type FileChanges = string | string[] | Record<string, unknown>
 

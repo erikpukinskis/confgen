@@ -1,6 +1,6 @@
 import { precheck, generate } from "@/presets"
-import { type Args, EMPTY_ARGS } from "@/args"
-import { type Presets } from "@/presets"
+import { type Args, parsePresetConfigs, type GlobalArg } from "@/args"
+import { type PresetName } from "@/presets"
 import {
   runCommand,
   type DistPackageCommand,
@@ -8,35 +8,41 @@ import {
   type DevPackageCommand,
   isDevPackageCommand,
 } from "./commands"
-import { RealSystem, type System } from "./system"
-import { parsePresetConfigs } from "./args"
+import { RealSystem, type System } from "@/system"
+import { type Build } from "@/builds"
+
+type ProjectOptions = {
+  presetConfigs: string[]
+  builds: Build[]
+  system?: System
+  globalArgs?: Record<GlobalArg, string>
+}
 
 export class Project {
   system: System
-  presetNames: Presets
+  presetNames: PresetName[]
+  builds: Build[]
   argsByPresetName: Args
 
   constructor({
     presetConfigs,
     system,
-  }: {
-    presetConfigs: string[]
-    system?: System
-  }) {
+    builds,
+    globalArgs = {},
+  }: ProjectOptions) {
     this.system = system || new RealSystem()
-    const { presetNames, argsByPresetName } = parsePresetConfigs(presetConfigs)
+    this.builds = builds
+    const { presetNames, argsByPresetName } = parsePresetConfigs(
+      presetConfigs,
+      globalArgs
+    )
     this.presetNames = presetNames
     this.argsByPresetName = argsByPresetName
   }
 
   confgen() {
-    const args = {
-      ...EMPTY_ARGS,
-      ...this.argsByPresetName,
-    }
-
     for (const presetName of this.presetNames) {
-      precheck(presetName, this.presetNames, args, this.system)
+      precheck(presetName, this.presetNames, this.argsByPresetName, this.system)
     }
 
     const generatedCommands = []
@@ -46,8 +52,9 @@ export class Project {
         console.log(`Generating commands for preset [${presetName}]...`)
       const generated = generate(
         presetName,
+        this.builds,
         this.presetNames,
-        args,
+        this.argsByPresetName,
         this.system
       )
       generated.forEach((command) => (command.preset = presetName))

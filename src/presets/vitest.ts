@@ -1,8 +1,7 @@
-import type { CommandGenerator } from "@/commands"
-import type { System } from "@/system"
-import type { Presets } from "@/presets"
+import type { CommandGenerator, System, Presets } from "@/commands"
+import type { Build } from "@/builds"
 
-export const generator: CommandGenerator = (presets, _, system) => [
+export const generator: CommandGenerator = ({ builds, presets, system }) => [
   {
     command: "yarn",
     dev: true,
@@ -22,9 +21,9 @@ export const generator: CommandGenerator = (presets, _, system) => [
     ? ([
         {
           command: "file",
-          path: buildExampleTestPath(presets),
+          path: buildExampleTestPath(builds[0], presets),
           merge: "if-not-exists",
-          contents: buildExampleTest(presets),
+          contents: buildExampleTest(builds[0], presets),
         },
       ] as const)
     : []),
@@ -51,26 +50,28 @@ const hasTestFiles = (system: System) => {
   return status === 0
 }
 
-const buildExampleTestPath = (presets: Presets) => {
+const buildExampleTestPath = (build: Build, presets: Presets) => {
   return presets.includes("react") && presets.includes("typescript")
-    ? "src/index.test.tsx"
+    ? `${build}/index.test.tsx`
     : presets.includes("react")
-    ? "src/index.test.jsx"
+    ? `${build}/index.test.jsx`
     : presets.includes("typescript")
-    ? "src/index.test.ts"
-    : "src/index.test.js"
+    ? `${build}/index.test.ts`
+    : `${build}/index.test.js`
 }
 
-const buildExampleTest = (presets: Presets) => {
+const buildExampleTest = (build: Build, presets: Presets) => {
+  const componentName = build === "app" ? "App" : "MyComponent"
+
   return presets.includes("react")
     ? `import React from "react"
-import { App } from "./"
+import { ${componentName} } from "./"
 import { describe, it } from "vitest"
 import { render } from "@testing-library/react"
 
-describe("App", () => {
+describe("${componentName}", () => {
   it("should render without errors", () => {
-    render(<App />)
+    render(<${componentName} />)
   })
 })
 `
