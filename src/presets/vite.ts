@@ -1,25 +1,35 @@
-import type { CommandGenerator, Precheck } from "@/commands"
-import { type Presets } from "@/presets"
-import { type Args } from "@/args"
-import type { System } from "@/system"
+import type {
+  Precheck,
+  CommandGenerator,
+  Presets,
+  Args,
+  System,
+  Builds,
+} from "@/commands"
 
-export const precheck: Precheck = (presets, args) => {
-  if (presets.includes("library") && presets.includes("appBuild")) {
+export const precheck: Precheck = ({ args }) => {
+  if (args.dist.includes("lib") && !args.global.name) {
     throw new Error(
-      'Confgen can only generate EITHER a config for building an app OR a config for building a library, but not both. You included both the "appBuild" and "library" presets.'
-    )
-  }
-
-  const libraryName = presets.includes("library") ? args.library[0] : undefined
-
-  if (presets.includes("library") && !libraryName) {
-    throw new Error(
-      "library preset requires a global name: npx configgen library:MyLibrary"
+      "In order to build a library with the dist:lib preset, you need to provide a variable name for the built UMD global.\n\nTry confgen lib --name MyPackage dist:lib"
     )
   }
 }
 
-export const generator: CommandGenerator = (presets, args, system) => [
+// Long term here we want to have an entry point for each build:
+//   [ ] index.js = lib
+//   app.js & app.html = app
+//   server.js = server
+//   package.js = package
+
+// I think we also then need to change the "main" in package.json to point to the correct one. Maybe
+// just depending on what the args for [dist] are, or maye we need a config
+
+export const generator: CommandGenerator = ({
+  builds,
+  presets,
+  args,
+  system,
+}) => [
   {
     command: "yarn",
     dev: true,
@@ -39,34 +49,26 @@ export const generator: CommandGenerator = (presets, args, system) => [
         { command: "yarn", dev: true, pkg: "vite-plugin-babel-macros" },
       ] as const)
     : []),
-  ...(presets.includes("devServer")
+  ...(builds.includes("app")
     ? ([
         {
           command: "script",
-          name: `start:${args.devServer[0] || "dev"}`,
-          script: `vite serve ${
-            args.devServer[0] || "src"
-          } --config vite.config.js`,
+          name: `start:app:dev`,
+          script: `vite serve app --config vite.config.js`,
         },
       ] as const)
     : []),
-  ...(presets.includes("library")
+  ...(args.dist.includes("lib")
     ? ([
         {
           command: "script",
-          name: "build:vite",
-          script: buildBuildCommand(args),
+          name: "build:lib",
+          script: "vite build --mode development",
         },
         {
           command: "file",
           path: "package.json",
           contents: buildDistConfig(),
-        },
-        {
-          command: "file",
-          path: buildEntryPointpath(presets),
-          merge: "if-not-exists",
-          contents: buildDefaultIndex(args),
         },
       ] as const)
     : []),
@@ -100,18 +102,9 @@ export const generator: CommandGenerator = (presets, args, system) => [
   {
     command: "file",
     path: "vite.config.js",
-    contents: buildViteConfig(presets, args, system),
+    contents: buildViteConfig(builds, presets, args, system),
   },
 ]
-
-const buildBuildCommand = (args: Args) => {
-  const command = "vite build"
-  if (args.library[1]) {
-    return `${command} --mode ${args.library[1]}`
-  } else {
-    return command
-  }
-}
 
 const buildDistConfig = () => ({
   files: ["dist"],
@@ -125,22 +118,33 @@ const buildDistConfig = () => ({
   },
 })
 
-const buildViteConfig = (presets: Presets, args: Args, system: System) => {
-  const libraryName = presets.includes("library") ? args.library[0] : undefined
+const buildViteConfig = (
+  builds: Builds,
+  presets: Presets,
+  args: Args,
+  system: System
+) => {
+  if (args.dist.length > 1) return ""
 
   const dependencies = getDependencies(system)
+
   const globals = getGlobals(dependencies)
 
-  const buildStuff = presets.includes("library")
-    ? `
-  build: {
+  const buildStuff = args.dist.includes("lib")
+    ? `    
     sourcemap: true,
     lib: {
       entry: path.resolve(__dirname, "${buildEntryPointpath(presets)}"),
-      name: "${libraryName}",
+      name: "${args.global.name}",
       fileName: (format) => \`index.\${format}.js\`,
     },
     rollupOptions: {
+    },
+  `
+    : ""
+
+  let rollupStuff = args.dist.includes("lib")
+    ? `
       // make sure to externalize deps that shouldn't be bundled
       // into your library
       external: ${JSON.stringify(dependencies)},
@@ -149,31 +153,27 @@ const buildViteConfig = (presets: Presets, args: Args, system: System) => {
         // for externalized deps
         globals: ${JSON.stringify(globals, null, 10)},
       },
-    },
-  },
   `
-    : presets.includes("appBuild")
-    ? `
-  build: {
-    rollupOptions: {
+    : ""
+
+  if (args.dist.includes("app")) {
+    rollupStuff += `
       input: {
         main: path.resolve(__dirname, "src", "index.html"),
       },
-    },
-  },
     `
-    : ""
+  }
 
   const apiStuff =
-    presets.includes("api") && presets.includes("devServer")
+    builds.includes("server") && builds.includes("app")
       ? `
     proxy: {
-      '/graphql': 'http://localhost:3001',
+      '/api': 'http://localhost:3001',
     },
   `
       : ""
 
-  const devServerStuff = presets.includes("devServer")
+  const devServerStuff = builds.includes("app")
     ? `
   server: {
     hmr: {
@@ -231,8 +231,12 @@ export default defineConfig({
     },
   },
   ${pluginConfig(plugins)}
-  ${buildStuff}
-})
+  build: {
+    ${buildStuff}
+    rollupOptions: {
+      ${rollupStuff}
+    }
+  })
   `
 }
 
@@ -274,7 +278,3 @@ ${plugins
 
 const buildEntryPointpath = (presets: Presets) =>
   `src/index.${presets.includes("typescript") ? "ts" : "js"}`
-
-const buildDefaultIndex = (args: Args) => `
-export const ${args.library[0] || "MyLib"} = () => "hello, world!"
-`

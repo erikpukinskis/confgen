@@ -6,6 +6,7 @@ describe("presets/codegen", () => {
   it("should throw an error without typescript", () => {
     const system = new MockSystem()
     const project = new Project({
+      builds: ["app"],
       presetConfigs: ["codegen"],
       system,
     })

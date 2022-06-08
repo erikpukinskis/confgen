@@ -19,6 +19,7 @@ describe("presets/build", () => {
       })
 
       const project = new Project({
+        builds: ["lib"],
         presetConfigs: ["vite", "library:MyLibrary"],
         system,
       })

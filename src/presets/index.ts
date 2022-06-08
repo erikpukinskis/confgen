@@ -1,9 +1,8 @@
 import * as all from "./all"
-import * as api from "./api"
 import * as bin from "./bin"
-import * as build from "./build"
 import * as codegen from "./codegen"
 import * as codespaces from "./codespaces"
+import * as dist from "./dist"
 import * as macros from "./macros"
 import * as eslint from "./eslint"
 import * as git from "./git"
@@ -12,23 +11,25 @@ import * as node from "./node"
 import * as prettier from "./prettier"
 import * as react from "./react"
 import * as sql from "./sql"
+import * as start from "./start"
+import * as templates from "./templates"
 import * as typescript from "./typescript"
 import * as vite from "./vite"
 import * as vitest from "./vitest"
 import * as yarn from "./yarn"
 
-import type { PresetName, Presets } from "./types"
+import type { PresetName } from "./types"
 import type { Precheck } from "@/commands"
 import type { Args } from "@/args"
 import type { System } from "@/system"
+import type { Build } from "@/builds"
 
 const PRESETS = {
   all,
-  api,
   bin,
-  build,
   codegen,
   codespaces,
+  dist,
   eslint,
   git,
   githubPackage,
@@ -37,6 +38,8 @@ const PRESETS = {
   prettier,
   react,
   sql,
+  start,
+  templates,
   typescript,
   vite,
   vitest,
@@ -54,23 +57,24 @@ const hasPrecheck = (preset: Preset): preset is PresetWithPrecheck => {
 
 export const precheck = (
   name: PresetName,
-  presets: Presets,
+  presets: PresetName[],
   args: Args,
   system: System
 ) => {
   const preset = PRESETS[name]
   if (!hasPrecheck(preset)) return
-  preset.precheck(presets, args, system)
+  preset.precheck({ presets, args, system })
 }
 
 export const generate = (
   name: PresetName,
-  presets: Presets,
+  builds: Build[],
+  presets: PresetName[],
   args: Args,
   system: System
 ) => {
   const preset = PRESETS[name]
-  return preset.generator(presets, args, system)
+  return preset.generator({ builds, presets, args, system })
 }
 
 export * from "./types"

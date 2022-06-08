@@ -9,6 +9,7 @@ describe("presets/react+eslint", () => {
   beforeEach(() => {
     system = new MockSystem()
     project = new Project({
+      builds: ["app"],
       presetConfigs: ["eslint"],
       system,
     })
@@ -22,6 +23,7 @@ describe("presets/react+eslint", () => {
   describe("plus the react preset", () => {
     beforeEach(() => {
       project = new Project({
+        builds: ["app"],
         presetConfigs: ["eslint", "react"],
         system,
       })

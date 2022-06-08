@@ -6,12 +6,13 @@ describe("presets/vitest", () => {
   it("should write an index.test.ts file if there are no tests present", () => {
     const system = new MockSystem()
     const project = new Project({
+      builds: ["lib"],
       presetConfigs: ["vitest", "typescript"],
       system,
     })
 
     project.confgen()
 
-    expect(system.exists("src/index.test.ts")).toBe(true)
+    expect(system.exists("lib/index.test.ts")).toBe(true)
   })
 })

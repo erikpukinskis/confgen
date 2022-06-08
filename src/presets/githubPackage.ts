@@ -1,6 +1,6 @@
 import type { CommandGenerator, Precheck } from "@/commands"
 
-export const precheck: Precheck = (_, args) => {
+export const precheck: Precheck = ({ args }) => {
   if (!args.githubPackage[0]) {
     throw new Error(
       "githubPackage preset requires a scope, e.g. githubPackage:@my-scope"
@@ -8,7 +8,7 @@ export const precheck: Precheck = (_, args) => {
   }
 }
 
-export const generator: CommandGenerator = (presets, args) => {
+export const generator: CommandGenerator = ({ args }) => {
   const [scope] = args.githubPackage
 
   return [

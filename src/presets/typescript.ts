@@ -1,15 +1,20 @@
-import type { CommandGenerator } from "@/commands"
-import type { Args } from "@/args"
+import type { CommandGenerator, Precheck } from "@/commands"
 
-const tsconfigPath = (args: Args) => args.typescript[0] || "tsconfig.json"
+export const precheck: Precheck = ({ args }) => {
+  if (args.typescript.length > 0) {
+    throw new Error("[typescript] preset should have no args")
+  }
+}
 
-export const generator: CommandGenerator = (presets, args) => [
+const tsconfigPath = () => "tsconfig.json"
+
+export const generator: CommandGenerator = ({ presets }) => [
   {
     command: "yarn",
     dev: true,
     pkg: "typescript",
   },
-  ...(presets.includes("library")
+  ...(presets.includes("dist")
     ? ([
         {
           command: "yarn",
@@ -19,24 +24,18 @@ export const generator: CommandGenerator = (presets, args) => [
         {
           command: "script",
           name: "build:types",
-          script: `tsc --declaration --emitDeclarationOnly -p ${tsconfigPath(
-            args
-          )} --skipLibCheck && tsc-alias -p ${tsconfigPath(
-            args
-          )} && mv dist/index.d.ts dist/index.umd.d.ts`,
+          script: `tsc --declaration --emitDeclarationOnly -p ${tsconfigPath()} --skipLibCheck && tsc-alias -p ${tsconfigPath()} && mv dist/index.d.ts dist/index.umd.d.ts`,
         },
       ] as const)
     : []),
   {
     command: "script",
     name: "check:types",
-    script: `tsc --noEmit -p ${tsconfigPath(
-      args
-    )}; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi`,
+    script: `tsc --noEmit -p ${tsconfigPath()}; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi`,
   },
   {
     command: "file",
-    path: tsconfigPath(args),
+    path: tsconfigPath(),
     contents: {
       compilerOptions: {
         lib: ["es2017", ...(presets.includes("react") ? ["dom"] : [])],
@@ -50,7 +49,7 @@ export const generator: CommandGenerator = (presets, args) => [
         skipLibCheck: true,
         downlevelIteration: true,
         ...(presets.includes("react") ? { jsx: "react" } : undefined),
-        ...(presets.includes("library") ? { outDir: "dist" } : undefined),
+        ...(presets.includes("dist") ? { outDir: "dist" } : undefined),
       },
     },
   },

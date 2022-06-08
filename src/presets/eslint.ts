@@ -1,7 +1,7 @@
 import { type CommandGenerator } from "@/commands"
 import { type Presets } from "@/presets"
 
-export const generator: CommandGenerator = (presets) => [
+export const generator: CommandGenerator = ({ presets }) => [
   {
     command: "yarn",
     dev: true,
@@ -146,6 +146,14 @@ const buildEslintrc = (presets: Presets) => ({
     "eol-last": ["error", "always"],
     "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"],
+    // ...(presets.includes("typescript")
+    //   ? {
+    //       "no-duplicate-imports": "off",
+    //       "@typescript-eslint/no-duplicate-imports": ["error"],
+    //     }
+    //   : {
+    //       "no-duplicate-imports": "error",
+    //     }),
   },
   ignorePatterns: ["*.js"],
 })

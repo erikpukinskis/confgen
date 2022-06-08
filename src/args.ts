@@ -1,25 +1,32 @@
-import {
-  type Presets,
-  type PresetName,
-  PRESET_NAMES,
-  isPresetName,
-} from "@/presets"
+import { type PresetName, PRESET_NAMES, isPresetName } from "@/presets"
 
-export type Args = { readonly [index in PresetName]: string[] }
+const GLOBAL_ARGS = ["name"]
 
-export const EMPTY_ARGS: Args = PRESET_NAMES.reduce(
-  (argsByPresetName, preset) => ({
-    ...argsByPresetName,
-    [preset]: [],
-  }),
-  {} as Args
-)
+export type GlobalArg = typeof GLOBAL_ARGS[number]
+
+export type GlobalArgs = {
+  readonly [index in GlobalArg]: string
+}
+
+export type Args = { readonly [index in PresetName]: string[] } & {
+  global: GlobalArgs
+}
+
+const getEmptyArgs = (global: GlobalArgs) =>
+  PRESET_NAMES.reduce(
+    (argsByPresetName, preset) => ({
+      ...argsByPresetName,
+      [preset]: [],
+    }),
+    { global } as Args
+  )
 
 export const parsePresetConfigs = (
-  configs: string[]
-): { argsByPresetName: Args; presetNames: Presets } => {
+  configs: string[],
+  globalArgs: GlobalArgs
+): { argsByPresetName: Args; presetNames: PresetName[] } => {
   const argsByPresetName = {
-    ...EMPTY_ARGS,
+    ...getEmptyArgs(globalArgs),
   }
 
   const presetNames = configs.map((config) => {

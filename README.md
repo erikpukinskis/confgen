@@ -6,6 +6,58 @@
 
 You can think of confgen as an alternative to the monorepo strategy: It makes it easier to have different repos for different parts of your stack, because it helps keep a lot of the configuration up-to-date.
 
+## Manual
+
+```
+confgen <builds> <presets>
+
+Examples:
+  confgen app+server+package dist@app+package codegen@app:queries react vitest
+  confgen lib+app+package dist@lib react vitest
+  confgen lib+package dist@lib codegen@lib:schema:resolvers vitest
+
+Options:
+  <builds>     Plus-separated selection of "builds" i.e. folders with code meant to be
+               run in a specific environment:
+
+                  lib — code is called via a library interface (either in Node or the browser)
+                  app — code that boots in an HTML context in the browser
+                  server — code that boots in Node
+                  package — code that consumes the build (e.g. dist tests, or an app wrapper)
+
+                These folders (lib/, app/, etc) are the ONLY folders which may be used
+                for source code.
+
+  <presets>     Space-separated presets defining which features to be configured. Presets
+                may be tied to a specific folder or folders, using the @ symbol, and may
+                have a number of colon-separated arguments
+
+                Ex:
+                  prettier
+                  dist@app+lib
+                  codegen@lib:schema:resolvers
+
+                Available presets:
+                  start[@folder1][+folder2]   Adds start commands for each folder
+                  codegen:resolvers           Generate types for Apollo Server resolvers
+                  codegen:schema              Compiles a GraphQL schema to TypeScript so it it can be exported from a library
+                  codegen:operations          Compiles a typed gql function for all of your Apollo Client queries and mutations
+                  bin                         Adds a "bin" to your package JSON
+                  codespaces                  Sets up some good VSCode defaults, and adds extensions eslint, prettier, etc presets
+                  eslint                      Sets up linting with fix-on-save in Codespaces
+                  git                         Pre-populates gitignore
+                  dist[@folder1][+folder2]   Makes your package importable via UMD and ES for a given env mode (development, production, etc)
+                  macros                      Enables babel macros in Vite
+                  node[:fs][:path][etc...]    Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
+                  prettier                    Set up code formatting with format-on-save in Codespaces
+                  react                       Ensures React is set up properly with eslint, typescript, etc
+                  sql                         Sets up Vite plugin for importing sql
+                  typescript:[tsconfig path]  Adds type checking commands, and sets up exported typings
+                  vite                        Sets up Vite, with a dev server, library build or both depending on the other presets
+                  vitest                      Configures test scripts
+                  yarn                        Creates a yarn.lock file
+```
+
 ## Example
 
 Let's say you have a **design system** package, and an **application** package, both of which use React and TypeScript. And let's say you want to enable Eslint. And your team is editing these apps in VScode.
@@ -42,31 +94,6 @@ Although it is still quite useful even if you're just using a subset of those! I
 
 But if you are trying to coordinate configs across a very different stack than the above, it's probably not going to help much.
 
-## Features
-
-All of these are optional, depending on which presets you choose:
-
-- `api:[folder]` Adds a `start:api` command to start the service in [folder]
-- `codegen:resolvers` Generate types for Apollo Server resolvers
-- `codegen:schema` Compiles a GraphQL schema to TypeScript so it it can be exported from a library
-- `codegen:operations` Compiles a typed `gql` function for all of your Apollo Client queries and mutations
-- `bin` Adds a "bin" to your package JSON
-- `codespaces` sets up some good VSCode defaults, and adds extensions eslint, prettier, etc presets
-- `eslint` sets up linting with fix-on-save in Codespaces
-- `git` Pre-populates gitignore
-- `build` Makes your package importable via UMD and ES for a given env mode (development, production, etc)
-- `macros` enables babel macros in Vite
-- `node:[fs]:[child_process]:[etc...]` Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
-- `prettier` set up code formatting with format-on-save in Codespaces
-- `react` ensures React is set up properly with eslint, typescript, etc
-- `sql` sets up Vite plugin for importing sql
-- `typescript:[tsconfig path]` Adds type checking commands, and sets up exported typings
-- `vite` Sets up Vite, with a dev server, library build or both depending on the other presets
-- `vitest` Adds test scripts
-- `yarn` Creates a yarn.lock file
-
-Note that many of these things support each other, so for example the `eslint` preset will add the `@typescript-eslint` plugin only when combined with the `typescript` preset.
-
 ## How to use it
 
 It's recommended to add a `confgen` script to your package.json:
@@ -83,10 +110,22 @@ Then you can run `yarn confgen` or `npm run confgen` and the relevant configs wi
 
 ### Typical confgens
 
-A Node library:
+A Node library (with code generation and tests):
 
 ```
-npx confgen@latest codespaces git vite vitest typescript library:VoiceChat prettier eslin
+confgen lib+package dist@lib codegen@lib:schema:resolvers vitest
+```
+
+A browser library (with a dev server and tests):
+
+```
+confgen lib+app+package dist@lib react vitest
+```
+
+An application (with a dev server, an exported app wrapper, and tests):
+
+```
+confgen app+server+package dist@app+package codegen@app:queries react vitest
 ```
 
 ### Running the scripts
@@ -205,6 +244,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Add Apollo Client query type generation
 - [x] Add `else exit 1;` to the celebrations
 - [x] Lint should not fail on an empty project
+- [ ] Add an easy way to do preset arg validation
 - [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
 - [ ] Add githubPkg:scope preset
 - [ ] Sort scripts
@@ -257,3 +297,5 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Fix references to devServer
 - [ ] Fix references to library
 - [ ] Fix references to appBuild
+- [ ] Enable no duplicates eslint
+- [ ] Remove and ban .. in import paths
