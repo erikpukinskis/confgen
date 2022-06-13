@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest"
 import { Project } from "@/project"
 import { MockSystem } from "@/system"
 
-describe("presets/build", () => {
+describe("presets/dist", () => {
   describe("when there is already a vite build script and some unrecognized ones", () => {
     let buildScripts: string[]
 
@@ -20,7 +20,8 @@ describe("presets/build", () => {
 
       const project = new Project({
         builds: ["lib"],
-        presetConfigs: ["vite", "library:MyLibrary"],
+        globalArgs: { name: "MyLibrary " },
+        presetConfigs: ["vite", "dist:lib"],
         system,
       })
 
