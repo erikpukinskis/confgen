@@ -244,9 +244,10 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Add Apollo Client query type generation
 - [x] Add `else exit 1;` to the celebrations
 - [x] Lint should not fail on an empty project
+- [x] Add githubPkg:scope preset
 - [ ] Add an easy way to do preset arg validation
+- [ ] Add eslint-plugin-simple-import-sort
 - [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
-- [ ] Add githubPkg:scope preset
 - [ ] Sort scripts
 - [ ] Sort imports
 - [ ] Don't add a demo test file if there already is a .test.ts file

@@ -42,7 +42,6 @@ describe("presets/githubPackage", () => {
 
   describe("within a temp folder", () => {
     const root = `/tmp/${randomFolder()}`
-    console.log(root)
 
     beforeAll(() => mkdirSync(root))
 
