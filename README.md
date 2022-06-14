@@ -245,6 +245,9 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Add `else exit 1;` to the celebrations
 - [x] Lint should not fail on an empty project
 - [x] Add githubPkg:scope preset
+- [ ] Runs without a package.json
+- [ ] Consider removing @typescript-eslint/no-misused-promises override in react code
+- [ ] Automatically add parserOptions.project: tsconfig.json when using the react preset
 - [ ] Add an easy way to do preset arg validation
 - [ ] Add eslint-plugin-simple-import-sort
 - [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
