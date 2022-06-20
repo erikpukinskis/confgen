@@ -79,14 +79,15 @@ vendor
 
 const buildEslintrc = (presets: Presets) => ({
   root: true,
-  parserOptions: {
-    warnOnUnsupportedTypeScriptVersion: false,
-    project: ["./tsconfig.json"],
-  },
   ...(presets.includes("typescript")
     ? {
         parser: "@typescript-eslint/parser",
+        parserOptions: {
+          warnOnUnsupportedTypeScriptVersion: false,
+          project: ["./tsconfig.json"],
+        },
         plugins: ["@typescript-eslint"],
+        // ignorePatterns: ["*.js"],
       }
     : undefined),
   extends: [
@@ -155,5 +156,4 @@ const buildEslintrc = (presets: Presets) => ({
     //       "no-duplicate-imports": "error",
     //     }),
   },
-  ignorePatterns: ["*.js"],
 })
