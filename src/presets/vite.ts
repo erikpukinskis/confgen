@@ -236,8 +236,9 @@ export default defineConfig({
     rollupOptions: {
       ${rollupStuff}
     }
-  })
-  `
+  }
+})
+`
 }
 
 const getDependencies = (system: System) => {
