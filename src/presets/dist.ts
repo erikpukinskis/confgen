@@ -9,12 +9,12 @@ import { isBuild } from "@/builds"
 
 export const precheck: Precheck = ({ args, presets }) => {
   if (!presets.includes("vite")) {
-    throw new Error("Cannot use the dist preset without the vite preset")
+    throw new Error("Cannot use the dist preset without the vite preset\n")
   }
 
   if (args.dist.length < 1) {
     throw new Error(
-      "[dist] preset requires at least one build.\n\nTry dist:lib:app"
+      "[dist] preset requires at least one build.\n\nTry dist:lib:app\n"
     )
   }
 
