@@ -1,4 +1,4 @@
-import { describe, it, expect, fit } from "vitest"
+import { describe, it, expect } from "vitest"
 import { Project } from "@/project"
 import { MockSystem } from "@/system"
 
