@@ -71,10 +71,6 @@ vendor
     script:
       "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
   },
-  {
-    command: "run",
-    script: "yarn run fix:lint",
-  },
 ]
 
 const buildEslintrc = (presets: Presets) => ({

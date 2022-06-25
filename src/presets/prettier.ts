@@ -49,8 +49,4 @@ export const generator: CommandGenerator = ({ presets }) => [
         },
       ] as const)
     : []),
-  {
-    command: "run",
-    script: "yarn run fix:format",
-  },
 ]
