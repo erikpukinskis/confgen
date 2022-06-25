@@ -46,7 +46,7 @@ Options:
                   codespaces                  Sets up some good VSCode defaults, and adds extensions eslint, prettier, etc presets
                   eslint                      Sets up linting with fix-on-save in Codespaces
                   git                         Pre-populates gitignore
-                  dist[@folder1][+folder2]   Makes your package importable via UMD and ES for a given env mode (development, production, etc)
+                  dist[@folder1][+folder2]    Makes your package importable via UMD and ES for a given env mode (development, production, etc)
                   macros                      Enables babel macros in Vite
                   node[:fs][:path][etc...]    Configures a Codespace to use the Node.js environment and sets up the Node packages needed in Vite
                   prettier                    Set up code formatting with format-on-save in Codespaces
