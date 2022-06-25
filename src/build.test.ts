@@ -27,11 +27,7 @@ describe("@build", () => {
     })
 
     afterAll(() => {
-      // rmdirSync(root, { recursive: true })
-    })
-
-    it("can lint", () => {
-      run("yarn check:lint")
+      rmdirSync(root, { recursive: true })
     })
 
     it("can build", () => {
