@@ -3,9 +3,9 @@ import { mkdirSync, rmdirSync, existsSync } from "fs"
 import { execSync } from "child_process"
 import { join } from "path"
 
-describe("@dist", () => {
+describe("@build", () => {
   const root = `/tmp/${randomFolder()}`
-  const bin = join(__dirname, "..", "dist", "index.umd.js")
+  const bin = join(__dirname, "..", "dist", "bin.sh")
 
   const run = (command: string) => {
     if (!existsSync(bin)) {
@@ -19,19 +19,23 @@ describe("@dist", () => {
 
   describe("a library with the basic formatting, linting, and env presets", () => {
     beforeAll(() => {
-      console.log(
-        `\n👷  Running confgen in test folder ${root} with binary ${bin}...`
-      )
+      console.log(`\n👷  Running in test folder ${root} with binary ${bin}...`)
       mkdirSync(root)
-      run(`${bin} lib git codespaces yarn typescript eslint prettier vitest`)
+      run(
+        `${bin} lib --name TestPackage git codespaces yarn typescript eslint prettier vitest vite dist:lib`
+      )
     })
 
     afterAll(() => {
-      rmdirSync(root, { recursive: true })
+      // rmdirSync(root, { recursive: true })
     })
 
     it("can lint", () => {
       run("yarn check:lint")
+    })
+
+    it("can build", () => {
+      run("yarn build")
     })
   })
 })
