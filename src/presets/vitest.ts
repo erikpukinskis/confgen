@@ -17,6 +17,29 @@ export const generator: CommandGenerator = ({ builds, presets, system }) => [
     name: "test:watch",
     script: "vitest watch",
   },
+  ...(presets.includes("codespaces")
+    ? ([
+        {
+          command: "file",
+          path: ".vscode/launch.json",
+          contents: {
+            version: "0.2.0",
+            configurations: [
+              {
+                type: "pwa-node",
+                request: "launch",
+                name: "Debug Current Test File",
+                skipFiles: ["<node_internals>/**", "**/node_modules/**"],
+                program: "${workspaceRoot}/node_modules/vitest/vitest.mjs",
+                args: ["run", "${relativeFile}"],
+                smartStep: true,
+                console: "integratedTerminal",
+              },
+            ],
+          },
+        },
+      ] as const)
+    : []),
   ...(!hasTestFiles(system)
     ? ([
         {
