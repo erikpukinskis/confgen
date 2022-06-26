@@ -1,8 +1,38 @@
-import { describe, it, expect, beforeAll } from "vitest"
+import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { Project } from "@/project"
-import { MockSystem } from "@/system"
+import { MockSystem, RealSystem, type System } from "@/system"
+import { mkdirSync, rmdirSync } from "fs"
+
+const randomFolder = () => {
+  const [, number] = Math.random().toString().split(".")
+  return `confgen-${number}`
+}
 
 describe("presets/dist", () => {
+  describe("a real system", () => {
+    let system: System
+    const root = `/tmp/${randomFolder()}`
+
+    beforeAll(() => {
+      system = new RealSystem({ silent: true, cwd: root })
+      mkdirSync(root)
+      const project = new Project({
+        system,
+        builds: ["lib"],
+        presetConfigs: ["yarn", "typescript", "vite", "dist:lib"],
+      })
+      project.confgen()
+    })
+
+    afterAll(() => {
+      rmdirSync(root, { recursive: true })
+    })
+
+    it("can build", () => {
+      system.run("yarn build")
+    })
+  })
+
   describe("when there is already a vite build script and some unrecognized ones", () => {
     let buildScripts: string[]
 

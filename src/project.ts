@@ -12,22 +12,22 @@ import { RealSystem, type System } from "@/system"
 import { type Build } from "@/builds"
 
 type ProjectOptions = {
-  presetConfigs: string[]
-  builds: Build[]
   system?: System
+  builds: Build[]
+  presetConfigs: string[]
   globalArgs?: Record<GlobalArg, string>
 }
 
 export class Project {
   system: System
-  presetNames: PresetName[]
   builds: Build[]
+  presetNames: PresetName[]
   argsByPresetName: Args
 
   constructor({
-    presetConfigs,
     system,
     builds,
+    presetConfigs,
     globalArgs = {},
   }: ProjectOptions) {
     this.system = system || new RealSystem()

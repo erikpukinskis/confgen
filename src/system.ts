@@ -1,6 +1,7 @@
 import { execSync } from "child_process"
 import { existsSync, readFileSync } from "fs"
 import { outputFileSync } from "fs-extra"
+import { join } from "path"
 
 export type System = {
   silent: boolean
@@ -14,27 +15,35 @@ export type System = {
 
 export class RealSystem implements System {
   silent = false
+  cwd: string
 
-  constructor({ silent = false }: { silent?: boolean } = {}) {
+  constructor({
+    silent = false,
+    cwd,
+  }: { silent?: boolean; cwd?: string } = {}) {
     this.silent = silent
+    this.cwd = cwd || ""
   }
 
   run(command: string) {
     try {
-      execSync(command, { stdio: this.silent ? "ignore" : "inherit" })
+      execSync(command, {
+        cwd: this.cwd,
+        stdio: this.silent ? "ignore" : "inherit",
+      })
       return { status: 0 }
     } catch (e: unknown) {
       return e as { status: number | null }
     }
   }
   exists(path: string) {
-    return existsSync(path)
+    return existsSync(join(this.cwd, path))
   }
   read(path: string) {
-    return readFileSync(path).toString()
+    return readFileSync(join(this.cwd, path)).toString()
   }
   write(path: string, contents: string | object) {
-    outputFileSync(path, stringify(contents))
+    outputFileSync(join(this.cwd, path), stringify(contents))
   }
   addPackage(pkg: string, isDevOnly: boolean) {
     const dashDev = isDevOnly ? "-D " : ""
