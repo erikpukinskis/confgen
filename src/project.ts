@@ -40,7 +40,7 @@ export class Project {
     this.argsByPresetName = argsByPresetName
   }
 
-  confgen() {
+  async confgen() {
     for (const presetName of this.presetNames) {
       precheck(presetName, this.presetNames, this.argsByPresetName, this.system)
     }
@@ -57,7 +57,9 @@ export class Project {
         this.argsByPresetName,
         this.system
       )
-      generated.forEach((command) => (command.preset = presetName))
+      generated.forEach((command) => {
+        command.preset = presetName
+      })
       generatedCommands.push(...generated)
     }
 
@@ -71,18 +73,21 @@ export class Project {
       ({ command }) => command !== "yarn"
     )
 
-    const distPackages = distPackageCommands.map(({ pkg }) => pkg).join(" ")
-    if (distPackages) {
-      runCommand({ command: "yarn", pkg: distPackages }, this.system)
+    if (distPackageCommands.length > 0) {
+      const distPackages = distPackageCommands.map(({ pkg }) => pkg).join(" ")
+      await runCommand({ command: "yarn", pkg: distPackages }, this.system)
     }
 
-    const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")
-    if (devPackages) {
-      runCommand({ command: "yarn", pkg: devPackages, dev: true }, this.system)
+    if (devPackageCommands.length > 0) {
+      const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")
+      await runCommand(
+        { command: "yarn", pkg: devPackages, dev: true },
+        this.system
+      )
     }
 
     for (const command of otherCommands) {
-      runCommand(command, this.system)
+      await runCommand(command, this.system)
     }
   }
 }

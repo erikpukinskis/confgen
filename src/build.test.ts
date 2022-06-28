@@ -22,7 +22,7 @@ describe("@build", () => {
       console.log(`\n👷  Running in test folder ${root} with binary ${bin}...`)
       mkdirSync(root)
       run(
-        `${bin} lib --name TestPackage git codespaces yarn typescript eslint prettier vitest vite dist:lib`
+        `${bin} @lib --name TestPackage git codespaces yarn typescript eslint prettier vitest vite dist:lib`
       )
     })
 

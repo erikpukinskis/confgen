@@ -173,7 +173,7 @@ type Mutation {
 `
 
 const buildOperationsCodegen = (build: Build) => ({
-  documents: ["src/**/*.tsx"],
+  documents: [`${build}/**/*.tsx`],
   generates: {
     [`./${build}/__generated__/`]: {
       preset: "gql-tag-operations-preset",

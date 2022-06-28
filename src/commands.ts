@@ -87,21 +87,52 @@ const descriptions: Record<string, string> = {
   yarnDev: "Adding development package(s) to package.json",
 }
 
-export const runCommand = (command: CommandWithArgs, system: System) => {
+export const runCommand = async (command: CommandWithArgs, system: System) => {
+  await tick()
+
   const descriptionKey = isDevPackageCommand(command)
     ? "yarnDev"
     : command.command
 
   const foo = command[Object.keys(command)[1] as keyof CommandWithArgs]
-  system.silent ||
-    console.log(`----------------------------------------
-👷 ${descriptions[descriptionKey]}${
-      command.preset ? ` for preset [${command.preset}]` : ""
-    }...
-   ${foo}`)
 
-  // @ts-expect-error Typescript doesn't know that command.command narrows the type sufficiently here
-  commands[command.command](command, system)
+  const log = system.silent
+    ? ""
+    : `----------------------------------------
+👷 ${descriptions[descriptionKey]}${
+        command.preset ? ` for preset [${command.preset}]` : ""
+      }...
+   ${foo}\n`
+
+  await logAndRun(log, () => {
+    // @ts-expect-error Typescript doesn't know that command.command narrows the type sufficiently here
+    commands[command.command](command, system)
+  })
+}
+
+const tick = () => new Promise<void>((resolve) => setTimeout(resolve))
+
+/**
+ * We'd like to be able to log stuff out in the main JavaScript thread, and then
+ * also proxy through logs via execSync, but unfortunately the logs get kind of
+ * mixed up. Sometimes execSync will beat console.log to the buffer. Even when
+ * using process.stdout.write with callback, sometimes the output from calling
+ * execSync in the execSync seems to clobber the stdout.write.
+ *
+ * So to solve that, this function uses the stdout.write callback trick, and
+ * also introduces an extra tick before attempting the write.
+ *
+ * This seems to work fairly reliably, but who knows it could require further
+ * tweaks.
+ */
+const logAndRun = async (log: string, func: () => void) => {
+  await tick()
+  return new Promise<void>((resolve) => {
+    process.stdout.write(log, () => {
+      func()
+      resolve()
+    })
+  })
 }
 
 const commands = {
@@ -110,7 +141,10 @@ const commands = {
     syncFile(path, contents, merge === "prefer-existing", system)
   },
   run: ({ script }: RunCommand, system: System) => {
-    system.run(script)
+    const { status } = system.run(script)
+    if (status !== 0) {
+      throw new Error(`Command failed: ${script}`)
+    }
   },
   script: ({ name, script }: ScriptCommand, system: System) => {
     amendJson(

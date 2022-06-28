@@ -80,7 +80,7 @@ try {
   👷 Running confgen@${getVersion()}
   ----------------------------------------`)
   const project = new Project({ presetConfigs, builds, globalArgs })
-  project.confgen()
+  void project.confgen()
 } catch (e) {
   if (e instanceof ParseError) {
     console.error(e.message)

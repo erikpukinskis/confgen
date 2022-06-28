@@ -134,11 +134,9 @@ const buildViteConfig = (
     ? `    
     sourcemap: true,
     lib: {
-      entry: path.resolve(__dirname, "${buildEntryPointpath(presets)}"),
+      entry: path.resolve(__dirname, "${buildLibEntryPointpath(presets)}"),
       name: "${args.global.name}",
       fileName: (format) => \`index.\${format}.js\`,
-    },
-    rollupOptions: {
     },
   `
     : ""
@@ -242,6 +240,7 @@ export default defineConfig({
 }
 
 const getDependencies = (system: System) => {
+  if (!system.exists("package.json")) return []
   const source = system.read("package.json")
   const json = JSON.parse(source) as { dependencies?: Record<string, string> }
   if (!json.dependencies) return []
@@ -277,5 +276,5 @@ ${plugins
 
 `
 
-const buildEntryPointpath = (presets: Presets) =>
-  `src/index.${presets.includes("typescript") ? "ts" : "js"}`
+const buildLibEntryPointpath = (presets: Presets) =>
+  `lib/index.${presets.includes("typescript") ? "ts" : "js"}`

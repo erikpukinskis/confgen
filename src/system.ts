@@ -27,7 +27,7 @@ export class RealSystem implements System {
 
   run(command: string) {
     try {
-      execSync(command, {
+      execSync(`echo "$ ${command}" && ${command}`, {
         cwd: this.cwd,
         stdio: this.silent ? "ignore" : "inherit",
       })

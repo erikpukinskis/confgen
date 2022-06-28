@@ -3,7 +3,7 @@ import { Project } from "@/project"
 import { MockSystem } from "@/system"
 
 describe("presets/vitest", () => {
-  it("should write an index.test.ts file if there are no tests present", () => {
+  it("should write an index.test.ts file if there are no tests present", async () => {
     const system = new MockSystem()
     const project = new Project({
       builds: ["lib"],
@@ -11,7 +11,7 @@ describe("presets/vitest", () => {
       system,
     })
 
-    project.confgen()
+    await project.confgen()
 
     expect(system.exists("lib/index.test.ts")).toBe(true)
   })

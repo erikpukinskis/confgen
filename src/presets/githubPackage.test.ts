@@ -8,7 +8,7 @@ describe("presets/githubPackage", () => {
   let system: MockSystem
   let authRegistryScript: string
 
-  beforeAll(() => {
+  beforeAll(async () => {
     system = new MockSystem()
     system.write(".gitignore", "foo\n")
     const project = new Project({
@@ -16,7 +16,7 @@ describe("presets/githubPackage", () => {
       presetConfigs: ["githubPackage:@my-scope"],
       system,
     })
-    project.confgen()
+    await project.confgen()
 
     const { scripts } = JSON.parse(system.read("package.json")) as {
       scripts: Record<string, string>
