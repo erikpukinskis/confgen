@@ -41,7 +41,7 @@ export const generator: CommandGenerator = ({ presets }) => [
         lib: ["es2017", ...(presets.includes("react") ? ["dom"] : [])],
         baseUrl: ".",
         paths: {
-          "@/*": ["src/*"],
+          "@/*": ["lib/*"],
         },
         esModuleInterop: true,
         forceConsistentCasingInFileNames: true,

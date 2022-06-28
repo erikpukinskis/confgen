@@ -6,14 +6,14 @@ describe("presets/react+eslint", () => {
   let project: Project
   let system: System
 
-  beforeEach(() => {
+  beforeEach(async () => {
     system = new MockSystem()
     project = new Project({
       builds: ["app"],
       presetConfigs: ["eslint"],
       system,
     })
-    project.confgen()
+    await project.confgen()
   })
 
   it("should not have the eslint-plugin-react package", () => {
@@ -21,13 +21,13 @@ describe("presets/react+eslint", () => {
   })
 
   describe("plus the react preset", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       project = new Project({
         builds: ["app"],
         presetConfigs: ["eslint", "react"],
         system,
       })
-      project.confgen()
+      await project.confgen()
     })
 
     it("should have the eslint-plugin-react package", () => {

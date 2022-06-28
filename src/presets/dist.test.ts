@@ -13,15 +13,16 @@ describe("presets/dist", () => {
     let system: System
     const root = `/tmp/${randomFolder()}`
 
-    beforeAll(() => {
-      system = new RealSystem({ silent: true, cwd: root })
+    beforeAll(async () => {
       mkdirSync(root)
+      system = new RealSystem({ cwd: root })
       const project = new Project({
         system,
         builds: ["lib"],
-        presetConfigs: ["yarn", "typescript", "vite", "dist:lib"],
+        presetConfigs: ["templates", "yarn", "typescript", "vite", "dist:lib"],
+        globalArgs: { name: "MyLib" },
       })
-      project.confgen()
+      await project.confgen()
     })
 
     afterAll(() => {
@@ -29,18 +30,15 @@ describe("presets/dist", () => {
     })
 
     it("can build", () => {
-      system.run("yarn build")
+      expect(system.run("yarn build")).toHaveProperty("status", 0)
     })
   })
 
   describe("when there is already a vite build script and some unrecognized ones", () => {
     let buildScripts: string[]
 
-    beforeAll(() => {
+    beforeAll(async () => {
       const system = new MockSystem()
-
-      // "build": "rm -rf dist/* && yarn run build:vite && yarn run build:types && yarn run build:bin",
-      // "build": "yarn build:vite && rm -rf dist/* && yarn run build:vite && yarn run build:types && yarn run build:bin && yarn build:types && yarn build:bin",
 
       system.write("package.json", {
         scripts: {
@@ -55,7 +53,7 @@ describe("presets/dist", () => {
         system,
       })
 
-      project.confgen()
+      await project.confgen()
 
       const packageJson = JSON.parse(system.read("package.json")) as {
         scripts: Record<string, string>

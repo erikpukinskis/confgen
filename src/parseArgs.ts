@@ -46,8 +46,6 @@ export const parseArgs = ([...args]: string[]) => {
 
   assertNoDuplicates(presetConfigs)
 
-  sortPresetConfigs(presetConfigs)
-
   return { builds, presetConfigs, globalArgs: globalArgs as GlobalArgs }
 }
 
@@ -67,22 +65,5 @@ const assertNoDuplicates = (configs: string[]) => {
       )
     }
     seen[name] = true
-  }
-}
-
-/**
- * Eslint makes things better, and Prettier makes things pretty so we want
- * prettier to be last and eslint to be second-to-last
- */
-const sortPresetConfigs = (configs: string[]) => {
-  if (configs.includes("eslint")) {
-    const index = configs.indexOf("eslint")
-    configs.splice(index, 1)
-    configs.push("eslint")
-  }
-  if (configs.includes("prettier")) {
-    const index = configs.indexOf("prettier")
-    configs.splice(index, 1)
-    configs.push("prettier")
   }
 }

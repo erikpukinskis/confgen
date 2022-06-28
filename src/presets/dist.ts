@@ -75,14 +75,11 @@ const buildScript = (presets: Presets, system: System, args: Args) => {
  * so people can slip their own custom ones in there. #dontclobbertheconfigs
  */
 const getExistingBuildScripts = (system: System) => {
+  if (!system.exists("package.json")) return []
   const packageJson = system.read("package.json")
-
   if (!packageJson) return []
-
   const json = JSON.parse(packageJson) as { scripts?: Record<string, string> }
   const buildScript = json.scripts?.build
-
   if (!buildScript) return []
-
   return buildScript.split(" && ")
 }
