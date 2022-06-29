@@ -148,11 +148,13 @@ Depending on which presets you choose, lots of package.json scripts will be avai
   - `yarn fix:format` runs Prettier
 - `yarn check:types` looks for type errors
 - `yarn check:lint` looks for lint errors
-- `yarn test` runs the tests and `yarn test:watch` runs them in watch mode
+- `yarn test` runs the tests
+  - `yarn test:watch` runs them in watch mode
+  - `yarn test -t presets/codegen`, `yarn test -t @build`, etc runs a single test file (top level `describe`)
 
 ...and last but not least,
 
-- `yarn all the things!` runs all of the build, fix, check, and test scripts. Good for pre-publish
+- `yarn all the things!` runs all of the build, fix, check, and test scripts. Good for pre-publish.
 
 If you want an easy way to publish a new version of your NPM package, check out my other package, [bump-n-pub](https://www.npmjs.com/package/bump-n-pub). My typical workflow for publishing a package is:
 
