@@ -2,7 +2,6 @@ import type {
   CommandGenerator,
   CommandWithArgs,
   Precheck,
-  Args,
   System,
 } from "@/commands"
 import { type Build, isBuild } from "@/builds"

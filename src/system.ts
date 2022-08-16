@@ -15,40 +15,54 @@ export type System = {
 
 export class RealSystem implements System {
   silent = false
-  cwd: string
+  cwd: string | undefined
 
   constructor({
     silent = false,
     cwd,
   }: { silent?: boolean; cwd?: string } = {}) {
     this.silent = silent
-    this.cwd = cwd || ""
+    this.cwd = cwd
   }
 
   run(command: string) {
+    console.log("running real command", command)
     try {
       execSync(`echo "$ ${command}" && ${command}`, {
         cwd: this.cwd,
         stdio: this.silent ? "ignore" : "inherit",
       })
+      console.log("return 0")
       return { status: 0 }
     } catch (e: unknown) {
-      return e as { status: number | null }
+      if (isCommandFailure(e)) return { status: e.status }
+      throw e
     }
   }
+  join(path: string) {
+    return this.cwd ? join(this.cwd, path) : path
+  }
   exists(path: string) {
-    return existsSync(join(this.cwd, path))
+    return existsSync(this.join(path))
   }
   read(path: string) {
-    return readFileSync(join(this.cwd, path)).toString()
+    return readFileSync(this.join(path)).toString()
   }
   write(path: string, contents: string | object) {
-    outputFileSync(join(this.cwd, path), stringify(contents))
+    outputFileSync(this.join(path), stringify(contents))
   }
   addPackage(pkg: string, isDevOnly: boolean) {
     const dashDev = isDevOnly ? "-D " : ""
     this.run(`yarn add ${dashDev}${pkg}`)
   }
+}
+
+type CommandFailure = Error & {
+  status: number
+}
+
+const isCommandFailure = (e: unknown): e is CommandFailure => {
+  return typeof (e as CommandFailure).status === "number"
 }
 
 export class MockSystem implements System {
