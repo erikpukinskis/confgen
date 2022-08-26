@@ -2,6 +2,7 @@ import path from "path"
 import { existsSync, readFileSync } from "fs"
 import { Project } from "./project"
 import { parseArgs, addDefaultPresets, ParseError } from "./parseArgs"
+import { RealSystem } from "./system"
 
 const USAGE = `
 confgen <builds> <presets>
@@ -79,7 +80,8 @@ try {
   console.log(`----------------------------------------
   👷 Running confgen@${getVersion()}
   ----------------------------------------`)
-  const project = new Project({ presetConfigs, builds, globalArgs })
+  const system = new RealSystem()
+  const project = new Project({ presetConfigs, builds, globalArgs, system })
   void project.confgen()
 } catch (e) {
   if (e instanceof ParseError) {

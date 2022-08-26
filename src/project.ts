@@ -8,11 +8,11 @@ import {
   type DevPackageCommand,
   isDevPackageCommand,
 } from "./commands"
-import { RealSystem, type System } from "@/system"
+import { type System } from "@/system"
 import { type Build } from "@/builds"
 
 type ProjectOptions = {
-  system?: System
+  system: System
   builds: Build[]
   presetConfigs: string[]
   globalArgs?: Record<GlobalArg, string>
@@ -30,7 +30,16 @@ export class Project {
     presetConfigs,
     globalArgs = {},
   }: ProjectOptions) {
-    this.system = system || new RealSystem()
+    if (!system) {
+      // In theory the type checker shouldn't allow system to be undefined. But
+      // we have a common pattern in tests where we define the system in a
+      // closure outside of the beforeAll in which we call this Project
+      // constructor. And neither TypeScript nor Eslint is smart enough to guess
+      // whether a variable will be assigned before a nested function gets
+      // called. So this runtime check will fail in that case.
+      throw new Error("No System provided")
+    }
+    this.system = system
     this.builds = builds
     const { presetNames, argsByPresetName } = parsePresetConfigs(
       presetConfigs,

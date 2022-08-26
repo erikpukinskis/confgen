@@ -25,6 +25,8 @@ describe("presets/eslint", () => {
     let system: System
 
     beforeEach(async () => {
+      system = new MockSystem()
+
       const project = new Project({
         builds: ["app"],
         presetConfigs: ["eslint", "react"],
