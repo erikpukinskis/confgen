@@ -120,19 +120,19 @@ Then you can run `yarn confgen` or `npm run confgen` and the relevant configs wi
 A Node library (with code generation and tests):
 
 ```
-confgen lib+package dist@lib codegen@lib:schema:resolvers vitest
+confgen @lib @package dist:lib codegen:lib:schema:resolvers vitest
 ```
 
 A browser library (with a dev server and tests):
 
 ```
-confgen lib+app+package dist@lib react vitest
+confgen @lib @app @package dist:lib react vitest
 ```
 
 An application (with a dev server, an exported app wrapper, and tests):
 
 ```
-confgen app+server+package dist@app+package codegen@app:queries react vitest
+confgen @app @server @package dist:app:package codegen:app:queries react vitest
 ```
 
 ### Running the scripts
