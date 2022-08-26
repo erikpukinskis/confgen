@@ -9,7 +9,7 @@ You can think of confgen as an alternative to the monorepo strategy: It makes it
 ## Manual
 
 ```
-confgen <builds> <presets>
+**confgen <builds> <presets>
 
 Examples:
   confgen @app @server @package dist:app:package codegen:app:queries react vitest
@@ -62,7 +62,7 @@ Options:
                   vitest                      Configures test scripts
                   yarn                        Creates a yarn.lock file
 
-  --silent      Suppress logging during normal operation
+  --silent      Suppress logging during normal operation**
 ```
 
 ## Example
@@ -260,11 +260,12 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Runs without a package.json
 - [ ] Consider removing @typescript-eslint/no-misused-promises override in react code
 - [ ] Automatically add parserOptions.project: tsconfig.json when using the react preset
-- [ ] Add an easy way to do preset arg validation
+- [x] Add an easy way to do preset arg validation
 - [ ] Add eslint-plugin-simple-import-sort
+- [ ] Use `"@typescript-eslint/no-duplicate-imports": ["error"]` instead of `"no-duplicate-imports": "off"` in TypeScript mode
 - [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
 - [ ] Sort scripts
-- [ ] Sort imports
+- [ ] Remove and ban .. in import paths
 - [ ] Don't add a demo test file if there already is a .test.ts file
 - [ ] Don't add react demo test file if react preset isn't used
 - [ ] Add debug:test and debug:start commands
@@ -307,11 +308,3 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   },
 },
 ```
-
-### Todo
-
-- [ ] Fix references to devServer
-- [ ] Fix references to library
-- [ ] Fix references to appBuild
-- [ ] Enable no duplicates eslint
-- [ ] Remove and ban .. in import paths
