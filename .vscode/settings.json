@@ -15,5 +15,8 @@
     "source.formatDocument": true
   },
   "editor.formatOnSave": false,
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "githubPullRequests.ignoredPullRequestBranches": [
+    "main"
+  ]
 }
