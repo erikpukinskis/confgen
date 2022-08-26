@@ -1,5 +1,5 @@
 import { describe, beforeAll, it, afterAll } from "vitest"
-import { mkdirSync, rmdirSync, existsSync } from "fs"
+import { mkdirSync, rmSync, existsSync } from "fs"
 import { execSync } from "child_process"
 import { join } from "path"
 
@@ -22,12 +22,12 @@ describe("@build", () => {
       console.log(`\n👷  Running in test folder ${root} with binary ${bin}...`)
       mkdirSync(root)
       run(
-        `${bin} @lib --name TestPackage git codespaces yarn typescript eslint prettier vitest vite dist:lib`
+        `${bin} @lib --silent --name TestPackage git codespaces yarn typescript eslint prettier vitest vite dist:lib`
       )
     })
 
     afterAll(() => {
-      rmdirSync(root, { recursive: true })
+      // rmSync(root, { recursive: true })
     })
 
     it("can build", () => {

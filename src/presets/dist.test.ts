@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { Project } from "@/project"
 import { MockSystem, RealSystem, type System } from "@/system"
-import { mkdirSync, rmdirSync } from "fs"
+import { mkdirSync, rmSync } from "fs"
 
 const randomFolder = () => {
   const [, number] = Math.random().toString().split(".")
@@ -15,7 +15,7 @@ describe("presets/dist", () => {
 
     beforeAll(async () => {
       mkdirSync(root)
-      system = new RealSystem({ cwd: root })
+      system = new RealSystem({ cwd: root, silent: true })
       const project = new Project({
         system,
         builds: ["lib"],
@@ -26,7 +26,7 @@ describe("presets/dist", () => {
     })
 
     afterAll(() => {
-      rmdirSync(root, { recursive: true })
+      rmSync(root, { recursive: true })
     })
 
     it("can build", () => {

@@ -61,6 +61,8 @@ Options:
                   vite                        Use Vite for dev server and any builds
                   vitest                      Configures test scripts
                   yarn                        Creates a yarn.lock file
+
+  --silent      Suppress logging during normal operation
 ```
 
 ## Example
