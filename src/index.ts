@@ -58,6 +58,7 @@ Options:
                   vitest                      Configures test scripts
                   yarn                        Creates a yarn.lock file
 
+  --silent      Suppress logging during normal operation
 `
 
 const getVersion = () => {
@@ -76,12 +77,18 @@ const getVersion = () => {
 try {
   const [, , ...args] = process.argv
   const { presetConfigs, builds, globalArgs } = parseArgs(args)
+
   addDefaultPresets(presetConfigs)
-  console.log(`----------------------------------------
+
+  const system = new RealSystem({ silent: Boolean(globalArgs.silent) })
+
+  system.silent ||
+    console.log(`----------------------------------------
   👷 Running confgen@${getVersion()}
   ----------------------------------------`)
-  const system = new RealSystem()
+
   const project = new Project({ presetConfigs, builds, globalArgs, system })
+
   void project.confgen()
 } catch (e) {
   if (e instanceof ParseError) {

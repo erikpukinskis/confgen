@@ -14,25 +14,20 @@ export type System = {
 }
 
 export class RealSystem implements System {
-  silent = false
+  silent: boolean
   cwd: string | undefined
 
-  constructor({
-    silent = false,
-    cwd,
-  }: { silent?: boolean; cwd?: string } = {}) {
+  constructor({ silent, cwd }: { silent: boolean; cwd?: string }) {
     this.silent = silent
     this.cwd = cwd
   }
 
   run(command: string) {
-    console.log("running real command", command)
     try {
       execSync(`echo "$ ${command}" && ${command}`, {
         cwd: this.cwd,
         stdio: this.silent ? "ignore" : "inherit",
       })
-      console.log("return 0")
       return { status: 0 }
     } catch (e: unknown) {
       if (isCommandFailure(e)) return { status: e.status }

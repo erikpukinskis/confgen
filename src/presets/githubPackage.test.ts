@@ -2,7 +2,7 @@ import { describe, beforeAll, it, expect, afterAll } from "vitest"
 import { Project } from "@/project"
 import { MockSystem } from "@/system"
 import { spawnSync } from "child_process"
-import { mkdirSync, rmdirSync, readFileSync } from "fs-extra"
+import { mkdirSync, rmSync, readFileSync } from "fs-extra"
 
 describe("presets/githubPackage", () => {
   let system: MockSystem
@@ -45,7 +45,7 @@ describe("presets/githubPackage", () => {
 
     beforeAll(() => mkdirSync(root))
 
-    afterAll(() => rmdirSync(root, { recursive: true }))
+    afterAll(() => rmSync(root, { recursive: true }))
 
     it("should write an .npmrc", () => {
       spawnSync("bash", ["-c", authRegistryScript], {

@@ -41,4 +41,20 @@ describe("parseArgs", () => {
       expect(args.builds).toEqual(["app", "server"])
     })
   })
+
+  describe("global boolean arg", () => {
+    let args: ReturnType<typeof parseArgs>
+
+    beforeAll(() => {
+      args = parseArgs(["@lib", "--silent", "--name", "TestPackage", "git"])
+    })
+
+    it("should set the boolean arg", () => {
+      expect(args.globalArgs).toHaveProperty("silent", true)
+    })
+
+    it("should not screw up the string arg", () => {
+      expect(args.globalArgs).toHaveProperty("name", "TestPackage")
+    })
+  })
 })
