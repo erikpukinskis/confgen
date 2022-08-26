@@ -199,7 +199,16 @@ const amendJson = (
   const originalContents = system.exists(filename)
     ? system.read(filename)
     : "{}"
-  const originalJson = JSON.parse(originalContents) as Record<string, unknown>
+
+  let originalJson: Record<string, unknown>
+  try {
+    originalJson = JSON.parse(originalContents) as Record<string, unknown>
+  } catch (e: unknown) {
+    throw new Error(
+      `${(e as Error).message}:\n\n${filename}\n-------\n${originalContents}`
+    )
+  }
+
   const newJson = dedupe(
     preferExisting ? merge(json, originalJson) : merge(originalJson, json)
   )
