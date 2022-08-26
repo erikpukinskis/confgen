@@ -11,7 +11,7 @@ describe("presets/codegen", () => {
       system,
     })
 
-    expect(async () => await project.confgen()).toThrowError(
+    void expect(async () => await project.confgen()).rejects.toThrowError(
       /GraphQL codegen only makes sense in a Typescript project/
     )
   })
