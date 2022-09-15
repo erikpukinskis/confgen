@@ -273,6 +273,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Include graphql.vscode-graphql extension when... well we don't have an apollo preset anymore, so just when we include codegen?
 - [ ] Add `"@typescript-eslint/no-floating-promises": ["error"]` and `"parserOptions": { "project": ["./tsconfig.json"] }` as needed
 - [ ] Enable `"typescript.tsserver.experimental.enableProjectDiagnostics": true`?
+- [ ] Turn post-confgen prettier on again
 
 ### Might happen
 
