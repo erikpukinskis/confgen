@@ -1,4 +1,4 @@
-import type { CommandGenerator, Precheck } from "@/commands"
+import type { CommandGenerator, Precheck, Builds } from "@/commands"
 
 export const precheck: Precheck = ({ args }) => {
   if (args.typescript.length > 0) {
@@ -8,7 +8,7 @@ export const precheck: Precheck = ({ args }) => {
 
 const tsconfigPath = () => "tsconfig.json"
 
-export const generator: CommandGenerator = ({ presets }) => [
+export const generator: CommandGenerator = ({ presets, builds }) => [
   {
     command: "yarn",
     dev: true,
@@ -40,9 +40,7 @@ export const generator: CommandGenerator = ({ presets }) => [
       compilerOptions: {
         lib: ["es2017", ...(presets.includes("react") ? ["dom"] : [])],
         baseUrl: ".",
-        paths: {
-          "@/*": ["lib/*"],
-        },
+        paths: buildPathAliases(builds),
         esModuleInterop: true,
         forceConsistentCasingInFileNames: true,
         strict: true,
@@ -51,6 +49,26 @@ export const generator: CommandGenerator = ({ presets }) => [
         ...(presets.includes("react") ? { jsx: "react" } : undefined),
         ...(presets.includes("dist") ? { outDir: "dist" } : undefined),
       },
+      include: builds,
     },
   },
 ]
+
+/**
+ * Takes an array of builds (['app', 'lib', etc]) and returns the top-down path
+ * aliases for the tsconfig, e.g.:
+ *
+ *     {
+ *       "@app/*": ["app/*"],
+ *       "@lib/*": ["lib/*"],
+ *       etc...
+ *     }
+ */
+const buildPathAliases = (builds: Builds) =>
+  builds.reduce(
+    (paths, build) => ({
+      ...paths,
+      [`@${build}/*`]: [`${build}/*`],
+    }),
+    {}
+  )
