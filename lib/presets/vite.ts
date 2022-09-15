@@ -10,7 +10,7 @@ import type {
 export const precheck: Precheck = ({ args }) => {
   if (args.dist.includes("lib") && !args.global.name) {
     throw new Error(
-      "In order to build a library with the dist:lib preset, you need to provide a variable name for the built UMD global.\n\nTry confgen lib --name MyPackage dist:lib\n"
+      "In order to build a library with the dist:lib preset, you need to provide a variable name for the built UMD global.\n\nTry confgen @lib --name MyPackage dist:lib\n"
     )
   }
 }
