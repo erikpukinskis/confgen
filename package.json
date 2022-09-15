@@ -2,7 +2,7 @@
   "license": "MIT",
   "name": "confgen",
   "version": "0.82.0-beta.8",
-  "bin": "./dist/bin.sh",
+  "bin": "./dist/index.umd.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/erikpukinskis/confgen.git"
@@ -43,11 +43,11 @@
     }
   },
   "scripts": {
-    "confgen": "./dist/bin.sh @lib --name Confgen git codespaces yarn typescript vite vitest dist:lib bin node:fs:child_process:path eslint prettier",
+    "confgen": "./dist/index.umd.js @lib --name Confgen git codespaces yarn typescript vite vitest dist:lib bin node:fs:child_process:path eslint prettier",
     "gen": "npx ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
     "build": "yarn build:lib && rm -rf dist/* && yarn build:vite && yarn build:types && yarn build:bin",
     "build:vite": "vite build",
-    "build:bin": "echo '#!/bin/bash\n/usr/bin/env node $(dirname -- $0)/index.umd.js $@\n' > dist/bin.sh && chmod a+x dist/bin.sh",
+    "build:bin": "echo '#!/usr/bin/env node'|cat - dist/index.umd.js > /tmp/out && mv /tmp/out dist/index.umd.js && chmod a+x dist/index.umd.js",
     "fix:format": "prettier --write --ignore-path .gitignore .",
     "check:types": "tsc --noEmit -p tsconfig.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi",
     "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.json --skipLibCheck && tsc-alias -p tsconfig.json && mv dist/index.d.ts dist/index.umd.d.ts",

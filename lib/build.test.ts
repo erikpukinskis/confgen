@@ -5,7 +5,7 @@ import { join } from "path"
 
 describe("@build", () => {
   const root = `/tmp/${randomFolder()}`
-  const bin = join(__dirname, "..", "dist", "bin.sh")
+  const bin = join(__dirname, "..", "dist", "index.umd.js")
 
   const run = (command: string) => {
     if (!existsSync(bin)) {
