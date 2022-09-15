@@ -27,7 +27,7 @@ describe("@build", () => {
     })
 
     afterAll(() => {
-      // rmSync(root, { recursive: true })
+      rmSync(root, { recursive: true })
     })
 
     it("can build", () => {

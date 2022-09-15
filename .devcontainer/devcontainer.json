@@ -3,7 +3,8 @@
     "erikpukinskis.chrome-codespaces-keymap",
     "dbaeumer.vscode-eslint",
     "rohit-gohri.format-code-action",
-    "esbenp.prettier-vscode"
+    "esbenp.prettier-vscode",
+    "stkb.rewrap"
   ],
   "postCreateCommand": "yarn",
   "name": "Node.js",
