@@ -64,11 +64,6 @@ export const generator: CommandGenerator = ({ presets, builds }) => [
  *       etc...
  *     }
  */
-const buildPathAliases = (builds: Builds) =>
-  builds.reduce(
-    (paths, build) => ({
-      ...paths,
-      [`@${build}/*`]: [`${build}/*`],
-    }),
-    {}
-  )
+const buildPathAliases = (builds: Builds) => ({
+  "@/*": [`${builds[0]}/*`],
+})
