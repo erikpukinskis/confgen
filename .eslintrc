@@ -33,8 +33,6 @@
     "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"],
     "no-unused-vars": "off"
-    // "no-duplicate-imports": "off",
-    // "@typescript-eslint/no-duplicate-imports": ["error"]
   },
   "ignorePatterns": ["*.js"],
   "parserOptions": {
