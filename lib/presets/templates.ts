@@ -4,14 +4,14 @@ import type { System } from "@/system"
 export const generator: CommandGenerator = ({ presets, args }) => {
   const commands: CommandWithArgs[] = []
 
-  if (presets.includes("dist") && args.dist.includes("lib")) {
-    const filename = presets.includes("typescript") ? "index.ts" : "index.js"
-    commands.push({
-      command: "file",
-      path: `lib/${filename}`,
-      contents: `export default () => {}`,
-    })
-  }
+  // if (presets.includes("dist") && args.dist.includes("lib")) {
+  //   const filename = presets.includes("typescript") ? "index.ts" : "index.js"
+  //   commands.push({
+  //     command: "file",
+  //     path: `lib/${filename}`,
+  //     contents: `export default () => {}`,
+  //   })
+  // }
 
   // if (!hasAnyOperations(system)) {
   //   let path = "src/index.tsx"
