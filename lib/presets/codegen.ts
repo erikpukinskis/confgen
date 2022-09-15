@@ -8,12 +8,14 @@ import { type Build, isBuild } from "@/builds"
 import YAML from "yaml"
 
 const GENERATORS = ["resolvers", "schema", "operations"] as const
+
 type Generator = typeof GENERATORS[number]
+
 const isGenerator = (string: string): string is Generator =>
   GENERATORS.includes(string as Generator)
 
 export const precheck: Precheck = ({ presets, args }) => {
-  const [build, generators] = args.codegen
+  const [build, ...generators] = args.codegen
 
   if (!presets.includes("typescript")) {
     throw new Error(
