@@ -5,7 +5,7 @@ import commonjsExternals from "vite-plugin-commonjs-externals"
 export default defineConfig({
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "./lib"),
     },
   },
 
@@ -18,10 +18,11 @@ export default defineConfig({
   build: {
     sourcemap: true,
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
+      entry: path.resolve(__dirname, "lib/index.ts"),
       name: "Confgen",
       fileName: (format) => `index.${format}.js`,
     },
+
     rollupOptions: {
       // make sure to externalize deps that shouldn't be bundled
       // into your library
