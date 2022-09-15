@@ -3,6 +3,10 @@
   "name": "confgen",
   "version": "0.82.0-beta.8",
   "bin": "./dist/bin.sh",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/erikpukinskis/confgen.git"
+  },
   "dependencies": {
     "deep-equal": "^2.0.5",
     "fs-extra": "^10.0.0",
