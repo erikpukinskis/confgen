@@ -157,7 +157,7 @@ const buildViteConfig = (
   if (args.dist.includes("app")) {
     rollupStuff += `
       input: {
-        main: path.resolve(__dirname, "src", "index.html"),
+        main: path.resolve(__dirname, "app", "index.html"),
       },
     `
   }
@@ -225,7 +225,7 @@ export default defineConfig({
   ${jsdomStuff}
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "./${builds[0]}"),
     },
   },
   ${pluginConfig(plugins)}
