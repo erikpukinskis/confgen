@@ -2,6 +2,7 @@ import { execSync } from "child_process"
 import { existsSync, readFileSync } from "fs"
 import { outputFileSync } from "fs-extra"
 import { join } from "path"
+import { mkdirSync, rmSync } from "fs"
 
 export type System = {
   silent: boolean
@@ -104,4 +105,24 @@ const stringify = (contents: string | object) => {
   return typeof contents === "string"
     ? contents
     : JSON.stringify(contents, null, 2)
+}
+
+export class TestSystem extends RealSystem {
+  root: string
+
+  constructor({ silent }: { silent: boolean }) {
+    const root = `/tmp/${randomFolder()}`
+    mkdirSync(root)
+    super({ silent, cwd: root })
+    this.root = root
+  }
+
+  cleanUp() {
+    rmSync(this.root, { recursive: true })
+  }
+}
+
+const randomFolder = () => {
+  const [, number] = Math.random().toString().split(".")
+  return `confgen-${number}`
 }
