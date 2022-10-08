@@ -43,7 +43,7 @@
     }
   },
   "scripts": {
-    "confgen": "./dist/index.umd.js @lib --name Confgen git codespaces yarn typescript vite vitest dist:lib bin node:fs:child_process:path eslint prettier",
+    "confgen": "./dist/index.umd.js @lib --name Confgen git codespaces prettier yarn typescript vite vitest dist:lib bin node:fs:child_process:path eslint",
     "gen": "npx ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
     "build": "yarn build:lib && rm -rf dist/* && yarn build:vite && yarn build:types && yarn build:bin",
     "build:vite": "vite build",
