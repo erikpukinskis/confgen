@@ -40,7 +40,7 @@ describe("presets/codegen", () => {
 
     afterAll(() => system.cleanUp())
 
-    it("should write a codegen file", async () => {
+    it("should write a codegen file", () => {
       expect(system.exists("codegen.yml")).toBe(true)
     })
 
