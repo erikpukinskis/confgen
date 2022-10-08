@@ -1,11 +1,5 @@
-import type {
-  CommandGenerator,
-  CommandWithArgs,
-  Precheck,
-  System,
-} from "@/commands"
+import type { CommandGenerator, CommandWithArgs, Precheck } from "@/commands"
 import { type Build, isBuild } from "@/builds"
-import YAML from "yaml"
 
 const GENERATORS = ["resolvers", "schema", "operations"] as const
 
@@ -45,7 +39,7 @@ export const precheck: Precheck = ({ presets, args }) => {
 }
 
 export const generator: CommandGenerator = ({ args, system }) => {
-  const [build, generators] = args.codegen as [Build, ...Generator[]]
+  const [build, ...generators] = args.codegen as [Build, ...Generator[]]
 
   const commands: CommandWithArgs[] = [
     {

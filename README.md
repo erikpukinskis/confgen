@@ -275,6 +275,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Enable `"typescript.tsserver.experimental.enableProjectDiagnostics": true`?
 - [ ] Turn post-confgen prettier on again
 - [ ] Don't bump packages every time you run confgen
+- [ ] See if pnpm can speed up tests
 
 ### Might happen
 
