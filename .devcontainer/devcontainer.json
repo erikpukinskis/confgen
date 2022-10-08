@@ -11,7 +11,7 @@
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
-      "VARIANT": "16-bullseye"
+      "VARIANT": "18-buster"
     }
   },
   "remoteUser": "node"
