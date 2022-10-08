@@ -1,31 +1,55 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { Project } from "@/project"
-import { MockSystem } from "@/system"
+import { MockSystem, TestSystem } from "@/system"
+
+const SECONDS = 1000
 
 describe("presets/codegen", () => {
-  it("should throw an error without typescript", async () => {
-    const system = new MockSystem()
-    const project = new Project({
-      builds: ["app"],
-      presetConfigs: ["codegen"],
-      system,
+  describe("without typescript", () => {
+    let project: Project
+
+    beforeAll(() => {
+      const system = new MockSystem()
+      project = new Project({
+        builds: ["app"],
+        presetConfigs: ["codegen"],
+        system,
+      })
     })
 
-    await expect(async () => await project.confgen()).rejects.toThrowError(
-      /GraphQL codegen only makes sense in a Typescript project/
-    )
+    it("should throw an error", async () => {
+      await expect(async () => await project.confgen()).rejects.toThrowError(
+        /GraphQL codegen only makes sense in a Typescript project/
+      )
+    })
   })
 
-  it("should write a codegen file", async () => {
-    const system = new MockSystem()
-    const project = new Project({
-      builds: ["app"],
-      presetConfigs: ["typescript", "codegen:lib:resolvers:schema"],
-      system,
+  describe("with typescript", () => {
+    let system: TestSystem
+
+    beforeAll(async () => {
+      system = new TestSystem({ silent: false })
+      const project = new Project({
+        builds: ["app"],
+        presetConfigs: ["typescript", "codegen:lib:resolvers:schema"],
+        system,
+      })
+
+      await project.confgen()
+    }, 30 * SECONDS)
+
+    // afterAll(() => system.cleanUp())
+
+    it("should write a codegen file", async () => {
+      expect(system.exists("codegen.yml")).toBe(true)
     })
 
-    await project.confgen()
-
-    expect(system.exists("codegen.yml")).toBe(true)
+    it("should export the schema", () => {
+      console.log("generating...")
+      system.run("yarn build:generate")
+      console.log("done")
+      const index = system.read("lib/__generated__/schema.ts")
+      expect(index).toContain("export { schema } from")
+    })
   })
 })

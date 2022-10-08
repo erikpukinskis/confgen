@@ -100,39 +100,27 @@ export const generator: CommandGenerator = ({ args, system }) => {
     )
   }
 
-  if (!codegenHasSchema(system)) {
-    commands.push(
-      ...([
-        {
-          command: "file",
-          path: "schema.graphql",
-          contents: buildSampleSchema(),
-        },
-        {
-          command: "file",
-          path: "codegen.yml",
-          contents: {
-            schema: "schema.graphql",
-          },
-        },
-      ] as const)
-    )
-  }
-
   if (generators.includes("schema")) {
     commands.push(
-      ...([
-        {
-          command: "yarn",
-          pkg: "graphql-codegen-schema-script",
-          dev: true,
-        },
-        {
-          command: "file",
-          path: "codegen.yml",
-          contents: buildSchemaCodegen(build),
-        },
-      ] as const)
+      ...(system.exists("schema.graphql")
+        ? []
+        : ([
+            {
+              command: "file",
+              path: "schema.graphql",
+              contents: buildSampleSchema(),
+            },
+          ] as const)),
+      {
+        command: "yarn",
+        pkg: "graphql-codegen-schema-script",
+        dev: true,
+      },
+      {
+        command: "file",
+        path: "codegen.yml",
+        contents: buildSchemaCodegen(build),
+      }
     )
   }
 
@@ -183,6 +171,7 @@ const buildOperationsCodegen = (build: Build) => ({
 })
 
 const buildSchemaCodegen = (build: Build) => ({
+  schema: "schema.graphql",
   generates: {
     [`./${build}/__generated__/schema.ts`]: ["graphql-codegen-schema-script"],
     [`./${build}/__generated__/index.ts`]: {
@@ -226,10 +215,3 @@ const buildResolverCodegen = (build: Build) => ({
     },
   },
 })
-
-const codegenHasSchema = (system: System) => {
-  if (!system.exists("codegen.yml")) return false
-  const contents = system.read("codegen.yml")
-  const object = YAML.parse(contents) as { schema?: unknown }
-  return Boolean(object.schema)
-}
