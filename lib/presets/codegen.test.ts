@@ -38,18 +38,16 @@ describe("presets/codegen", () => {
       await project.confgen()
     }, 30 * SECONDS)
 
-    // afterAll(() => system.cleanUp())
+    afterAll(() => system.cleanUp())
 
     it("should write a codegen file", async () => {
       expect(system.exists("codegen.yml")).toBe(true)
     })
 
     it("should export the schema", () => {
-      console.log("generating...")
       system.run("yarn build:generate")
-      console.log("done")
-      const index = system.read("lib/__generated__/schema.ts")
-      expect(index).toContain("export { schema } from")
+      const index = system.read("lib/__generated__/index.ts")
+      expect(index).toContain('from "./schema"')
     })
   })
 })
