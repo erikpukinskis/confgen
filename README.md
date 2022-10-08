@@ -274,6 +274,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Add `"@typescript-eslint/no-floating-promises": ["error"]` and `"parserOptions": { "project": ["./tsconfig.json"] }` as needed
 - [ ] Enable `"typescript.tsserver.experimental.enableProjectDiagnostics": true`?
 - [ ] Turn post-confgen prettier on again
+- [ ] Don't bump packages every time you run confgen
 
 ### Might happen
 

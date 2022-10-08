@@ -6,7 +6,7 @@ export const generator: CommandGenerator = ({ presets }) => [
         {
           command: "file",
           path: ".devcontainer/Dockerfile",
-          contents: `ARG VARIANT="16-bullseye"
+          contents: `ARG VARIANT="18-buster"
 FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:0-\${VARIANT}
 `,
         },
@@ -18,7 +18,7 @@ FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:0-\${VARIANT}
             build: {
               dockerfile: "Dockerfile",
               args: {
-                VARIANT: "16-bullseye",
+                VARIANT: "18-buster",
               },
             },
             remoteUser: "node",
