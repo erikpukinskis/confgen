@@ -5,7 +5,7 @@ import { MockSystem, TestSystem } from "@/system"
 const SECONDS = 1000
 
 describe("presets/codegen", () => {
-  describe("without typescript", () => {
+  describe("without Typescript", () => {
     let project: Project
 
     beforeAll(() => {
@@ -24,7 +24,27 @@ describe("presets/codegen", () => {
     })
   })
 
-  describe("with typescript", () => {
+  describe("in a mock system", () => {
+    let project: Project
+    let system: MockSystem
+
+    beforeAll(() => {
+      system = new MockSystem()
+      project = new Project({
+        builds: ["app"],
+        presetConfigs: ["typescript", "codegen:lib:resolvers:schema"],
+        system,
+      })
+    })
+
+    it("should properly quote the afterAllFileWrite", async () => {
+      await project.confgen()
+      const yaml = system.read("codegen.yml")
+      expect(yaml).toMatch("hook")
+    })
+  })
+
+  describe("with Typescript in a real system", () => {
     let system: TestSystem
 
     beforeAll(async () => {
@@ -46,7 +66,7 @@ describe("presets/codegen", () => {
 
     it("should export the schema", () => {
       system.run("yarn build:generate")
-      const index = system.read("lib/__generated__/index.ts")
+      const index = system.read("lib/gql/index.ts")
       expect(index).toContain('from "./schema"')
     })
   })

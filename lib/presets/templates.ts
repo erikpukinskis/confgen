@@ -52,7 +52,7 @@ export const generator: CommandGenerator = ({ presets, args, system }) => {
 //   InMemoryCache,
 //   useQuery,
 // } from "@apollo/client"
-// import { gql } from "@/__generated__"
+// import { gql } from "@/gql"
 // import fetch from "cross-fetch"
 
 // const client = new ApolloClient({
