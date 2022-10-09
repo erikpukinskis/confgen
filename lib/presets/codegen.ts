@@ -128,10 +128,6 @@ export const generator: CommandGenerator = ({ args, system }) => {
       ...([
         {
           command: "yarn",
-          pkg: "@apollo/client",
-        },
-        {
-          command: "yarn",
           pkg: "@graphql-codegen/client-preset",
           dev: true,
         },
