@@ -36,7 +36,7 @@ export const generator: CommandGenerator = ({ presets, system, args }) => [
 ]
 
 const buildScript = (presets: Presets, system: System, args: Args) => {
-  const scripts = getExistingBuildScripts(system)
+  const scripts: string[] = []
 
   const prepend = (script: string) => {
     if (scripts.includes(script)) return
@@ -68,18 +68,4 @@ const buildScript = (presets: Presets, system: System, args: Args) => {
   prepend("rm -rf dist/*")
 
   return scripts.join(" && ")
-}
-
-/**
- * If we already have a "yarn build" script, return the individual parts of it
- * so people can slip their own custom ones in there. #dontclobbertheconfigs
- */
-const getExistingBuildScripts = (system: System) => {
-  if (!system.exists("package.json")) return []
-  const packageJson = system.read("package.json")
-  if (!packageJson) return []
-  const json = JSON.parse(packageJson) as { scripts?: Record<string, string> }
-  const buildScript = json.scripts?.build
-  if (!buildScript) return []
-  return buildScript.split(" && ")
 }
