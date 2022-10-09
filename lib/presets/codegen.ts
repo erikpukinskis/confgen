@@ -55,12 +55,17 @@ export const generator: CommandGenerator = ({ args, system }) => {
     {
       command: "script",
       name: "build:generate",
-      script: `rm -f ./${build}/__generated__/* && graphql-codegen`,
+      script: `graphql-codegen`,
     },
     {
       command: "file",
       path: ".gitignore",
-      contents: ["__generated__"],
+      contents: ["gql"],
+    },
+    {
+      command: "file",
+      path: "codegen.yml",
+      contents: buildHooksCodegen(generators),
     },
   ]
 
@@ -158,7 +163,7 @@ type Mutation {
 const buildOperationsCodegen = (build: Build) => ({
   documents: [`${build}/**/*.tsx`],
   generates: {
-    [`./${build}/__generated__/`]: {
+    [`./${build}/gql/`]: {
       preset: "gql-tag-operations-preset",
     },
   },
@@ -167,22 +172,32 @@ const buildOperationsCodegen = (build: Build) => ({
 const buildSchemaCodegen = (build: Build) => ({
   schema: "schema.graphql",
   generates: {
-    [`./${build}/__generated__/schema.ts`]: ["graphql-codegen-schema-script"],
-    [`./${build}/__generated__/index.ts`]: {
-      plugins: [
-        {
-          add: {
-            content: `export { default as schema } from "./schema" //@schemaExport`,
-          },
-        },
-      ],
-    },
+    [`./${build}/gql/schema.ts`]: ["graphql-codegen-schema-script"],
   },
 })
 
+const buildHooksCodegen = (generators: Generator[]) => {
+  let command = ""
+  if (generators.includes("schema")) {
+    command += '\\nexport { default as schema } from \\"./schema\\"'
+  }
+  if (generators.includes("resolvers")) {
+    command +=
+      '\\nexport { MutationResolvers, QueryResolvers } from \\"./resolvers\\"'
+  }
+
+  if (!command) return {}
+
+  return {
+    hooks: {
+      afterAllFileWrite: `printf "${command}\\n" >> lib/gql/index.ts`,
+    },
+  }
+}
+
 const buildResolverCodegen = (build: Build) => ({
   generates: {
-    [`./${build}/__generated__/resolvers.ts`]: {
+    [`./${build}/gql/resolvers.ts`]: {
       plugins: [
         "typescript",
         "typescript-resolvers",
@@ -196,16 +211,6 @@ const buildResolverCodegen = (build: Build) => ({
       config: {
         contextType: "ResolverContext",
       },
-    },
-
-    [`./${build}/__generated__/index.ts`]: {
-      plugins: [
-        {
-          add: {
-            content: `export { MutationResolvers, QueryResolvers } from "./resolvers" //@resolversExport`,
-          },
-        },
-      ],
     },
   },
 })
