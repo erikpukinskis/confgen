@@ -276,6 +276,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Turn post-confgen prettier on again
 - [ ] Don't bump packages every time you run confgen
 - [ ] See if pnpm can speed up tests
+- [ ] Maybe don't allow extra random commands in `yarn build`. Just start over each confgen?
 
 ### Might happen
 
