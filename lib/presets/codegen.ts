@@ -60,7 +60,7 @@ export const generator: CommandGenerator = ({ args, system }) => {
     {
       command: "file",
       path: ".gitignore",
-      contents: ["gql"],
+      contents: [`./${build}/gql/`],
     },
     {
       command: "file",
