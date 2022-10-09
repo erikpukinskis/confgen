@@ -8,6 +8,15 @@ import type {
 import { isBuild } from "@/builds"
 
 export const precheck: Precheck = ({ args, presets }) => {
+  if (
+    args.dist.length > 0 &&
+    (args.dist.length !== 1 || args.dist[0] !== "lib")
+  ) {
+    throw new Error(
+      "We don't support distributing any builds other than @lib right now. We will need to update buildBuildConfig to support @package eventually."
+    )
+  }
+
   if (!presets.includes("vite")) {
     throw new Error("Cannot use the dist preset without the vite preset\n")
   }
