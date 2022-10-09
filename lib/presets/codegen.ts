@@ -157,7 +157,7 @@ type Mutation {
 `
 
 const buildOperationsCodegen = (build: Build) => ({
-  documents: [`${build}/**/*.tsx`],
+  documents: [`${build}/**/*.{ts,tsx}`],
   generates: {
     [`./${build}/gql`]: {
       preset: "client",
