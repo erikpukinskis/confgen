@@ -132,7 +132,7 @@ export const generator: CommandGenerator = ({ args, system }) => {
         },
         {
           command: "yarn",
-          pkg: "@graphql-codegen/gql-tag-operations-preset",
+          pkg: "@graphql-codegen/client-preset",
           dev: true,
         },
         {
@@ -163,8 +163,8 @@ type Mutation {
 const buildOperationsCodegen = (build: Build) => ({
   documents: [`${build}/**/*.tsx`],
   generates: {
-    [`./${build}/gql/`]: {
-      preset: "gql-tag-operations-preset",
+    [`./${build}/gql`]: {
+      preset: "client",
     },
   },
 })
