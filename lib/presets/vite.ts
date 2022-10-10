@@ -171,16 +171,30 @@ const buildViteConfig = (
   `
       : ""
 
-  const devServerStuff = builds.includes("app")
-    ? `
-  server: {
-    hmr: {
-      port: 443,
-    },
-    ${apiStuff}
-  },
-  `
+  const shouldConfigureHmr =
+    builds.includes("app") && presets.includes("codespaces")
+
+  const codespaceSetup = shouldConfigureHmr
+    ? `const inCodespace = Boolean(process.env.GITHUB_CODESPACE_TOKEN)`
     : ""
+
+  const codespaceStuff = shouldConfigureHmr
+    ? `
+  hmr: {
+    port: 443,
+  },
+`
+    : ""
+
+  const serverStuff =
+    codespaceStuff || apiStuff
+      ? `
+  server: {
+    ${apiStuff}
+    ${codespaceStuff}
+  },
+`
+      : ""
 
   const jsdomStuff =
     presets.includes("vitest") && presets.includes("react")
@@ -220,8 +234,10 @@ import path from "path"
 import { defineConfig } from "vite"
 ${pluginImports(plugins)}
 
+${codespaceSetup}
+
 export default defineConfig({
-  ${devServerStuff}
+  ${serverStuff}
   ${jsdomStuff}
   resolve: {
     alias: {
