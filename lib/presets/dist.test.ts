@@ -7,7 +7,7 @@ describe("presets/dist", () => {
     let system: TestSystem
 
     beforeAll(async () => {
-      system = new TestSystem({ silent: true })
+      system = new TestSystem()
       const project = new Project({
         system,
         builds: ["lib"],
@@ -15,7 +15,7 @@ describe("presets/dist", () => {
         globalArgs: { name: "MyLib" },
       })
       await project.confgen()
-    })
+    }, 30 * 1000)
 
     afterAll(() => {
       system.cleanUp()

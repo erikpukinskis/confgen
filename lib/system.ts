@@ -110,7 +110,7 @@ const stringify = (contents: string | object) => {
 export class TestSystem extends RealSystem {
   root: string
 
-  constructor({ silent }: { silent: boolean }) {
+  constructor({ silent = true }: { silent?: boolean } = {}) {
     const root = `/tmp/${randomFolder()}`
     console.info(`Creating test system in ${root}`)
     mkdirSync(root)

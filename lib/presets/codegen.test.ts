@@ -48,7 +48,7 @@ describe("presets/codegen", () => {
     let system: TestSystem
 
     beforeAll(async () => {
-      system = new TestSystem({ silent: false })
+      system = new TestSystem()
       const project = new Project({
         builds: ["app"],
         presetConfigs: ["typescript", "codegen:lib:resolvers:schema"],
@@ -56,7 +56,7 @@ describe("presets/codegen", () => {
       })
 
       await project.confgen()
-    }, 30 * SECONDS)
+    }, 60 * SECONDS)
 
     afterAll(() => system.cleanUp())
 

@@ -76,7 +76,7 @@ export class Project {
       generatedCommands.push(...generated)
     }
 
-    await swapDevPackages(
+    swapDevPackages(
       generatedCommands.filter<PackageCommand>(isPackageCommand),
       this.system
     )
