@@ -83,7 +83,7 @@ try {
   const system = new RealSystem({ silent: Boolean(globalArgs.silent) })
 
   system.silent ||
-    console.log(`----------------------------------------
+    console.info(`----------------------------------------
   👷 Running confgen@${getVersion()}
   ----------------------------------------`)
 
@@ -93,7 +93,7 @@ try {
 } catch (e) {
   if (e instanceof ParseError) {
     console.error(e.message)
-    console.log(USAGE)
+    console.info(USAGE)
   } else {
     throw e
   }

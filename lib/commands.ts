@@ -42,24 +42,32 @@ export type CommandWithArgs = { preset?: PresetName } & (
 export function isDistPackageCommand(
   command: CommandWithArgs
 ): command is DistPackageCommand {
-  return command.command === "yarn" && !(command as DevPackageCommand).dev
+  return isPackageCommand(command) && !command.dev
 }
 
 export type DistPackageCommand = {
   command: "yarn"
+  dev?: false
   pkg: string
 }
 
-export type DevPackageCommand = DistPackageCommand & {
+export type DevPackageCommand = {
+  command: "yarn"
   dev: true
-}
+  pkg: string}
 
 export type PackageCommand = DistPackageCommand | DevPackageCommand
 
 export function isDevPackageCommand(
   command: CommandWithArgs
 ): command is DevPackageCommand {
-  return command.command === "yarn" && (command as DevPackageCommand).dev
+  return isPackageCommand(command) && Boolean(command.dev)
+}
+
+export function isPackageCommand(
+  command: CommandWithArgs
+): command is PackageCommand {
+  return command.command === "yarn"
 }
 
 export type Presets = PresetName[]
@@ -115,9 +123,10 @@ const tick = () => new Promise<void>((resolve) => setTimeout(resolve))
 /**
  * We'd like to be able to log stuff out in the main JavaScript thread, and then
  * also proxy through logs via execSync, but unfortunately the logs get kind of
- * mixed up. Sometimes execSync will beat console.log to the buffer. Even when
- * using process.stdout.write with callback, sometimes the output from calling
- * execSync in the execSync seems to clobber the stdout.write.
+ * mixed up. Sometimes execSync will beat the console log function to the
+ * buffer. Even when using process.stdout.write with callback, sometimes the
+ * output from calling execSync in the execSync seems to clobber the
+ * stdout.write.
  *
  * So to solve that, this function uses the stdout.write callback trick, and
  * also introduces an extra tick before attempting the write.

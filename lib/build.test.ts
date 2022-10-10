@@ -19,7 +19,7 @@ describe("@build", () => {
 
   describe("a library with the basic formatting, linting, and env presets", () => {
     beforeAll(() => {
-      console.log(`\n👷  Running in test folder ${root} with binary ${bin}...`)
+      console.info(`\n👷  Running in test folder ${root} with binary ${bin}...`)
       mkdirSync(root)
       run(
         `${bin} @lib --silent --name TestPackage git codespaces yarn typescript eslint prettier vitest vite dist:lib`
