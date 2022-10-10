@@ -14,7 +14,7 @@
     "source.fixAll.eslint": true,
     "source.formatDocument": true
   },
-  "editor.formatOnSave": false,
+  "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "githubPullRequests.ignoredPullRequestBranches": ["main"]
 }

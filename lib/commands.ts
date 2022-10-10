@@ -54,7 +54,8 @@ export type DistPackageCommand = {
 export type DevPackageCommand = {
   command: "yarn"
   dev: true
-  pkg: string}
+  pkg: string
+}
 
 export type PackageCommand = DistPackageCommand | DevPackageCommand
 
