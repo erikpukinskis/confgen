@@ -273,10 +273,10 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Include graphql.vscode-graphql extension when... well we don't have an apollo preset anymore, so just when we include codegen?
 - [ ] Add `"@typescript-eslint/no-floating-promises": ["error"]` and `"parserOptions": { "project": ["./tsconfig.json"] }` as needed
 - [ ] Enable `"typescript.tsserver.experimental.enableProjectDiagnostics": true`?
-- [ ] Turn post-confgen prettier on again
-- [ ] Don't bump packages every time you run confgen
+- [x] Turn post-confgen prettier on again
+- [x] Don't bump packages every time you run confgen
 - [ ] See if pnpm can speed up tests
-- [ ] Maybe don't allow extra random commands in `yarn build`. Just start over each confgen?
+- [x] Maybe don't allow extra random commands in `yarn build`. Just start over each confgen?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 
 ### Might happen

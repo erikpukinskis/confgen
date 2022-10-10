@@ -15,7 +15,7 @@ export const generator: CommandGenerator = ({ presets }) => [
             "editor.codeActionsOnSave": {
               "source.formatDocument": true,
             },
-            "editor.formatOnSave": false,
+            "editor.formatOnSave": true,
             "editor.defaultFormatter": "esbenp.prettier-vscode",
           },
         },
