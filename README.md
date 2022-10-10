@@ -143,8 +143,8 @@ Depending on which presets you choose, lots of package.json scripts will be avai
   - `yarn build:generate` generates GraphQL code
   - `yarn build:vite` packages the app into `dist/`
   - `yarn build:types` generates typgins in `dist/`
-- `yarn start:api` starts an API server if you have one
-- `yarn start:dev` or `yarn start:[your folder]` starts the dev server
+- `yarn start:server` starts an API server if you have one
+- `yarn start:app:dev` starts the dev server
 - `yarn fix` runs all of the fix sub-commands:
   - `yarn fix:lint` fixes all of the Eslint errors that can be auto-fixed
   - `yarn fix:format` runs Prettier
@@ -244,45 +244,8 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - **Won't** work with anything other than JavaScript. I want the list of presets to stay relatively
   manageable
 
-### Probably will happen
-
-- [x] Collect up the NPM packages to install them all at once (will be a bit faster)
-- [x] Add a mega `yarn all the things` that does the whole build, linting, formatting, type checking, and test which is nice to do before a deploy
-- [x] We should probably have some tests!
-- [x] ~Use https://www.npmjs.com/package/@rollup/plugin-typescript or https://github.com/ezolenko/rollup-plugin-typescript2 instead of tsc to generate types. Right now, tsc is just generating a .d.ts for every ts file, and these have path aliases and stuff in them that don't work after build. Maybe the rollup plugin will be smarter?~ Edit: Turns out the simplest way to do this is just use [tsc-alias](https://www.npmjs.com/package/tsc-alias). All that other stuff is insanely complex (ttypescript seems like a real hack).
-- [x] Add Apollo Client query type generation
-- [x] Add `else exit 1;` to the celebrations
-- [x] Lint should not fail on an empty project
-- [x] Add githubPkg:scope preset
-- [x] Don't add a project, and don't put \*.js in ignorePatterns unless in TypeScript mode
-- [ ] Add launch.json for vitest debugging
-- [x] Allow global options to come before builds
-- [ ] Runs without a package.json
-- [ ] Consider removing @typescript-eslint/no-misused-promises override in react code
-- [ ] Automatically add parserOptions.project: tsconfig.json when using the react preset
-- [x] Add an easy way to do preset arg validation
-- [ ] Add eslint-plugin-simple-import-sort
-- [ ] Use `"@typescript-eslint/no-duplicate-imports": ["error"]` instead of `"no-duplicate-imports": "off"` in TypeScript mode
-- [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
-- [ ] Sort scripts
-- [ ] Remove and ban .. in import paths
-- [ ] Don't add a demo test file if there already is a .test.ts file
-- [ ] Don't add react demo test file if react preset isn't used
-- [ ] Add debug:test and debug:start commands
-- [ ] Add watch:test, watch:build, watch:generate, and watch commands
-- [ ] Include graphql.vscode-graphql extension when... well we don't have an apollo preset anymore, so just when we include codegen?
-- [ ] Add `"@typescript-eslint/no-floating-promises": ["error"]` and `"parserOptions": { "project": ["./tsconfig.json"] }` as needed
-- [ ] Enable `"typescript.tsserver.experimental.enableProjectDiagnostics": true`?
-- [x] Turn post-confgen prettier on again
-- [x] Don't bump packages every time you run confgen
-- [ ] See if pnpm can speed up tests
-- [x] Maybe don't allow extra random commands in `yarn build`. Just start over each confgen?
-- [ ] Rename `check` to `validate` so we can have a `yarn validate` command
-- [ ] Use ~ instead of @
-
 ### Might happen
 
-- Update a section in the README
 - Adding an init command that lets you check off which presets you want
 - Adding a system notification when commands have finished
 - PM2 preset
@@ -314,3 +277,41 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
   },
 },
 ```
+
+### Probably will happen
+
+- [x] Collect up the NPM packages to install them all at once (will be a bit faster)
+- [x] Add a mega `yarn all the things` that does the whole build, linting, formatting, type checking, and test which is nice to do before a deploy
+- [x] We should probably have some tests!
+- [x] ~Use https://www.npmjs.com/package/@rollup/plugin-typescript or https://github.com/ezolenko/rollup-plugin-typescript2 instead of tsc to generate types. Right now, tsc is just generating a .d.ts for every ts file, and these have path aliases and stuff in them that don't work after build. Maybe the rollup plugin will be smarter?~ Edit: Turns out the simplest way to do this is just use [tsc-alias](https://www.npmjs.com/package/tsc-alias). All that other stuff is insanely complex (ttypescript seems like a real hack).
+- [x] Add Apollo Client query type generation
+- [x] Add `else exit 1;` to the celebrations
+- [x] Lint should not fail on an empty project
+- [x] Add githubPkg:scope preset
+- [x] Don't add a project, and don't put \*.js in ignorePatterns unless in TypeScript mode
+- [x] Add launch.json for vitest debugging
+- [x] Allow global options to come before builds
+- [x] Consider removing @typescript-eslint/no-misused-promises override in react code
+- [x] Automatically add parserOptions.project: tsconfig.json when using the react preset
+- [x] Add an easy way to do preset arg validation
+- [x] Don't add a demo test file if there already is a .test.ts file
+- [x] Don't add react demo test file if react preset isn't used
+- [x] Turn post-confgen prettier on again
+- [x] Don't bump packages every time you run confgen
+- [x] Maybe don't allow extra random commands in `yarn build`. Just start over each confgen?
+- [ ] Runs without a package.json
+- [ ] Add eslint-plugin-simple-import-sort
+- [ ] Use `"@typescript-eslint/no-duplicate-imports": ["error"]` instead of `"no-duplicate-imports": "off"` in TypeScript mode
+- [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
+- [ ] Sort scripts
+- [ ] Remove and ban .. in import paths
+- [ ] Add debug:test and debug:start commands
+- [ ] Add watch:test, watch:build, watch:generate, and watch commands
+- [ ] Include graphql.vscode-graphql extension when... well we don't have an apollo preset anymore, so just when we include codegen?
+- [ ] Add `"@typescript-eslint/no-floating-promises": ["error"]`
+- [ ] See if pnpm can speed up tests
+- [ ] Rename `check` to `validate` so we can have a `yarn validate` command
+- [ ] Use ~ instead of @
+- [ ] Account for peerDependencies that are already in the package.json
+- [ ] Add start:package preset
+- [ ] See if we can stop babel being installed
