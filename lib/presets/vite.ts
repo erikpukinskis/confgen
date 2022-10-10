@@ -180,9 +180,11 @@ const buildViteConfig = (
 
   const codespaceStuff = shouldConfigureHmr
     ? `
-  hmr: {
-    port: 443,
-  },
+  ...(inCodespace ? {
+    hmr: {
+      port: 443,
+    },
+  } : {}),
 `
     : ""
 
