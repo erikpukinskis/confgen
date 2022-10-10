@@ -190,24 +190,28 @@ const ensureLines = (filename: string, newLines: string[], system: System) => {
   system.write(filename, lines.join("\n"))
 }
 
+export const readJson = (filename: string, system: System) => {
+  const contents = system.exists(filename) ? system.read(filename) : "{}"
+
+  let json: Record<string, unknown>
+  try {
+    json = JSON.parse(contents) as Record<string, unknown>
+  } catch (e: unknown) {
+    throw new Error(
+      `${(e as Error).message}:\n\n${filename}\n-------\n${contents}`
+    )
+  }
+
+  return json
+}
+
 const amendJson = (
   filename: string,
   json: Record<string, unknown>,
   preferExisting: boolean,
   system: System
 ) => {
-  const originalContents = system.exists(filename)
-    ? system.read(filename)
-    : "{}"
-
-  let originalJson: Record<string, unknown>
-  try {
-    originalJson = JSON.parse(originalContents) as Record<string, unknown>
-  } catch (e: unknown) {
-    throw new Error(
-      `${(e as Error).message}:\n\n${filename}\n-------\n${originalContents}`
-    )
-  }
+  const originalJson = readJson(filename, system)
 
   const newJson = dedupe(
     preferExisting ? merge(json, originalJson) : merge(originalJson, json)

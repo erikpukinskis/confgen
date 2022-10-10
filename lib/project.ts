@@ -7,9 +7,12 @@ import {
   isDistPackageCommand,
   type DevPackageCommand,
   isDevPackageCommand,
+  readJson,
+  type PackageCommand,
 } from "./commands"
 import { type System } from "@/system"
 import { type Build } from "@/builds"
+import difference from "lodash/difference"
 
 type ProjectOptions = {
   system: System
@@ -72,31 +75,53 @@ export class Project {
       generatedCommands.push(...generated)
     }
 
-    const distPackageCommands =
-      generatedCommands.filter<DistPackageCommand>(isDistPackageCommand)
+    await runCombinedInstall(
+      generatedCommands.filter<DistPackageCommand>(isDistPackageCommand),
+      false,
+      this.system
+    )
 
-    const devPackageCommands =
-      generatedCommands.filter<DevPackageCommand>(isDevPackageCommand)
+    await runCombinedInstall(
+      generatedCommands.filter<DevPackageCommand>(isDevPackageCommand),
+      true,
+      this.system
+    )
 
     const otherCommands = generatedCommands.filter(
       ({ command }) => command !== "yarn"
     )
 
-    if (distPackageCommands.length > 0) {
-      const distPackages = distPackageCommands.map(({ pkg }) => pkg).join(" ")
-      await runCommand({ command: "yarn", pkg: distPackages }, this.system)
-    }
-
-    if (devPackageCommands.length > 0) {
-      const devPackages = devPackageCommands.map(({ pkg }) => pkg).join(" ")
-      await runCommand(
-        { command: "yarn", pkg: devPackages, dev: true },
-        this.system
-      )
-    }
-
     for (const command of otherCommands) {
       await runCommand(command, this.system)
     }
   }
+}
+
+/**
+ * Takes an array of package commands and combines them into a single `yarn
+ * add`. Skips packages already in the package.json.
+ */
+const runCombinedInstall = (
+  commands: PackageCommand[],
+  isDev: boolean,
+  system: System
+) => {
+  const packageNames = commands.map(({ pkg }) => pkg)
+
+  const deps = readJson("package.json", system)[
+    isDev ? "devDependencies" : "dependencies"
+  ] as Record<string, string>
+
+  const installedPackageNames = Object.keys(deps || {})
+  const packageNamesToInstall = difference(packageNames, installedPackageNames)
+
+  if (packageNamesToInstall.length < 1) return
+
+  return runCommand(
+    {
+      command: "yarn",
+      pkg: packageNamesToInstall.join(" "),
+    },
+    system
+  )
 }
