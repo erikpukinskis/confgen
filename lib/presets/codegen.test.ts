@@ -2,8 +2,6 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { Project } from "@/project"
 import { MockSystem, TestSystem } from "@/system"
 
-const SECONDS = 1000
-
 describe("presets/codegen", () => {
   describe("without Typescript", () => {
     let project: Project
@@ -56,7 +54,7 @@ describe("presets/codegen", () => {
       })
 
       await project.confgen()
-    }, 60 * SECONDS)
+    }, 90 * 1000)
 
     afterAll(() => system.cleanUp())
 

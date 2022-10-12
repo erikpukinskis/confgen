@@ -13,6 +13,7 @@ export const generator: CommandGenerator = ({ presets }) => [
           command: "yarn",
           dev: true,
           pkg: "@typescript-eslint/eslint-plugin",
+          version: "^5.14.0",
         },
         { command: "yarn", dev: true, pkg: "@typescript-eslint/parser" },
       ] as const)

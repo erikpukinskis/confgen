@@ -7,7 +7,7 @@ import { mkdirSync, rmSync } from "fs"
 export type System = {
   silent: boolean
 
-  run(command: string): { status: number | null }
+  run(command: string, out?: string[]): { status: number | null }
   exists(path: string): boolean
   read(path: string): string
   write(path: string, contents: string | object): void
@@ -23,12 +23,16 @@ export class RealSystem implements System {
     this.cwd = cwd
   }
 
-  run(command: string) {
+  run(command: string, out?: string[]) {
     try {
-      execSync(`echo "$ ${command}" && ${command}`, {
+      const result = execSync(`echo "$ ${command}" && ${command}`, {
         cwd: this.cwd,
-        stdio: this.silent ? "ignore" : "inherit",
+        stdio: out ? "pipe" : this.silent ? "ignore" : "inherit",
       })
+      if (out) {
+        const lines = result.toString().split("\n")
+        out.push(...lines.slice(1, lines.length - 1))
+      }
       return { status: 0 }
     } catch (e: unknown) {
       if (isCommandFailure(e)) return { status: e.status }
