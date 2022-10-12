@@ -32,7 +32,7 @@ export const precheck: Precheck = ({ presets, args }) => {
   for (const generator of generators) {
     if (!isGenerator(generator)) {
       throw new Error(
-        `${generator} is not a known GraphQL code generator.\n\n\n\nTry some combination of codegen:${build}:resolvers:schema:operations`
+        `${generator} is not a known GraphQL code generator.\n\nTry some combination of codegen:${build}:resolvers:schema:operations`
       )
     }
   }
