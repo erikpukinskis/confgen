@@ -299,6 +299,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Turn post-confgen prettier on again
 - [x] Don't bump packages every time you run confgen
 - [x] Maybe don't allow extra random commands in `yarn build`. Just start over each confgen?
+- [x] Allow yarn commands to specify a version range
 - [ ] Runs without a package.json
 - [ ] Add eslint-plugin-simple-import-sort
 - [ ] Use `"@typescript-eslint/no-duplicate-imports": ["error"]` instead of `"no-duplicate-imports": "off"` in TypeScript mode
