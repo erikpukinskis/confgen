@@ -3,7 +3,7 @@ import type { CommandGenerator, Precheck } from "@/commands"
 export const precheck: Precheck = ({ args }) => {
   if (!args.githubPackage[0]) {
     throw new Error(
-      "githubPackage preset requires a scope, e.g. githubPackage:@my-scope"
+      "githubPackage preset requires a scope, e.g. githubPackage:my-scope"
     )
   }
 }
@@ -17,7 +17,7 @@ export const generator: CommandGenerator = ({ args }) => {
       path: "package.json",
       contents: {
         publishConfig: {
-          [`${scope}:registry`]: "https://npm.pkg.github.com",
+          [`@${scope}:registry`]: "https://npm.pkg.github.com",
         },
       },
     },
