@@ -9,6 +9,7 @@ export const generator: CommandGenerator = ({ presets, builds }) => {
       ? ([
           {
             command: "yarn",
+            dev: true,
             pkg: "vite-node",
           },
           {
