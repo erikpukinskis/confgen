@@ -74,7 +74,7 @@ export const generator: CommandGenerator = ({
         {
           command: "file",
           path: "vite.lib.config.js",
-          contents: buildViteLibConfig(presets, args, system),
+          contents: buildViteLibConfig(builds, presets, args, system),
         },
       ] as const)
     : []),
@@ -181,14 +181,19 @@ const buildViteAppConfig = (
 `
       : ""
 
-  return buildViteConfig(presets, system, [], "app", {
+  return buildViteConfig(builds, presets, system, [], "app", {
     serverStuff,
     codespaceSetup,
     rollupStuff,
   })
 }
 
-const buildViteLibConfig = (presets: Presets, args: Args, system: System) => {
+const buildViteLibConfig = (
+  builds: Builds,
+  presets: Presets,
+  args: Args,
+  system: System
+) => {
   let buildStuff = `
     sourcemap: true,
     lib: {
@@ -220,7 +225,7 @@ const buildViteLibConfig = (presets: Presets, args: Args, system: System) => {
     plugins.push(["sql", "vite-plugin-sql"])
   }
 
-  return buildViteConfig(presets, system, plugins, "lib", {
+  return buildViteConfig(builds, presets, system, plugins, "lib", {
     buildStuff,
   })
 }
@@ -233,6 +238,7 @@ type Scripts = {
 }
 
 const buildViteConfig = (
+  builds: Builds,
   presets: Presets,
   system: System,
   plugins: VitePlugin[],
@@ -271,7 +277,8 @@ const buildViteConfig = (
     plugins.push(["macros", "vite-plugin-babel-macros"])
   }
 
-  if (presets.includes("react")) {
+  const isSecondaryLibBuild = build === "lib" && builds.includes("app")
+  if (presets.includes("react") && !isSecondaryLibBuild) {
     plugins.push(["react", "@vitejs/plugin-react"])
   }
 
