@@ -313,6 +313,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Add `"@typescript-eslint/no-floating-promises": ["error"]`
 - [ ] See if pnpm can speed up tests
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
+- [ ] Rename `builds` to `runtimes`?
 - [ ] Use ~ instead of @
 - [ ] Account for peerDependencies that are already in the package.json
 - [ ] Add start:package preset

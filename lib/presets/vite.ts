@@ -189,7 +189,7 @@ const buildViteAppConfig = (
 }
 
 const buildViteLibConfig = (presets: Presets, args: Args, system: System) => {
-  const buildStuff = `    
+  let buildStuff = `
     sourcemap: true,
     lib: {
       entry: path.resolve(__dirname, "${buildLibEntryPointpath(presets)}"),
@@ -197,6 +197,12 @@ const buildViteLibConfig = (presets: Presets, args: Args, system: System) => {
       fileName: (format) => \`lib.\${format}.js\`,
     },
   `
+
+  if (args.dist.includes("app")) {
+    buildStuff += `
+    emptyOutDir: false,
+  `
+  }
 
   const plugins: VitePlugin[] = []
 
