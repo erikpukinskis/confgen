@@ -8,31 +8,38 @@ import type {
 import { isBuild } from "@/builds"
 
 export const precheck: Precheck = ({ args, presets }) => {
-  if (
-    args.dist.length > 0 &&
-    (args.dist.length !== 1 || args.dist[0] !== "lib")
-  ) {
+  if (args.dist.length < 1) {
     throw new Error(
-      "We don't support distributing any builds other than @lib right now. We will need to update buildBuildConfig to support @package eventually."
+      "dist preset needs to know which build to distribute. Try dist:lib, dist:app:lib, etc"
     )
+  }
+
+  if (args.dist.includes("server")) {
+    throw new Error(
+      "Distributing @server builds is not supported. Servers by definition are started not exported. Do you mean dist:lib?"
+    )
+  }
+
+  // if (args.dist.includes("lib") && args.dist.includes("package")) {
+  //   throw new Error(
+  //     "You can only distribute @lib or @app, not both at the same time, since they would conflict"
+  //   )
+  // }
+
+  if (args.dist.includes("package")) {
+    throw new Error("Distributing @package builds not supported")
   }
 
   if (!presets.includes("vite")) {
     throw new Error("Cannot use the dist preset without the vite preset\n")
   }
 
-  if (args.dist.length < 1) {
-    throw new Error(
-      "[dist] preset requires at least one build.\n\nTry dist:lib:app\n"
-    )
-  }
+  const invalidBuild = args.dist.find((arg) => !isBuild(arg))
 
-  for (const build of args.dist) {
-    if (!isBuild(build)) {
-      throw new Error(
-        `${build} is not a valid build.\n\nTry dist:lib, dist:app, dist:server, dist:package or some combination of the four.`
-      )
-    }
+  if (invalidBuild) {
+    throw new Error(
+      `${invalidBuild} is not a valid build.\n\nTry dist:lib, dist:app, dist:server, dist:package or some combination of the four.`
+    )
   }
 }
 
@@ -66,9 +73,17 @@ const buildScript = (presets: Presets, system: System, args: Args) => {
     append("yarn build:bin")
   }
 
-  for (const build of args.dist || []) {
-    prepend(`yarn build:${build}`)
+  if (args.dist.includes("lib")) {
+    prepend(`yarn build:lib`)
   }
+
+  if (args.dist.includes("app")) {
+    prepend(`yarn build:app`)
+  }
+
+  // if (args.dist.includes("package")) {
+  //   append(`yarn build:package`)
+  // }
 
   if (presets.includes("codegen")) {
     prepend("yarn build:generate")

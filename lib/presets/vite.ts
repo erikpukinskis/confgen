@@ -6,6 +6,7 @@ import type {
   System,
   Builds,
 } from "@/commands"
+import type { Build } from "@/builds"
 
 export const precheck: Precheck = ({ args }) => {
   if (args.dist.includes("lib") && !args.global.name) {
@@ -54,7 +55,7 @@ export const generator: CommandGenerator = ({
         {
           command: "script",
           name: `start:app:dev`,
-          script: `vite serve app --config vite.config.js`,
+          script: `vite serve app --config vite.app.config.js`,
         },
       ] as const)
     : []),
@@ -63,12 +64,31 @@ export const generator: CommandGenerator = ({
         {
           command: "script",
           name: "build:lib",
-          script: "vite build --mode development",
+          script: "vite build --config vite.lib.config.js --mode development",
         },
         {
           command: "file",
           path: "package.json",
           contents: buildDistConfig(),
+        },
+        {
+          command: "file",
+          path: "vite.lib.config.js",
+          contents: buildViteLibConfig(presets, args, system),
+        },
+      ] as const)
+    : []),
+  ...(args.dist.includes("app")
+    ? ([
+        {
+          command: "script",
+          name: "build:app",
+          script: "vite build --config vite.app.config.js --mode development",
+        },
+        {
+          command: "file",
+          path: "vite.app.config.js",
+          contents: buildViteAppConfig(builds, presets, args, system),
         },
       ] as const)
     : []),
@@ -99,11 +119,6 @@ export const generator: CommandGenerator = ({
         },
       ] as const)
     : []),
-  {
-    command: "file",
-    path: "vite.config.js",
-    contents: buildViteConfig(builds, presets, args, system),
-  },
 ]
 
 const buildDistConfig = () => ({
@@ -118,58 +133,27 @@ const buildDistConfig = () => ({
   },
 })
 
-const buildViteConfig = (
+const buildViteAppConfig = (
   builds: Builds,
   presets: Presets,
   args: Args,
   system: System
 ) => {
-  if (args.dist.length > 1) return ""
-
-  const dependencies = getDependencies(system)
-
-  const globals = getGlobals(dependencies)
-
-  const buildStuff = args.dist.includes("lib")
-    ? `    
-    sourcemap: true,
-    lib: {
-      entry: path.resolve(__dirname, "${buildLibEntryPointpath(presets)}"),
-      name: "${args.global.name}",
-      fileName: (format) => \`index.\${format}.js\`,
-    },
-  `
-    : ""
-
-  let rollupStuff = args.dist.includes("lib")
+  const rollupStuff = args.dist.includes("app")
     ? `
-      // make sure to externalize deps that shouldn't be bundled
-      // into your library
-      external: ${JSON.stringify(dependencies)},
-      output: {
-        // Provide global variables to use in the UMD build
-        // for externalized deps
-        globals: ${JSON.stringify(globals, null, 10)},
-      },
-  `
-    : ""
-
-  if (args.dist.includes("app")) {
-    rollupStuff += `
       input: {
         main: path.resolve(__dirname, "app", "index.html"),
       },
     `
-  }
+    : ""
 
-  const apiStuff =
-    builds.includes("server") && builds.includes("app")
-      ? `
+  const apiStuff = builds.includes("server")
+    ? `
     proxy: {
       '/api': 'http://localhost:3001',
     },
   `
-      : ""
+    : ""
 
   const shouldConfigureHmr =
     builds.includes("app") && presets.includes("codespaces")
@@ -180,14 +164,13 @@ const buildViteConfig = (
 
   const codespaceStuff = shouldConfigureHmr
     ? `
-  ...(inCodespace ? {
-    hmr: {
-      port: 443,
-    },
-  } : {}),
-`
+    ...(inCodespace ? {
+      hmr: {
+        port: 443,
+      },
+    } : {}),
+  `
     : ""
-
   const serverStuff =
     codespaceStuff || apiStuff
       ? `
@@ -198,20 +181,24 @@ const buildViteConfig = (
 `
       : ""
 
-  const jsdomStuff =
-    presets.includes("vitest") && presets.includes("react")
-      ? `
-  test: {
-    environment: "jsdom",
-  },
+  return buildViteConfig(presets, system, [], "app", {
+    serverStuff,
+    codespaceSetup,
+    rollupStuff,
+  })
+}
+
+const buildViteLibConfig = (presets: Presets, args: Args, system: System) => {
+  const buildStuff = `    
+    sourcemap: true,
+    lib: {
+      entry: path.resolve(__dirname, "${buildLibEntryPointpath(presets)}"),
+      name: "${args.global.name}",
+      fileName: (format) => \`lib.\${format}.js\`,
+    },
   `
-      : ""
 
   const plugins: VitePlugin[] = []
-
-  if (presets.includes("macros") || presets.includes("sql")) {
-    plugins.push(["macros", "vite-plugin-babel-macros"])
-  }
 
   if (presets.includes("node") && args.node.length > 0) {
     plugins.push([
@@ -225,6 +212,57 @@ const buildViteConfig = (
 
   if (presets.includes("sql")) {
     plugins.push(["sql", "vite-plugin-sql"])
+  }
+
+  return buildViteConfig(presets, system, plugins, "lib", {
+    buildStuff,
+  })
+}
+
+type Scripts = {
+  codespaceSetup?: string
+  serverStuff?: string
+  buildStuff?: string
+  rollupStuff?: string
+}
+
+const buildViteConfig = (
+  presets: Presets,
+  system: System,
+  plugins: VitePlugin[],
+  build: Build,
+  scripts: Scripts
+) => {
+  const { codespaceSetup = "", serverStuff = "", buildStuff = "" } = scripts
+
+  let { rollupStuff = "" } = scripts
+
+  const dependencies = getDependencies(system)
+
+  const globals = getGlobals(dependencies)
+
+  rollupStuff += `
+      // make sure to externalize deps that shouldn't be bundled
+      // into your library
+      external: ${JSON.stringify(dependencies)},
+      output: {
+        // Provide global variables to use in the UMD build
+        // for externalized deps
+        globals: ${JSON.stringify(globals, null, 10)},
+      },
+  `
+
+  const jsdomStuff =
+    presets.includes("vitest") && presets.includes("react")
+      ? `
+  test: {
+    environment: "jsdom",
+  },
+  `
+      : ""
+
+  if (presets.includes("macros") || presets.includes("sql")) {
+    plugins.push(["macros", "vite-plugin-babel-macros"])
   }
 
   if (presets.includes("react")) {
@@ -243,7 +281,7 @@ export default defineConfig({
   ${jsdomStuff}
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./${builds[0]}"),
+      "@": path.resolve(__dirname, "./${build}"),
     },
   },
   ${pluginConfig(plugins)}
