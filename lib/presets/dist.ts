@@ -5,18 +5,18 @@ import type {
   Args,
   Precheck,
 } from "@/commands"
-import { isBuild } from "@/builds"
+import { isRuntime } from "@/runtimes"
 
 export const precheck: Precheck = ({ args, presets }) => {
   if (args.dist.length < 1) {
     throw new Error(
-      "dist preset needs to know which build to distribute. Try dist:lib, dist:app:lib, etc"
+      "dist preset needs to know which runtimes to distribute. Try dist:lib, dist:app:lib, etc"
     )
   }
 
   if (args.dist.includes("server")) {
     throw new Error(
-      "Distributing @server builds is not supported. Servers by definition are started not exported. Do you mean dist:lib?"
+      "Distributing @server runtimes is not supported. Servers by definition are started not exported. Do you mean dist:lib?"
     )
   }
 
@@ -27,18 +27,18 @@ export const precheck: Precheck = ({ args, presets }) => {
   // }
 
   if (args.dist.includes("package")) {
-    throw new Error("Distributing @package builds not supported")
+    throw new Error("Distributing @package runtimes not supported")
   }
 
   if (!presets.includes("vite")) {
     throw new Error("Cannot use the dist preset without the vite preset\n")
   }
 
-  const invalidBuild = args.dist.find((arg) => !isBuild(arg))
+  const invalidRuntime = args.dist.find((arg) => !isRuntime(arg))
 
-  if (invalidBuild) {
+  if (invalidRuntime) {
     throw new Error(
-      `${invalidBuild} is not a valid build.\n\nTry dist:lib, dist:app, dist:server, dist:package or some combination of the four.`
+      `${invalidRuntime} is not a valid runtime.\n\nTry dist:lib, dist:app, dist:server, dist:package or some combination of the four.`
     )
   }
 }
@@ -47,11 +47,11 @@ export const generator: CommandGenerator = ({ presets, system, args }) => [
   {
     command: "script",
     name: "build",
-    script: buildScript(presets, system, args),
+    script: getScript(presets, system, args),
   },
 ]
 
-const buildScript = (presets: Presets, system: System, args: Args) => {
+const getScript = (presets: Presets, system: System, args: Args) => {
   const scripts: string[] = []
 
   const prepend = (script: string) => {

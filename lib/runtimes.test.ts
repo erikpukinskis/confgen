@@ -3,7 +3,7 @@ import { mkdirSync, rmSync, existsSync } from "fs"
 import { execSync } from "child_process"
 import { join } from "path"
 
-describe("@build", () => {
+describe("@runtimes", () => {
   const root = `/tmp/${randomFolder()}`
   const bin = join(__dirname, "..", "dist", "lib.umd.js")
 

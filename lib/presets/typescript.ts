@@ -1,4 +1,4 @@
-import type { CommandGenerator, Precheck, Builds, Presets } from "@/commands"
+import type { CommandGenerator, Precheck, Runtimes, Presets } from "@/commands"
 
 export const precheck: Precheck = ({ args }) => {
   if (args.typescript.length > 0) {
@@ -8,7 +8,7 @@ export const precheck: Precheck = ({ args }) => {
 
 const tsconfigPath = () => "tsconfig.json"
 
-export const generator: CommandGenerator = ({ presets, builds }) => [
+export const generator: CommandGenerator = ({ presets, runtimes }) => [
   {
     command: "yarn",
     dev: true,
@@ -24,7 +24,7 @@ export const generator: CommandGenerator = ({ presets, builds }) => [
         {
           command: "file",
           path: "tsconfig.dist.json",
-          contents: buildDistConfig(),
+          contents: getDistConfig(),
         },
         {
           command: "script",
@@ -41,12 +41,12 @@ export const generator: CommandGenerator = ({ presets, builds }) => [
   {
     command: "file",
     path: tsconfigPath(),
-    contents: buildConfig(presets, builds),
+    contents: getConfig(presets, runtimes),
   },
 ]
 
 /**
- * Takes an array of builds (['app', 'lib', etc]) and returns the top-down path
+ * Takes an array of runtimes (['app', 'lib', etc]) and returns the top-down path
  * aliases for the tsconfig, e.g.:
  *
  *     {
@@ -55,23 +55,23 @@ export const generator: CommandGenerator = ({ presets, builds }) => [
  *       etc...
  *     }
  */
-const buildPathAliases = (builds: Builds) => ({
-  "@/*": [`${builds[0]}/*`],
+const getPathAliases = (runtimes: Runtimes) => ({
+  "@/*": [`${runtimes[0]}/*`],
 })
 
 /**
  * Special config for just building lib.
  */
-const buildDistConfig = () => ({
+const getDistConfig = () => ({
   extends: "./tsconfig.json",
   include: ["lib"],
 })
 
-const buildConfig = (presets: Presets, builds: Builds) => ({
+const getConfig = (presets: Presets, runtimes: Runtimes) => ({
   compilerOptions: {
     lib: ["es2017", ...(presets.includes("react") ? ["dom"] : [])],
     baseUrl: ".",
-    paths: buildPathAliases(builds),
+    paths: getPathAliases(runtimes),
     esModuleInterop: true,
     forceConsistentCasingInFileNames: true,
     strict: true,
@@ -80,5 +80,5 @@ const buildConfig = (presets: Presets, builds: Builds) => ({
     ...(presets.includes("react") ? { jsx: "react" } : undefined),
     ...(presets.includes("dist") ? { outDir: "dist" } : undefined),
   },
-  include: builds,
+  include: runtimes,
 })

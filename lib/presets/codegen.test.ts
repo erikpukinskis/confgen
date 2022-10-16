@@ -9,7 +9,7 @@ describe("presets/codegen", () => {
     beforeAll(() => {
       const system = new MockSystem()
       project = new Project({
-        builds: ["app"],
+        runtimes: ["app"],
         presetConfigs: ["codegen"],
         system,
       })
@@ -29,7 +29,7 @@ describe("presets/codegen", () => {
     beforeAll(() => {
       system = new MockSystem()
       project = new Project({
-        builds: ["app"],
+        runtimes: ["app"],
         presetConfigs: ["typescript", "codegen:lib:resolvers:schema"],
         system,
       })
@@ -48,7 +48,7 @@ describe("presets/codegen", () => {
     beforeAll(async () => {
       system = new TestSystem()
       const project = new Project({
-        builds: ["app"],
+        runtimes: ["app"],
         presetConfigs: ["typescript", "codegen:lib:resolvers:schema"],
         system,
       })

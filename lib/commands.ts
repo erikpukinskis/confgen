@@ -4,9 +4,9 @@ import { type System } from "@/system"
 import { type PresetName } from "@/presets"
 import { type Args } from "@/args"
 import { dedupe } from "@/dedupe"
-import type { Build } from "@/builds"
+import type { Runtime } from "@/runtimes"
 
-export type Builds = Build[]
+export type Runtimes = Runtime[]
 
 export type { System } from "@/system"
 
@@ -76,7 +76,7 @@ export function isPackageCommand(
 export type Presets = PresetName[]
 
 export type CommandGenerator = (input: {
-  builds: Build[]
+  runtimes: Runtime[]
   presets: Presets
   args: Args
   system: System

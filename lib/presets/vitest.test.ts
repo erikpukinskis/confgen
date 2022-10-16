@@ -6,7 +6,7 @@ describe("presets/vitest", () => {
   it("should write an index.test.ts file if there are no tests present", async () => {
     const system = new MockSystem()
     const project = new Project({
-      builds: ["lib"],
+      runtimes: ["lib"],
       presetConfigs: ["vitest", "typescript"],
       system,
     })

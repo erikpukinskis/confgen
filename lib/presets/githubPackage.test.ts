@@ -12,7 +12,7 @@ describe("presets/githubPackage", () => {
     system = new MockSystem()
     system.write(".gitignore", "foo\n")
     const project = new Project({
-      builds: ["lib"],
+      runtimes: ["lib"],
       presetConfigs: ["githubPackage:@my-scope"],
       system,
     })

@@ -26,13 +26,13 @@ export const generator: CommandGenerator = ({ presets, args, system }) => {
   //   commands.push({
   //     command: "file",
   //     path,
-  //     contents: buildExampleIndex(),
+  //     contents: getExampleIndex(),
   //   })
   // {
   //   command: "file",
-  //   path: buildEntryPointpath(presets),
+  //   path: getEntryPointpath(presets),
   //   merge: "if-not-exists",
-  //   contents: buildDefaultIndex(args),
+  //   contents: getDefaultIndex(args),
   // }
   // }
 
@@ -44,7 +44,7 @@ export const generator: CommandGenerator = ({ presets, args, system }) => {
 //   return status === 0
 // }
 
-// const buildGraphqlIndex = () => `import React from 'react'
+// const getGraphqlIndex = () => `import React from 'react'
 // import {
 //   ApolloProvider,
 //   ApolloClient,

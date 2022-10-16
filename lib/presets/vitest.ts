@@ -4,9 +4,9 @@ import type {
   Presets,
   CommandWithArgs,
 } from "@/commands"
-import type { Build } from "@/builds"
+import type { Runtime } from "@/runtimes"
 
-export const generator: CommandGenerator = ({ builds, presets, system }) => {
+export const generator: CommandGenerator = ({ runtimes, presets, system }) => {
   const commands: CommandWithArgs[] = [
     {
       command: "yarn",
@@ -50,9 +50,9 @@ export const generator: CommandGenerator = ({ builds, presets, system }) => {
   if (!hasTestFiles(system)) {
     commands.push({
       command: "file",
-      path: buildExampleTestPath(builds[0], presets),
+      path: getExampleTestPath(runtimes[0], presets),
       merge: "if-not-exists",
-      contents: buildExampleTest(builds[0], presets),
+      contents: getExampleTest(runtimes[0], presets),
     })
   }
 
@@ -80,18 +80,18 @@ const hasTestFiles = (system: System) => {
   return status === 0
 }
 
-const buildExampleTestPath = (build: Build, presets: Presets) => {
+const getExampleTestPath = (runtime: Runtime, presets: Presets) => {
   return presets.includes("react") && presets.includes("typescript")
-    ? `${build}/index.test.tsx`
+    ? `${runtime}/index.test.tsx`
     : presets.includes("react")
-    ? `${build}/index.test.jsx`
+    ? `${runtime}/index.test.jsx`
     : presets.includes("typescript")
-    ? `${build}/index.test.ts`
-    : `${build}/index.test.js`
+    ? `${runtime}/index.test.ts`
+    : `${runtime}/index.test.js`
 }
 
-const buildExampleTest = (build: Build, presets: Presets) => {
-  const componentName = build === "app" ? "App" : "MyComponent"
+const getExampleTest = (runtime: Runtime, presets: Presets) => {
+  const componentName = runtime === "app" ? "App" : "MyComponent"
 
   return presets.includes("react")
     ? `import React from "react"

@@ -1,5 +1,5 @@
 import type { CommandGenerator, CommandWithArgs, Precheck } from "@/commands"
-import { type Build, isBuild } from "@/builds"
+import { type Runtime, isRuntime } from "@/runtimes"
 
 const GENERATORS = ["resolvers", "schema", "operations"] as const
 
@@ -9,7 +9,7 @@ const isGenerator = (string: string): string is Generator =>
   GENERATORS.includes(string as Generator)
 
 export const precheck: Precheck = ({ presets, args }) => {
-  const [build, ...generators] = args.codegen
+  const [runtime, ...generators] = args.codegen
 
   if (!presets.includes("typescript")) {
     throw new Error(
@@ -17,29 +17,29 @@ export const precheck: Precheck = ({ presets, args }) => {
     )
   }
 
-  if (!isBuild(build)) {
+  if (!isRuntime(runtime)) {
     throw new Error(
-      "The codegen preset needs a build target as its first arg. Try codegen:lib:..., codegen:app:..., etc"
+      "The codegen preset needs a runtime target as its first arg. Try codegen:lib:..., codegen:app:..., etc"
     )
   }
 
   if (generators.length < 1) {
     throw new Error(
-      `The codegen presets needs to know what to generate.\n\nTry some combination of codegen:${build}:resolvers:schema:operations`
+      `The codegen presets needs to know what to runtime generate in.\n\nTry some combination of codegen:${runtime}:resolvers:schema:operations`
     )
   }
 
   for (const generator of generators) {
     if (!isGenerator(generator)) {
       throw new Error(
-        `${generator} is not a known GraphQL code generator.\n\nTry some combination of codegen:${build}:resolvers:schema:operations`
+        `${generator} is not a known GraphQL code generator.\n\nTry some combination of codegen:${runtime}:resolvers:schema:operations`
       )
     }
   }
 }
 
 export const generator: CommandGenerator = ({ args, system }) => {
-  const [build, ...generators] = args.codegen as [Build, ...Generator[]]
+  const [runtime, ...generators] = args.codegen as [Runtime, ...Generator[]]
 
   const commands: CommandWithArgs[] = [
     {
@@ -60,12 +60,12 @@ export const generator: CommandGenerator = ({ args, system }) => {
     {
       command: "file",
       path: ".gitignore",
-      contents: [`${build}/gql/`],
+      contents: [`${runtime}/gql/`],
     },
     {
       command: "file",
       path: "codegen.yml",
-      contents: buildHooksCodegen(generators),
+      contents: getHooksCodegen(generators),
     },
   ]
 
@@ -84,7 +84,7 @@ export const generator: CommandGenerator = ({ args, system }) => {
         },
         {
           command: "file",
-          path: `${build}/context.ts`,
+          path: `${runtime}/context.ts`,
           merge: "if-not-exists",
           contents: `export type ResolverContext = {
   db: "..." // replace with your resolver context
@@ -93,7 +93,7 @@ export const generator: CommandGenerator = ({ args, system }) => {
         {
           command: "file",
           path: "codegen.yml",
-          contents: buildResolverCodegen(build),
+          contents: getResolverCodegen(runtime),
         },
       ] as const)
     )
@@ -107,7 +107,7 @@ export const generator: CommandGenerator = ({ args, system }) => {
             {
               command: "file",
               path: "schema.graphql",
-              contents: buildSampleSchema(),
+              contents: getSampleSchema(),
             },
           ] as const)),
       {
@@ -118,7 +118,7 @@ export const generator: CommandGenerator = ({ args, system }) => {
       {
         command: "file",
         path: "codegen.yml",
-        contents: buildSchemaCodegen(build),
+        contents: getSchemaCodegen(runtime),
       }
     )
   }
@@ -134,7 +134,7 @@ export const generator: CommandGenerator = ({ args, system }) => {
         {
           command: "file",
           path: "codegen.yml",
-          contents: buildOperationsCodegen(build),
+          contents: getOperationsCodegen(runtime),
         },
       ] as const)
     )
@@ -143,7 +143,7 @@ export const generator: CommandGenerator = ({ args, system }) => {
   return commands
 }
 
-const buildSampleSchema = () => `type ExampleResponse {
+const getSampleSchema = () => `type ExampleResponse {
   message: String!
 }
 
@@ -156,23 +156,23 @@ type Mutation {
 }
 `
 
-const buildOperationsCodegen = (build: Build) => ({
-  documents: [`${build}/**/*.{ts,tsx}`],
+const getOperationsCodegen = (runtime: Runtime) => ({
+  documents: [`${runtime}/**/*.{ts,tsx}`],
   generates: {
-    [`./${build}/gql`]: {
+    [`./${runtime}/gql`]: {
       preset: "client",
     },
   },
 })
 
-const buildSchemaCodegen = (build: Build) => ({
+const getSchemaCodegen = (runtime: Runtime) => ({
   schema: "schema.graphql",
   generates: {
-    [`./${build}/gql/schema.ts`]: ["graphql-codegen-schema-script"],
+    [`./${runtime}/gql/schema.ts`]: ["graphql-codegen-schema-script"],
   },
 })
 
-const buildHooksCodegen = (generators: Generator[]) => {
+const getHooksCodegen = (generators: Generator[]) => {
   let command = ""
   if (generators.includes("schema")) {
     command += '\\nexport { default as schema } from \\"./schema\\"'
@@ -191,9 +191,9 @@ const buildHooksCodegen = (generators: Generator[]) => {
   }
 }
 
-const buildResolverCodegen = (build: Build) => ({
+const getResolverCodegen = (runtime: Runtime) => ({
   generates: {
-    [`./${build}/gql/resolvers.ts`]: {
+    [`./${runtime}/gql/resolvers.ts`]: {
       plugins: [
         "typescript",
         "typescript-resolvers",

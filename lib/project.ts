@@ -11,25 +11,25 @@ import {
   type PackageCommand,
 } from "./commands"
 import { type System } from "@/system"
-import { type Build } from "@/builds"
+import { type Runtime } from "@/runtimes"
 import { swapDevPackages, runCombinedInstall } from "@/packages"
 
 type ProjectOptions = {
   system: System
-  builds: Build[]
+  runtimes: Runtime[]
   presetConfigs: string[]
   globalArgs?: Record<GlobalArg, string>
 }
 
 export class Project {
   system: System
-  builds: Build[]
+  runtimes: Runtime[]
   presetNames: PresetName[]
   argsByPresetName: Args
 
   constructor({
     system,
-    builds,
+    runtimes,
     presetConfigs,
     globalArgs = {},
   }: ProjectOptions) {
@@ -43,7 +43,7 @@ export class Project {
       throw new Error("No System provided")
     }
     this.system = system
-    this.builds = builds
+    this.runtimes = runtimes
     const { presetNames, argsByPresetName } = parsePresetConfigs(
       presetConfigs,
       globalArgs
@@ -64,7 +64,7 @@ export class Project {
         console.info(`Generating commands for preset [${presetName}]...`)
       const generated = generate(
         presetName,
-        this.builds,
+        this.runtimes,
         this.presetNames,
         this.argsByPresetName,
         this.system

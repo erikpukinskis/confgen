@@ -10,7 +10,7 @@ describe("presets/dist", () => {
       system = new TestSystem()
       const project = new Project({
         system,
-        builds: ["lib"],
+        runtimes: ["lib"],
         presetConfigs: ["templates", "yarn", "typescript", "vite", "dist:lib"],
         globalArgs: { name: "MyLib" },
       })

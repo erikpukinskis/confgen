@@ -9,7 +9,7 @@ describe("presets/eslint", () => {
     beforeEach(async () => {
       system = new MockSystem()
       const project = new Project({
-        builds: ["app"],
+        runtimes: ["app"],
         presetConfigs: ["eslint"],
         system,
       })
@@ -28,7 +28,7 @@ describe("presets/eslint", () => {
       system = new MockSystem()
 
       const project = new Project({
-        builds: ["app"],
+        runtimes: ["app"],
         presetConfigs: ["eslint", "react"],
         system,
       })
