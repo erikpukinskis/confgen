@@ -7,6 +7,7 @@ import type {
   Builds,
 } from "@/commands"
 import type { Build } from "@/builds"
+import merge from "lodash/merge"
 
 export const precheck: Precheck = ({ args }) => {
   if (args.dist.includes("lib") && !args.global.name) {
@@ -301,9 +302,13 @@ export default defineConfig({
 const getDependencies = (system: System) => {
   if (!system.exists("package.json")) return []
   const source = system.read("package.json")
-  const json = JSON.parse(source) as { dependencies?: Record<string, string> }
-  if (!json.dependencies) return []
-  return Object.keys(json["dependencies"])
+
+  const json = JSON.parse(source) as {
+    dependencies: Record<string, string>
+    peerDependencies: Record<string, string>
+  }
+
+  return Object.keys(merge(json.dependencies, json.peerDependencies))
 }
 
 const getGlobals = (dependencies: string[]) =>
