@@ -142,7 +142,7 @@ const buildViteAppConfig = (
   const apiStuff = builds.includes("server")
     ? `
     proxy: {
-      '/api': 'http://localhost:3001',
+      '/server': 'http://localhost:3001',
     },
   `
     : ""

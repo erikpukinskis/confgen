@@ -14,7 +14,7 @@ export const generator: CommandGenerator = ({ presets, builds }) => {
           },
           {
             command: "script",
-            name: "start:api",
+            name: "start:server",
             script: `vite-node server/`,
           },
         ] as const)

@@ -58,7 +58,7 @@ export const generator: CommandGenerator = ({ presets, args, system }) => {
 // const client = new ApolloClient({
 //   cache: new InMemoryCache(),
 //   link: new HttpLink({
-//     uri: \`\${window.location.protocol}//\${window.location.host}/api\`,
+//     uri: \`\${window.location.protocol}//\${window.location.host}/server\`,
 //     fetch,
 //   }),
 // })
