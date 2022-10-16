@@ -63,7 +63,7 @@ Options:
 `
 
 const getVersion = () => {
-  const result = execSync(`ls -l node_modules | grep ^l`, {
+  const result = execSync(`ls -l node_modules | grep ^l || true`, {
     stdio: "pipe",
   })
 
