@@ -22,7 +22,7 @@ import type { PresetName } from "./types"
 import type { Precheck } from "@/commands"
 import type { Args } from "@/args"
 import type { System } from "@/system"
-import type { Build } from "@/builds"
+import type { Runtime } from "@/runtimes"
 
 const PRESETS = {
   all,
@@ -68,13 +68,13 @@ export const precheck = (
 
 export const generate = (
   name: PresetName,
-  builds: Build[],
+  runtimes: Runtime[],
   presets: PresetName[],
   args: Args,
   system: System
 ) => {
   const preset = PRESETS[name]
-  return preset.generator({ builds, presets, args, system })
+  return preset.generator({ runtimes, presets, args, system })
 }
 
 export * from "./types"

@@ -6,25 +6,25 @@ export const generator: CommandGenerator = ({ presets }) => [
         {
           command: "script",
           name: "fix",
-          script: buildFixCommand(presets),
+          script: getFixCommand(presets),
         },
       ] as const)
     : []),
   {
     command: "script",
     name: "all",
-    script: buildAllOfTheThingsCommand(presets),
+    script: getAllOfTheThingsCommand(presets),
   },
 ]
 
-const buildFixCommand = (presets: Presets) => {
+const getFixCommand = (presets: Presets) => {
   const scripts = []
   if (presets.includes("eslint")) scripts.push("yarn fix:lint")
   if (presets.includes("prettier")) scripts.push("yarn fix:format")
   return scripts.join(" && ")
 }
 
-const buildAllOfTheThingsCommand = (presets: Presets) => {
+const getAllOfTheThingsCommand = (presets: Presets) => {
   const scripts = ["yarn"]
 
   if (presets.includes("dist")) {

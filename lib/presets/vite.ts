@@ -4,9 +4,9 @@ import type {
   Presets,
   Args,
   System,
-  Builds,
+  Runtimes,
 } from "@/commands"
-import type { Build } from "@/builds"
+import type { Runtime } from "@/runtimes"
 import merge from "lodash/merge"
 
 export const precheck: Precheck = ({ args }) => {
@@ -18,7 +18,7 @@ export const precheck: Precheck = ({ args }) => {
 }
 
 export const generator: CommandGenerator = ({
-  builds,
+  runtimes,
   presets,
   args,
   system,
@@ -42,7 +42,7 @@ export const generator: CommandGenerator = ({
         { command: "yarn", dev: true, pkg: "vite-plugin-babel-macros" },
       ] as const)
     : []),
-  ...(builds.includes("app")
+  ...(runtimes.includes("app")
     ? ([
         {
           command: "script",
@@ -61,16 +61,16 @@ export const generator: CommandGenerator = ({
         {
           command: "file",
           path: "package.json",
-          contents: buildDistConfig(),
+          contents: getDistConfig(),
         },
         {
           command: "file",
           path: "vite.lib.config.js",
-          contents: buildViteLibConfig(builds, presets, args, system),
+          contents: getViteLibConfig(runtimes, presets, args, system),
         },
       ] as const)
     : []),
-  ...(builds.includes("app")
+  ...(runtimes.includes("app")
     ? ([
         {
           command: "script",
@@ -80,7 +80,7 @@ export const generator: CommandGenerator = ({
         {
           command: "file",
           path: "vite.app.config.js",
-          contents: buildViteAppConfig(builds, presets, args, system),
+          contents: getViteAppConfig(runtimes, presets, args, system),
         },
       ] as const)
     : []),
@@ -113,7 +113,7 @@ export const generator: CommandGenerator = ({
     : []),
 ]
 
-const buildDistConfig = () => ({
+const getDistConfig = () => ({
   files: ["dist"],
   main: "./dist/lib.umd.js",
   module: "./dist/lib.es.js",
@@ -125,8 +125,8 @@ const buildDistConfig = () => ({
   },
 })
 
-const buildViteAppConfig = (
-  builds: Builds,
+const getViteAppConfig = (
+  runtimes: Runtimes,
   presets: Presets,
   args: Args,
   system: System
@@ -139,7 +139,7 @@ const buildViteAppConfig = (
     `
     : ""
 
-  const apiStuff = builds.includes("server")
+  const apiStuff = runtimes.includes("server")
     ? `
     proxy: {
       '/server': 'http://localhost:3001',
@@ -148,7 +148,7 @@ const buildViteAppConfig = (
     : ""
 
   const shouldConfigureHmr =
-    builds.includes("app") && presets.includes("codespaces")
+    runtimes.includes("app") && presets.includes("codespaces")
 
   const codespaceSetup = shouldConfigureHmr
     ? `const inCodespace = Boolean(process.env.GITHUB_CODESPACE_TOKEN)`
@@ -173,15 +173,15 @@ const buildViteAppConfig = (
 `
       : ""
 
-  return buildViteConfig(builds, presets, system, [], "app", {
+  return getViteConfig(runtimes, presets, system, [], "app", {
     serverStuff,
     codespaceSetup,
     rollupStuff,
   })
 }
 
-const buildViteLibConfig = (
-  builds: Builds,
+const getViteLibConfig = (
+  runtimes: Runtimes,
   presets: Presets,
   args: Args,
   system: System
@@ -189,7 +189,7 @@ const buildViteLibConfig = (
   let buildStuff = `
     sourcemap: true,
     lib: {
-      entry: path.resolve(__dirname, "${buildLibEntryPointpath(presets)}"),
+      entry: path.resolve(__dirname, "${getLibEntryPointpath(presets)}"),
       name: "${args.global.name}",
       fileName: (format) => \`lib.\${format}.js\`,
     },
@@ -232,7 +232,7 @@ const buildViteLibConfig = (
       },
   `
 
-  return buildViteConfig(builds, presets, system, plugins, "lib", {
+  return getViteConfig(runtimes, presets, system, plugins, "lib", {
     buildStuff,
     rollupStuff,
   })
@@ -245,12 +245,12 @@ type Scripts = {
   rollupStuff?: string
 }
 
-const buildViteConfig = (
-  builds: Builds,
+const getViteConfig = (
+  runtimes: Runtimes,
   presets: Presets,
   system: System,
   plugins: VitePlugin[],
-  build: Build,
+  runtime: Runtime,
   scripts: Scripts
 ) => {
   const {
@@ -289,7 +289,7 @@ export default defineConfig({
   ${jsdomStuff}
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./${builds[0]}"),
+      "@": path.resolve(__dirname, "./${runtimes[0]}"),
     },
   },
   ${pluginConfig(plugins)}
@@ -344,5 +344,5 @@ ${plugins
 
 `
 
-const buildLibEntryPointpath = (presets: Presets) =>
+const getLibEntryPointpath = (presets: Presets) =>
   `lib/index.${presets.includes("typescript") ? "ts" : "js"}`

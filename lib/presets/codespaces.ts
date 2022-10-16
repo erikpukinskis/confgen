@@ -32,14 +32,14 @@ export const generator: CommandGenerator = ({ presets }) => [
           command: "file",
           path: ".devcontainer/devcontainer.json",
           contents: {
-            postCreateCommand: buildPostCreateCommand(presets),
+            postCreateCommand: getPostCreateCommand(presets),
           },
         },
       ] as const)
     : []),
 ]
 
-const buildPostCreateCommand = (presets: Presets) => {
+const getPostCreateCommand = (presets: Presets) => {
   let command = "yarn"
   if (presets.includes("githubPackage")) {
     command += " && yarn auth:registry"

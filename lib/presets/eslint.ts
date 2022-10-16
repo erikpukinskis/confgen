@@ -38,7 +38,7 @@ vendor
   {
     command: "file",
     path: ".eslintrc",
-    contents: buildEslintrc(presets),
+    contents: getEslintrc(presets),
   },
   ...(presets.includes("codespaces")
     ? ([
@@ -74,7 +74,7 @@ vendor
   },
 ]
 
-const buildEslintrc = (presets: Presets) => ({
+const getEslintrc = (presets: Presets) => ({
   root: true,
   ...(presets.includes("typescript")
     ? {

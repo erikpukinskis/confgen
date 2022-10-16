@@ -6,7 +6,7 @@ describe("presets/templates", () => {
   it.skip("should generate a JavaScript index ", async () => {
     const system = new MockSystem()
     const project = new Project({
-      builds: ["lib"],
+      runtimes: ["lib"],
       presetConfigs: ["templates"],
       system,
     })
@@ -17,7 +17,7 @@ describe("presets/templates", () => {
   it.skip("should generate a TypeScript index ", async () => {
     const system = new MockSystem()
     const project = new Project({
-      builds: ["lib"],
+      runtimes: ["lib"],
       presetConfigs: ["templates"],
       system,
     })
@@ -28,7 +28,7 @@ describe("presets/templates", () => {
   it.skip("should generate a server index ", async () => {
     const system = new MockSystem()
     const project = new Project({
-      builds: ["server"],
+      runtimes: ["server"],
       presetConfigs: ["templates"],
       system,
     })
@@ -39,7 +39,7 @@ describe("presets/templates", () => {
   it.skip("should generate an index.html and JSX ", async () => {
     const system = new MockSystem()
     const project = new Project({
-      builds: ["app"],
+      runtimes: ["app"],
       presetConfigs: ["templates"],
       system,
     })

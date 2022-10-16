@@ -1,24 +1,24 @@
 import { describe, beforeAll, it, expect, test } from "vitest"
-import { parseArgs, BUILD_PATTERN, PRESET_CONFIG_PATTERN } from "@/parseArgs"
+import { parseArgs, RUNTIME_PATTERN, PRESET_CONFIG_PATTERN } from "@/parseArgs"
 
 describe("parseArgs", () => {
-  test("build pattern accepts a build with an @", () => {
-    expect(BUILD_PATTERN.test("@server")).toBe(true)
+  test("runtime pattern accepts a runtime with an @", () => {
+    expect(RUNTIME_PATTERN.test("@server")).toBe(true)
   })
 
   test("preset pattern accepts a preset with args", () => {
     expect(PRESET_CONFIG_PATTERN.test("dist:app:lib")).toBe(true)
   })
 
-  describe("with a build, a global arg, and a preset with args", () => {
+  describe("with a runtime, a global arg, and a preset with args", () => {
     let args: ReturnType<typeof parseArgs>
 
     beforeAll(() => {
       args = parseArgs(["@lib", "--name", "MyLib", "dist:lib"])
     })
 
-    it("extracts the build", () => {
-      expect(args.builds).toEqual(["lib"])
+    it("extracts the runtime", () => {
+      expect(args.runtimes).toEqual(["lib"])
     })
 
     it("extracts the global arg", () => {
@@ -30,15 +30,15 @@ describe("parseArgs", () => {
     })
   })
 
-  describe("with two builds", () => {
+  describe("with two runtimes", () => {
     let args: ReturnType<typeof parseArgs>
 
     beforeAll(() => {
       args = parseArgs(["@app", "@server"])
     })
 
-    it("extracts the build", () => {
-      expect(args.builds).toEqual(["app", "server"])
+    it("extracts the runtime", () => {
+      expect(args.runtimes).toEqual(["app", "server"])
     })
   })
 

@@ -8,7 +8,7 @@ describe("project", () => {
     const system = new MockSystem()
 
     const project = new Project({
-      builds: ["lib"],
+      runtimes: ["lib"],
       presetConfigs: ["react", "typescript"],
       system,
     })

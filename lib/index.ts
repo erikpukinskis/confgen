@@ -6,7 +6,7 @@ import { RealSystem } from "./system"
 import { execSync } from "child_process"
 
 const USAGE = `
-confgen <builds> <presets>
+confgen <runtimes> <presets>
 
 Examples:
   confgen @app @server @package dist:app:package codegen:app:queries react vitest
@@ -14,13 +14,13 @@ Examples:
   confgen @lib @package dist:lib codegen:lib:schema:resolvers vitest
 
 Options:
-  <builds>     Space separated selection of "builds" i.e. folders with code meant to be
-               run in a specific environment:
+  <runtimes>    Space separated selection of "runtimes" i.e. folders with code meant to be
+                run in a specific environment:
 
                   @lib — code is called via a library interface (either in Node or the browser)
                   @app — code that boots in an HTML context in the browser
                   @server — code that boots in Node
-                  @package — code that consumes the build (e.g. dist tests, or an app wrapper)
+                  @package — code that consumes the build (e.g. dist tests)
 
                 These folders (lib/, app/, etc) are the ONLY folders which may be used
                 for source code.
@@ -46,7 +46,7 @@ Options:
                                                 extensions eslint, prettier, etc presets
                   eslint                      Sets up linting with fix-on-save in codespaces
                   git                         Pre-populates gitignore
-                  dist[:build1][:build2]      Generate importable files for selected builds
+                  dist[:runtime1][:runtime2]  Generate importable files for selected runtimes
                                                 importable from dist/
                   macros                      Enables babel macros in Vite
                   node[:fs][:path][etc...]    Configures codespace to use the Node.js environment
@@ -55,7 +55,7 @@ Options:
                   react                       Enable React in eslint, typescript, etc
                   sql                         Sets up Vite plugin for importing sql
                   typescript:[tsconfig path]  Do stuff in TypeScript, check types, etc
-                  vite                        Use Vite for dev server and any builds
+                  vite                        Use Vite for dev server and builds
                   vitest                      Configures test scripts
                   yarn                        Creates a yarn.lock file
 
@@ -95,7 +95,7 @@ const getVersion = () => {
 
 try {
   const [, , ...args] = process.argv
-  const { presetConfigs, builds, globalArgs } = parseArgs(args)
+  const { presetConfigs, runtimes, globalArgs } = parseArgs(args)
 
   addDefaultPresets(presetConfigs)
 
@@ -106,7 +106,7 @@ try {
 👷 Running confgen@${getVersion()}
 ----------------------------------------`)
 
-  const project = new Project({ presetConfigs, builds, globalArgs, system })
+  const project = new Project({ presetConfigs, runtimes, globalArgs, system })
 
   void project.confgen()
 } catch (e) {

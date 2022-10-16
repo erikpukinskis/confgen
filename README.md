@@ -9,7 +9,7 @@ You can think of confgen as an alternative to the monorepo strategy: It makes it
 ## Manual
 
 ```
-**confgen <builds> <presets>
+confgen <runtimes> <presets>
 
 Examples:
   confgen @app @server @package dist:app:package codegen:app:queries react vitest
@@ -17,13 +17,13 @@ Examples:
   confgen @lib @package dist:lib codegen:lib:schema:resolvers vitest
 
 Options:
-  <builds>     Space separated selection of "builds" i.e. folders with code meant to be
-               run in a specific environment:
+  <runtimes>    Space separated selection of "runtimes" i.e. folders with code meant to be
+                run in a specific environment:
 
                   @lib — code is called via a library interface (either in Node or the browser)
                   @app — code that boots in an HTML context in the browser
                   @server — code that boots in Node
-                  @package — code that consumes the build (e.g. dist tests, or an app wrapper)
+                  @package — code that consumes the build (e.g. dist tests)
 
                 These folders (lib/, app/, etc) are the ONLY folders which may be used
                 for source code.
@@ -49,7 +49,7 @@ Options:
                                                 extensions eslint, prettier, etc presets
                   eslint                      Sets up linting with fix-on-save in codespaces
                   git                         Pre-populates gitignore
-                  dist[:build1][:build2]      Generate importable files for selected builds
+                  dist[:runtime1][:runtime2]  Generate importable files for selected runtimes
                                                 importable from dist/
                   macros                      Enables babel macros in Vite
                   node[:fs][:path][etc...]    Configures codespace to use the Node.js environment
@@ -58,7 +58,7 @@ Options:
                   react                       Enable React in eslint, typescript, etc
                   sql                         Sets up Vite plugin for importing sql
                   typescript:[tsconfig path]  Do stuff in TypeScript, check types, etc
-                  vite                        Use Vite for dev server and any builds
+                  vite                        Use Vite for dev server and builds
                   vitest                      Configures test scripts
                   yarn                        Creates a yarn.lock file
 
@@ -152,7 +152,7 @@ Depending on which presets you choose, lots of package.json scripts will be avai
 - `yarn check:lint` looks for lint errors
 - `yarn test` runs the tests
   - `yarn test:watch` runs them in watch mode
-  - `yarn test -t presets/codegen`, `yarn test -t @build`, etc runs a single test file (top level `describe`)
+  - `yarn test -t presets/codegen`, `yarn test -t @dist`, etc runs a single test file (top level `describe`)
 
 ...and last but not least,
 
@@ -177,7 +177,7 @@ cd vendor
 git clone https://github.com/erikpukinskis/confgen.git
 cd confgen
 yarn
-yarn run build
+yarn build
 ```
 
 And then add the local version to your dependencies:
@@ -224,13 +224,13 @@ yarn test -t "should not clobber existing build commands"
 
 ## Foundational Principles
 
-* **Support single purpose repos** — This is the bottom line goal of Confgen. It is not meant to work in a monorepo. Although repos often need secondary modes of running—dev server, documentation server, dist tests, etc—Confgen presumes that each repo has a single primary purpose. It will not configure two substantial bodies of code in a single repo. See Issue #1.
+- **Support single purpose repos** — This is the bottom line goal of Confgen. It is not meant to work in a monorepo. Although repos often need secondary modes of running—dev server, documentation server, dist tests, etc—Confgen presumes that each repo has a single primary purpose. It will not configure two substantial bodies of code in a single repo. See Issue #1.
 
-* **Don't clobber the configs** — Confgen is meant to handle basic configuration of common tools. However some amount of additional configuration will always be needed. In order to get out of peoples' way, we try to leave existing configuration files intact as much as possible.
- 
-* **Don't config the configs** — Confgen does not provide any API for fine-tuning your configs. The parameters are just a list of presets with minimal per-preset flags. If a config file needs fine-tuned, the associated presets can simply be omitted, and you can configure it yourself. Confgen is not meant to be a universal "configuration configuration" language. See Issue #2.
+- **Don't clobber the configs** — Confgen is meant to handle basic configuration of common tools. However some amount of additional configuration will always be needed. In order to get out of peoples' way, we try to leave existing configuration files intact as much as possible.
 
-* **Convention over configuration** — Like Rails, Confgen supports composing together many different pieces of functionality from a vast catalog of presets. In order for this to be a tractable problem, we rely on strict conventions for folder structure, the location of configuration files, etc. It will never support arbitrary module structures.
+- **Don't config the configs** — Confgen does not provide any API for fine-tuning your configs. The parameters are just a list of presets with minimal per-preset flags. If a config file needs fine-tuned, the associated presets can simply be omitted, and you can configure it yourself. Confgen is not meant to be a universal "configuration configuration" language. See Issue #2.
+
+- **Convention over configuration** — Like Rails, Confgen supports composing together many different pieces of functionality from a vast catalog of presets. In order for this to be a tractable problem, we rely on strict conventions for folder structure, the location of configuration files, etc. It will never support arbitrary module structures.
 
 ## The Future
 
@@ -301,9 +301,9 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Maybe don't allow extra random commands in `yarn build`. Just start over each confgen?
 - [x] Allow yarn commands to specify a version range
 - [x] Use the path as the version when confgen is linked
+- [x] Rename "builds" to "runtimes"?
 - [ ] Improve the logging of command args
 - [ ] Required packages should understand peerDependencies, and maybe we only move dev->non-dev, we don't move non-dev->dev
-- [ ] Rename `builds` to `runtimes`?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 - [ ] Make the build artifacts adhere to some kind of naming scheme (app.html, server.js, etc)
 - [ ] Add @docs runtime

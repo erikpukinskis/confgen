@@ -1,11 +1,15 @@
 import type { CommandGenerator } from "@/commands"
 
-export const generator: CommandGenerator = ({ presets, builds }) => {
+export const generator: CommandGenerator = ({ presets, runtimes }) => {
   if (!presets.includes("vite")) {
-    throw new Error(`Cannot build ${builds.join("+")} without the vite preset`)
+    throw new Error(
+      `Cannot build ${runtimes
+        .map((runtime) => `@${runtime}`)
+        .join(" ")} without the vite preset`
+    )
   }
   return [
-    ...(builds.includes("server")
+    ...(runtimes.includes("server")
       ? ([
           {
             command: "yarn",

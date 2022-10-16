@@ -1,10 +1,10 @@
-import { type Build, BUILDS } from "@/builds"
+import { type Runtime, RUNTIMES } from "@/runtimes"
 import type { GlobalArgs } from "@/args"
 import { PRESET_NAMES } from "@/presets"
 
 export class ParseError extends Error {}
 
-export const BUILD_PATTERN = new RegExp(`^@(${BUILDS.join("|")})$`)
+export const RUNTIME_PATTERN = new RegExp(`^@(${RUNTIMES.join("|")})$`)
 
 export const PRESET_CONFIG_PATTERN = new RegExp(
   `^(${PRESET_NAMES.join("|")})(:\\w+)*$`
@@ -16,7 +16,7 @@ const ASSIGNMENT_PATTERN = /^--([a-z-]+)=(.*)$/
 const BOOLEAN_ARGS = ["silent"]
 
 export const parseArgs = ([...args]: string[]) => {
-  const builds = [] as Build[]
+  const runtimes = [] as Runtime[]
   const presetConfigs = [] as string[]
   const globalArgs = {} as Record<string, string | boolean>
 
@@ -24,7 +24,7 @@ export const parseArgs = ([...args]: string[]) => {
     const arg = args[i]
     const assignmentMatch = arg.match(ASSIGNMENT_PATTERN)
     const nameMatch = arg.match(NAME_PATTERN)
-    const buildMatch = arg.match(BUILD_PATTERN)
+    const runtimeMatch = arg.match(RUNTIME_PATTERN)
 
     if (assignmentMatch) {
       const [, name, value] = assignmentMatch
@@ -37,9 +37,9 @@ export const parseArgs = ([...args]: string[]) => {
         globalArgs[name] = args[i + 1]
         i++
       }
-    } else if (buildMatch) {
-      const [, build] = buildMatch
-      builds.push(build as Build)
+    } else if (runtimeMatch) {
+      const [, runtime] = runtimeMatch
+      runtimes.push(runtime as Runtime)
     } else if (PRESET_CONFIG_PATTERN.test(arg)) {
       presetConfigs.push(arg)
     } else {
@@ -47,15 +47,15 @@ export const parseArgs = ([...args]: string[]) => {
     }
   }
 
-  if (builds.length < 1) {
+  if (runtimes.length < 1) {
     throw new ParseError(
-      `You must include at least one build (e.g. @app, @lib, etc)`
+      `You must include at least one runtime (e.g. @app, @lib, etc)`
     )
   }
 
   assertNoDuplicates(presetConfigs)
 
-  return { builds, presetConfigs, globalArgs: globalArgs as GlobalArgs }
+  return { runtimes, presetConfigs, globalArgs: globalArgs as GlobalArgs }
 }
 
 export const addDefaultPresets = (presetConfigs: string[]) => {
