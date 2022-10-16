@@ -70,7 +70,7 @@ export const generator: CommandGenerator = ({
         },
       ] as const)
     : []),
-  ...(args.dist.includes("app")
+  ...(builds.includes("app")
     ? ([
         {
           command: "script",
