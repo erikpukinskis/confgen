@@ -285,7 +285,7 @@ export default defineConfig({
   ${jsdomStuff}
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./${build}"),
+      "@": path.resolve(__dirname, "./${builds[0]}"),
     },
   },
   ${pluginConfig(plugins)}
