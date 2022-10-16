@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "fs"
 import { Project } from "./project"
 import { parseArgs, addDefaultPresets, ParseError } from "./parseArgs"
 import { RealSystem } from "./system"
+import { execSync } from "child_process"
 
 const USAGE = `
 confgen <builds> <presets>
@@ -62,6 +63,24 @@ Options:
 `
 
 const getVersion = () => {
+  const result = execSync(`ls -l node_modules | grep ^l`, {
+    stdio: "pipe",
+  })
+
+  const lines = result.toString().split("\n")
+
+  for (const line of lines) {
+    const match = line.match(/(\w+) -> (.+)/)
+
+    if (!match) continue
+
+    const [, pkg, path] = match
+
+    if (pkg === "confgen") {
+      return path
+    }
+  }
+
   let packageJsonPath = path.join(__dirname, "..", "package.json")
   if (!existsSync(packageJsonPath)) {
     packageJsonPath = path.join(__dirname, "..", "..", "package.json")
@@ -84,8 +103,8 @@ try {
 
   system.silent ||
     console.info(`----------------------------------------
-  👷 Running confgen@${getVersion()}
-  ----------------------------------------`)
+👷 Running confgen@${getVersion()}
+----------------------------------------`)
 
   const project = new Project({ presetConfigs, builds, globalArgs, system })
 

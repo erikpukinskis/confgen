@@ -300,6 +300,8 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Don't bump packages every time you run confgen
 - [x] Maybe don't allow extra random commands in `yarn build`. Just start over each confgen?
 - [x] Allow yarn commands to specify a version range
+- [x] Use the path as the version when confgen is linked
+- [ ] Improve the logging of command args
 - [ ] Required packages should understand peerDependencies, and maybe we only move dev->non-dev, we don't move non-dev->dev
 - [ ] Rename `builds` to `runtimes`?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
