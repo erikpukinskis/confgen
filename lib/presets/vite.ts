@@ -268,8 +268,7 @@ const buildViteConfig = (
     plugins.push(["macros", "vite-plugin-babel-macros"])
   }
 
-  const isSecondaryLibBuild = build === "lib" && builds.includes("app")
-  if (presets.includes("react") && !isSecondaryLibBuild) {
+  if (presets.includes("react")) {
     plugins.push(["react", "@vitejs/plugin-react"])
   }
 
