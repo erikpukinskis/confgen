@@ -16,15 +16,6 @@ export const precheck: Precheck = ({ args }) => {
   }
 }
 
-// Long term here we want to have an entry point for each build:
-//   [ ] index.js = lib
-//   app.js & app.html = app
-//   server.js = server
-//   package.js = package
-
-// I think we also then need to change the "main" in package.json to point to the correct one. Maybe
-// just depending on what the args for [dist] are, or maye we need a config
-
 export const generator: CommandGenerator = ({
   builds,
   presets,
@@ -123,12 +114,12 @@ export const generator: CommandGenerator = ({
 
 const buildDistConfig = () => ({
   files: ["dist"],
-  main: "./dist/index.umd.js",
-  module: "./dist/index.es.js",
+  main: "./dist/lib.umd.js",
+  module: "./dist/lib.es.js",
   exports: {
     ".": {
-      import: "./dist/index.es.js",
-      require: "./dist/index.umd.js",
+      import: "./dist/lib.es.js",
+      require: "./dist/lib.umd.js",
     },
   },
 })

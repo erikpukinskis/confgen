@@ -300,8 +300,8 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Don't bump packages every time you run confgen
 - [x] Maybe don't allow extra random commands in `yarn build`. Just start over each confgen?
 - [x] Allow yarn commands to specify a version range
-- [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 - [ ] Rename `builds` to `runtimes`?
+- [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 - [ ] Make the build artifacts adhere to some kind of naming scheme (app.html, server.js, etc)
 - [ ] Add @docs runtime
 - [ ] Figure out why outerframe/application installs eslint-plugin-react@7.28.0 every time?
@@ -311,8 +311,6 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
 - [ ] Sort scripts
 - [ ] Remove and ban .. in import paths
-- [ ] Add debug:test and debug:start commands
-- [ ] Add watch:test, watch:build, watch:generate, and watch commands
 - [ ] Include graphql.vscode-graphql extension when... well we don't have an apollo preset anymore, so just when we include codegen?
 - [ ] Add `"@typescript-eslint/no-floating-promises": ["error"]`
 - [ ] See if pnpm can speed up tests
@@ -320,3 +318,5 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Account for peerDependencies that are already in the package.json
 - [ ] Add start:package preset
 - [ ] See if we can stop babel being installed
+- [ ] Add debug:test and debug:start commands
+- [ ] Add watch:test, watch:build, watch:generate, and watch commands

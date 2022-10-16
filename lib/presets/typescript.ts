@@ -29,7 +29,7 @@ export const generator: CommandGenerator = ({ presets, builds }) => [
         {
           command: "script",
           name: "build:types",
-          script: `tsc --declaration --emitDeclarationOnly -p tsconfig.dist.json --skipLibCheck && tsc-alias -p ${tsconfigPath()} && mv dist/index.d.ts dist/index.umd.d.ts`,
+          script: `tsc --declaration --emitDeclarationOnly -p tsconfig.dist.json --skipLibCheck && tsc-alias -p ${tsconfigPath()} && mv dist/index.d.ts dist/lib.umd.d.ts`,
         },
       ] as const)
     : []),
