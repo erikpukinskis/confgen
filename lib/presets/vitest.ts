@@ -66,7 +66,6 @@ export const generator: CommandGenerator = ({ builds, presets, system }) => {
       {
         command: "yarn",
         pkg: "react-dom",
-        dev: true,
       }
     )
   }
