@@ -2,7 +2,7 @@
   "license": "MIT",
   "name": "confgen",
   "version": "0.82.0-beta.24",
-  "bin": "./dist/index.umd.js",
+  "bin": "./dist/lib.umd.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/erikpukinskis/confgen.git"
@@ -36,30 +36,30 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/index.umd.js",
-  "module": "./dist/index.es.js",
+  "main": "./dist/lib.umd.js",
+  "module": "./dist/lib.es.js",
   "exports": {
     ".": {
-      "import": "./dist/index.es.js",
-      "require": "./dist/index.umd.js"
+      "import": "./dist/lib.es.js",
+      "require": "./dist/lib.umd.js"
     }
   },
   "scripts": {
-    "confgen": "./dist/index.umd.js @lib --name Confgen git codespaces prettier yarn typescript vite vitest dist:lib bin node:fs:child_process:path eslint",
+    "confgen": "./dist/lib.umd.js @lib --name Confgen git codespaces prettier yarn typescript vite vitest dist:lib bin node:fs:child_process:path eslint",
     "gen": "npx ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
     "build": "rm -rf dist/* && yarn build:lib && yarn build:types && yarn build:bin",
     "build:vite": "vite build",
-    "build:bin": "echo '#!/usr/bin/env node'|cat - dist/index.umd.js > /tmp/out && mv /tmp/out dist/index.umd.js && chmod a+x dist/index.umd.js",
+    "build:bin": "echo '#!/usr/bin/env node'|cat - dist/lib.umd.js > /tmp/out && mv /tmp/out dist/lib.umd.js && chmod a+x dist/lib.umd.js",
     "fix:format": "prettier --write --ignore-path .gitignore .",
     "check:types": "tsc --noEmit -p tsconfig.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi",
-    "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.dist.json --skipLibCheck && tsc-alias -p tsconfig.json && mv dist/index.d.ts dist/index.umd.d.ts",
+    "build:types": "tsc --declaration --emitDeclarationOnly -p tsconfig.dist.json --skipLibCheck && tsc-alias -p tsconfig.json && mv dist/index.d.ts dist/lib.umd.d.ts",
     "fix:lint": "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
     "check:lint": "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
     "fix": "yarn fix:lint && yarn fix:format",
     "all": "yarn && yarn build && yarn fix && yarn check:types && yarn test && echo `echo 8J+OiSBEaWQgYWxs | base64 -d`",
-    "test": "vitest run",
+    "test": "vitest run --config vite.lib.config.js",
     "test:dist": "yarn build && yarn test -t @dist",
-    "test:watch": "vitest watch",
-    "build:lib": "vite build --mode development"
+    "test:watch": "vitest watch --config vite.lib.config.js",
+    "build:lib": "vite build --config vite.lib.config.js --mode development"
   }
 }

@@ -16,12 +16,12 @@ export const generator: CommandGenerator = ({ builds, presets, system }) => {
     {
       command: "script",
       name: "test",
-      script: "vitest run",
+      script: "vitest run --config vite.lib.config.js",
     },
     {
       command: "script",
       name: "test:watch",
-      script: "vitest watch",
+      script: "vitest watch --config vite.lib.config.js",
     },
   ]
 

@@ -20,7 +20,7 @@ export default defineConfig({
     lib: {
       entry: path.resolve(__dirname, "lib/index.ts"),
       name: "Confgen",
-      fileName: (format) => `index.${format}.js`,
+      fileName: (format) => `lib.${format}.js`,
     },
 
     rollupOptions: {
