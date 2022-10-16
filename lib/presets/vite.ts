@@ -217,8 +217,24 @@ const buildViteLibConfig = (
     plugins.push(["sql", "vite-plugin-sql"])
   }
 
+  const dependencies = getDependencies(system)
+
+  const globals = getGlobals(dependencies)
+
+  const rollupStuff = `
+      // make sure to externalize deps that shouldn't be bundled
+      // into your library
+      external: ${JSON.stringify(dependencies)},
+      output: {
+        // Provide global variables to use in the UMD build
+        // for externalized deps
+        globals: ${JSON.stringify(globals, null, 10)},
+      },
+  `
+
   return buildViteConfig(builds, presets, system, plugins, "lib", {
     buildStuff,
+    rollupStuff,
   })
 }
 
@@ -237,24 +253,12 @@ const buildViteConfig = (
   build: Build,
   scripts: Scripts
 ) => {
-  const { codespaceSetup = "", serverStuff = "", buildStuff = "" } = scripts
-
-  let { rollupStuff = "" } = scripts
-
-  const dependencies = getDependencies(system)
-
-  const globals = getGlobals(dependencies)
-
-  rollupStuff += `
-      // make sure to externalize deps that shouldn't be bundled
-      // into your library
-      external: ${JSON.stringify(dependencies)},
-      output: {
-        // Provide global variables to use in the UMD build
-        // for externalized deps
-        globals: ${JSON.stringify(globals, null, 10)},
-      },
-  `
+  const {
+    codespaceSetup = "",
+    serverStuff = "",
+    buildStuff = "",
+    rollupStuff = "",
+  } = scripts
 
   const jsdomStuff =
     presets.includes("vitest") && presets.includes("react")
