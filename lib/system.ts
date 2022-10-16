@@ -116,7 +116,6 @@ export class TestSystem extends RealSystem {
 
   constructor({ silent = true }: { silent?: boolean } = {}) {
     const root = `/tmp/${randomFolder()}`
-    console.info(`Creating test system in ${root}`)
     mkdirSync(root)
     super({ silent, cwd: root })
     this.root = root
