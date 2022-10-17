@@ -46,8 +46,9 @@ export const generator: CommandGenerator = ({ presets, runtimes }) => [
 ]
 
 /**
- * Takes an array of runtimes (['app', 'lib', etc]) and returns the top-down path
- * aliases for the tsconfig, e.g.:
+ * ~~~~~Takes an array of runtimes (['app', 'lib', etc]) and returns the top-down path
+ * aliases for the tsconfig, e.g.:~~~~~ Edit: No longer aliases all of the runtimes,
+ * just the first one
  *
  *     {
  *       "@app/*": ["app/*"],
