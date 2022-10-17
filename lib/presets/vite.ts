@@ -192,6 +192,13 @@ const getViteAppConfig = (
     `
     : ""
 
+  const buildStuff = args.dist.includes("app")
+    ? `
+    emptyOutDir: false,
+    assetsDir: 'app',
+  `
+    : ""
+
   const apiStuff = runtimes.includes("server")
     ? `
     proxy: {
@@ -226,6 +233,7 @@ const getViteAppConfig = (
       : ""
 
   return getViteConfig(runtimes, presets, system, [], "app", {
+    buildStuff,
     serverStuff,
     codespaceSetup,
     rollupStuff,
@@ -259,7 +267,13 @@ const getViteDocsConfig = (
   `
     : ""
 
+  const buildStuff = `
+    emptyOutDir: false,
+    assetsDir: 'docs',
+  `
+
   return getViteConfig(runtimes, presets, system, [], "docs", {
+    buildStuff,
     serverStuff,
     codespaceSetup,
     rollupStuff,
@@ -272,7 +286,8 @@ const getViteLibConfig = (
   args: Args,
   system: System
 ) => {
-  let buildStuff = `
+  const buildStuff = `
+    emptyOutDir: false,
     sourcemap: true,
     lib: {
       entry: path.resolve(__dirname, "${getLibEntryPointpath(presets)}"),
@@ -280,12 +295,6 @@ const getViteLibConfig = (
       fileName: (format) => \`lib.\${format}.js\`,
     },
   `
-
-  if (args.dist.includes("app")) {
-    buildStuff += `
-    emptyOutDir: false,
-  `
-  }
 
   const plugins: VitePlugin[] = []
 

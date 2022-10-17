@@ -325,3 +325,4 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] See if we can stop babel being installed
 - [ ] Add debug:test and debug:start commands
 - [ ] Add watch:test, watch:build, watch:generate, and watch commands
+- [ ] @bin should probably be a preset since we might want to have a command and also export some stuff (like in codedocs-fastify)
