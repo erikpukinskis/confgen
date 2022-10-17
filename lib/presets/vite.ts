@@ -7,7 +7,6 @@ import type {
   Runtimes,
   CommandWithArgs,
 } from "@/commands"
-import type { Runtime } from "@/runtimes"
 import merge from "lodash/merge"
 
 export const precheck: Precheck = ({ args }) => {
@@ -77,7 +76,7 @@ export const generator: CommandGenerator = ({
   // Commands for runtimes:
 
   if (runtimes.includes("app")) {
-    commands.push(...getAppCommands(runtimes, presets, args, system))
+    commands.push(...getAppCommands(runtimes, presets, args))
   }
 
   if (args.dist.includes("lib")) {
@@ -85,7 +84,7 @@ export const generator: CommandGenerator = ({
   }
 
   if (runtimes.includes("docs")) {
-    commands.push(...getDocsCommands(runtimes, presets, system))
+    commands.push(...getDocsCommands(runtimes, presets))
   }
 
   return commands
@@ -114,12 +113,7 @@ const getLibCommands = (
   },
 ]
 
-const getAppCommands = (
-  runtimes: Runtimes,
-  presets: Presets,
-  args: Args,
-  system: System
-) => {
+const getAppCommands = (runtimes: Runtimes, presets: Presets, args: Args) => {
   const commands: CommandWithArgs[] = [
     {
       command: "script",
@@ -129,7 +123,7 @@ const getAppCommands = (
     {
       command: "file",
       path: "vite.app.config.js",
-      contents: getViteAppConfig(runtimes, presets, args, system),
+      contents: getViteAppConfig(runtimes, presets, args),
     },
   ]
 
@@ -146,8 +140,7 @@ const getAppCommands = (
 
 const getDocsCommands = (
   runtimes: Runtimes,
-  presets: Presets,
-  system: System
+  presets: Presets
 ): CommandWithArgs[] => [
   {
     command: "script",
@@ -157,7 +150,7 @@ const getDocsCommands = (
   {
     command: "file",
     path: "vite.docs.config.js",
-    contents: getViteDocsConfig(runtimes, presets, system),
+    contents: getViteDocsConfig(runtimes, presets),
   },
   {
     command: "script",
@@ -178,17 +171,10 @@ const getDistConfig = () => ({
   },
 })
 
-const getViteAppConfig = (
-  runtimes: Runtimes,
-  presets: Presets,
-  args: Args,
-  system: System
-) => {
+const getViteAppConfig = (runtimes: Runtimes, presets: Presets, args: Args) => {
   const rollupStuff = args.dist.includes("app")
     ? `
-      input: {
-        main: path.resolve(__dirname, "app", "index.html"),
-      },
+      input: path.resolve(__dirname, "app", "index.html"),
     `
     : ""
 
@@ -232,7 +218,7 @@ const getViteAppConfig = (
 `
       : ""
 
-  return getViteConfig(runtimes, presets, system, [], "app", {
+  return getViteConfig(runtimes, presets, [], {
     buildStuff,
     serverStuff,
     codespaceSetup,
@@ -240,15 +226,9 @@ const getViteAppConfig = (
   })
 }
 
-const getViteDocsConfig = (
-  runtimes: Runtimes,
-  presets: Presets,
-  system: System
-) => {
+const getViteDocsConfig = (runtimes: Runtimes, presets: Presets) => {
   const rollupStuff = `
-      input: {
-        main: path.resolve(__dirname, "docs", "index.html"),
-      },
+      input: path.resolve(__dirname, "docs", "index.html"),
     `
 
   const shouldConfigureHmr = presets.includes("codespaces")
@@ -272,7 +252,7 @@ const getViteDocsConfig = (
     assetsDir: 'docs',
   `
 
-  return getViteConfig(runtimes, presets, system, [], "docs", {
+  return getViteConfig(runtimes, presets, [], {
     buildStuff,
     serverStuff,
     codespaceSetup,
@@ -327,7 +307,7 @@ const getViteLibConfig = (
       },
   `
 
-  return getViteConfig(runtimes, presets, system, plugins, "lib", {
+  return getViteConfig(runtimes, presets, plugins, {
     buildStuff,
     rollupStuff,
   })
@@ -343,9 +323,7 @@ type Scripts = {
 const getViteConfig = (
   runtimes: Runtimes,
   presets: Presets,
-  system: System,
   plugins: VitePlugin[],
-  runtime: Runtime,
   scripts: Scripts
 ) => {
   const {

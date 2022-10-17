@@ -1,4 +1,4 @@
-import type { CommandGenerator, Precheck } from "@/commands"
+import type { CommandGenerator, Precheck, Presets } from "@/commands"
 
 export const precheck: Precheck = ({ runtimes, args }) => {
   if (!runtimes.includes("lib")) {
@@ -14,7 +14,7 @@ export const precheck: Precheck = ({ runtimes, args }) => {
   }
 }
 
-export const generator: CommandGenerator = () => [
+export const generator: CommandGenerator = ({ presets }) => [
   {
     command: "script",
     name: "build:bin",
@@ -31,12 +31,28 @@ export const generator: CommandGenerator = () => [
   {
     command: "script",
     name: "start:bin",
-    script:
-      "ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
+    script: getStartScript(presets),
   },
   {
     command: "yarn",
     pkg: "ts-node",
     dev: true,
   },
+  ...(presets.includes("typescript")
+    ? ([
+        {
+          command: "yarn",
+          pkg: "tsconfig-paths/register",
+          dev: true,
+        },
+      ] as const)
+    : []),
 ]
+
+const getStartScript = (presets: Presets) => {
+  if (presets.includes("typescript")) {
+    return "ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts"
+  } else {
+    return "node ./lib/index.js"
+  }
+}
