@@ -21,6 +21,7 @@ Options:
                   @app — code that boots in an HTML context in the browser
                   @server — code that boots in Node
                   @package — code that consumes the build (e.g. dist tests)
+                  @docs — same as app, but reserved for your documentation site
 
                 These folders (lib/, app/, etc) are the ONLY folders which may be used
                 for source code.

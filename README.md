@@ -14,7 +14,7 @@ confgen <runtimes> <presets>
 Examples:
   confgen @app @server @package dist:app:package codegen:app:queries react vitest
   confgen @lib @app @package dist:lib react vitest
-  confgen @lib @package dist:lib codegen:lib:schema:resolvers vitest
+  confgen @lib @package @docs dist:lib codegen:lib:schema:resolvers vitest
 
 Options:
   <runtimes>    Space separated selection of "runtimes" i.e. folders with code meant to be
@@ -24,6 +24,7 @@ Options:
                   @app — code that boots in an HTML context in the browser
                   @server — code that boots in Node
                   @package — code that consumes the build (e.g. dist tests)
+                  @docs — same as app, but reserved for your documentation site
 
                 These folders (lib/, app/, etc) are the ONLY folders which may be used
                 for source code.
@@ -123,10 +124,10 @@ A Node library (with code generation and tests):
 confgen @lib @package dist:lib codegen:lib:schema:resolvers vitest
 ```
 
-A browser library (with a dev server and tests):
+A browser library (with a dev server, tests, and docs):
 
 ```
-confgen @lib @app @package dist:lib react vitest
+confgen @lib @app @package @docs dist:lib react vitest
 ```
 
 An application (with a dev server, an exported app wrapper, and tests):
@@ -145,6 +146,7 @@ Depending on which presets you choose, lots of package.json scripts will be avai
   - `yarn build:types` generates typgins in `dist/`
 - `yarn start:server` starts an API server if you have one
 - `yarn start:app:dev` starts the dev server
+- `yarn start:docs:dev` starts the documentation site
 - `yarn fix` runs all of the fix sub-commands:
   - `yarn fix:lint` fixes all of the Eslint errors that can be auto-fixed
   - `yarn fix:format` runs Prettier

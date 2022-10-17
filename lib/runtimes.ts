@@ -1,4 +1,4 @@
-export const RUNTIMES = ["lib", "app", "server", "package"] as const
+export const RUNTIMES = ["lib", "app", "server", "package", "docs"] as const
 
 export type Runtime = typeof RUNTIMES[number]
 

@@ -57,13 +57,14 @@ const hasPrecheck = (preset: Preset): preset is PresetWithPrecheck => {
 
 export const precheck = (
   name: PresetName,
+  runtimes: Runtime[],
   presets: PresetName[],
   args: Args,
   system: System
 ) => {
   const preset = PRESETS[name]
   if (!hasPrecheck(preset)) return
-  preset.precheck({ presets, args, system })
+  preset.precheck({ runtimes, presets, args, system })
 }
 
 export const generate = (

@@ -1,13 +1,13 @@
 import type {
   CommandGenerator,
   Presets,
-  System,
+  Runtimes,
   Args,
   Precheck,
 } from "@/commands"
 import { isRuntime } from "@/runtimes"
 
-export const precheck: Precheck = ({ args, presets }) => {
+export const precheck: Precheck = ({ args, runtimes, presets }) => {
   if (args.dist.length < 1) {
     throw new Error(
       "dist preset needs to know which runtimes to distribute. Try dist:lib, dist:app:lib, etc"
@@ -20,12 +20,6 @@ export const precheck: Precheck = ({ args, presets }) => {
     )
   }
 
-  // if (args.dist.includes("lib") && args.dist.includes("package")) {
-  //   throw new Error(
-  //     "You can only distribute @lib or @app, not both at the same time, since they would conflict"
-  //   )
-  // }
-
   if (args.dist.includes("package")) {
     throw new Error("Distributing @package runtimes not supported")
   }
@@ -34,24 +28,30 @@ export const precheck: Precheck = ({ args, presets }) => {
     throw new Error("Cannot use the dist preset without the vite preset\n")
   }
 
-  const invalidRuntime = args.dist.find((arg) => !isRuntime(arg))
+  for (const runtime of args.dist) {
+    if (!isRuntime(runtime)) {
+      throw new Error(
+        `${runtime} is not a valid runtime.\n\nTry dist:lib, dist:app, dist:server, dist:package or some combination of the four.`
+      )
+    }
 
-  if (invalidRuntime) {
-    throw new Error(
-      `${invalidRuntime} is not a valid runtime.\n\nTry dist:lib, dist:app, dist:server, dist:package or some combination of the four.`
-    )
+    if (!runtimes.includes(runtime)) {
+      throw new Error(
+        `Cannot distribute @${runtime} because it wasn't specified as a runtime. Try confgen @${runtime}`
+      )
+    }
   }
 }
 
-export const generator: CommandGenerator = ({ presets, system, args }) => [
+export const generator: CommandGenerator = ({ presets, runtimes, args }) => [
   {
     command: "script",
     name: "build",
-    script: getScript(presets, system, args),
+    script: getScript(presets, runtimes, args),
   },
 ]
 
-const getScript = (presets: Presets, system: System, args: Args) => {
+const getScript = (presets: Presets, runtimes: Runtimes, args: Args) => {
   const scripts: string[] = []
 
   const prepend = (script: string) => {
@@ -77,13 +77,13 @@ const getScript = (presets: Presets, system: System, args: Args) => {
     prepend(`yarn build:lib`)
   }
 
+  if (runtimes.includes("docs")) {
+    prepend(`yarn build:docs`)
+  }
+
   if (args.dist.includes("app")) {
     prepend(`yarn build:app`)
   }
-
-  // if (args.dist.includes("package")) {
-  //   append(`yarn build:package`)
-  // }
 
   if (presets.includes("codegen")) {
     prepend("yarn build:generate")

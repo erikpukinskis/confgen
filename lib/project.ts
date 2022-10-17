@@ -54,7 +54,13 @@ export class Project {
 
   async confgen() {
     for (const presetName of this.presetNames) {
-      precheck(presetName, this.presetNames, this.argsByPresetName, this.system)
+      precheck(
+        presetName,
+        this.runtimes,
+        this.presetNames,
+        this.argsByPresetName,
+        this.system
+      )
     }
 
     const generatedCommands = []
