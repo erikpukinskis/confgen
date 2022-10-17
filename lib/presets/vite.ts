@@ -5,6 +5,7 @@ import type {
   Args,
   System,
   Runtimes,
+  CommandWithArgs,
 } from "@/commands"
 import type { Runtime } from "@/runtimes"
 import merge from "lodash/merge"
@@ -22,95 +23,147 @@ export const generator: CommandGenerator = ({
   presets,
   args,
   system,
-}) => [
+}) => {
+  const commands: CommandWithArgs[] = [
+    {
+      command: "yarn",
+      dev: true,
+      pkg: "vite",
+    },
+  ]
+
+  // Commands for presets:
+
+  if (presets.includes("node") && args.node.length > 0) {
+    commands.push({
+      command: "yarn",
+      dev: true,
+      pkg: "vite-plugin-commonjs-externals",
+    })
+  }
+
+  if (presets.includes("macros")) {
+    commands.push({
+      command: "yarn",
+      dev: true,
+      pkg: "vite-plugin-babel-macros",
+    })
+  }
+
+  if (presets.includes("sql")) {
+    commands.push({
+      command: "yarn",
+      pkg: "vite-plugin-sql",
+      dev: true,
+    })
+  }
+
+  if (presets.includes("react")) {
+    commands.push({
+      command: "yarn",
+      pkg: "@vitejs/plugin-react",
+      dev: true,
+    })
+  }
+
+  if (presets.includes("vitest") && presets.includes("react")) {
+    commands.push({
+      command: "yarn",
+      pkg: "jsdom",
+      dev: true,
+    })
+  }
+
+  // Commands for runtimes:
+
+  if (runtimes.includes("app")) {
+    commands.push(...getAppCommands(runtimes, presets, args, system))
+  }
+
+  if (args.dist.includes("lib")) {
+    commands.push(...getLibCommands(runtimes, presets, args, system))
+  }
+
+  if (runtimes.includes("docs")) {
+    commands.push(...getDocsCommands(runtimes, presets, system))
+  }
+
+  return commands
+}
+
+const getLibCommands = (
+  runtimes: Runtimes,
+  presets: Presets,
+  args: Args,
+  system: System
+): CommandWithArgs[] => [
   {
-    command: "yarn",
-    dev: true,
-    pkg: "vite",
+    command: "script",
+    name: "build:lib",
+    script: "vite build --config vite.lib.config.js --mode development",
   },
-  ...(presets.includes("node") && args.node.length > 0
-    ? ([
-        {
-          command: "yarn",
-          dev: true,
-          pkg: "vite-plugin-commonjs-externals",
-        },
-      ] as const)
-    : []),
-  ...(presets.includes("macros")
-    ? ([
-        { command: "yarn", dev: true, pkg: "vite-plugin-babel-macros" },
-      ] as const)
-    : []),
-  ...(runtimes.includes("app")
-    ? ([
-        {
-          command: "script",
-          name: `start:app:dev`,
-          script: `vite serve app --config vite.app.config.js`,
-        },
-      ] as const)
-    : []),
-  ...(args.dist.includes("lib")
-    ? ([
-        {
-          command: "script",
-          name: "build:lib",
-          script: "vite build --config vite.lib.config.js --mode development",
-        },
-        {
-          command: "file",
-          path: "package.json",
-          contents: getDistConfig(),
-        },
-        {
-          command: "file",
-          path: "vite.lib.config.js",
-          contents: getViteLibConfig(runtimes, presets, args, system),
-        },
-      ] as const)
-    : []),
-  ...(runtimes.includes("app")
-    ? ([
-        {
-          command: "script",
-          name: "build:app",
-          script: "vite build --config vite.app.config.js --mode development",
-        },
-        {
-          command: "file",
-          path: "vite.app.config.js",
-          contents: getViteAppConfig(runtimes, presets, args, system),
-        },
-      ] as const)
-    : []),
-  ...(presets.includes("sql")
-    ? ([
-        {
-          command: "yarn",
-          pkg: "vite-plugin-sql",
-          dev: true,
-        },
-      ] as const)
-    : []),
-  ...(presets.includes("react")
-    ? ([
-        {
-          command: "yarn",
-          pkg: "@vitejs/plugin-react",
-          dev: true,
-        },
-      ] as const)
-    : []),
-  ...(presets.includes("vitest") && presets.includes("react")
-    ? ([
-        {
-          command: "yarn",
-          pkg: "jsdom",
-          dev: true,
-        },
-      ] as const)
-    : []),
+  {
+    command: "file",
+    path: "package.json",
+    contents: getDistConfig(),
+  },
+  {
+    command: "file",
+    path: "vite.lib.config.js",
+    contents: getViteLibConfig(runtimes, presets, args, system),
+  },
+]
+
+const getAppCommands = (
+  runtimes: Runtimes,
+  presets: Presets,
+  args: Args,
+  system: System
+) => {
+  const commands: CommandWithArgs[] = [
+    {
+      command: "script",
+      name: `start:app:dev`,
+      script: `vite serve app --config vite.app.config.js`,
+    },
+    {
+      command: "file",
+      path: "vite.app.config.js",
+      contents: getViteAppConfig(runtimes, presets, args, system),
+    },
+  ]
+
+  if (args.dist.includes("app")) {
+    commands.push({
+      command: "script",
+      name: "build:app",
+      script: "vite build --config vite.app.config.js --mode development",
+    })
+  }
+
+  return commands
+}
+
+const getDocsCommands = (
+  runtimes: Runtimes,
+  presets: Presets,
+  system: System
+): CommandWithArgs[] => [
+  {
+    command: "script",
+    name: `start:docs:dev`,
+    script: `vite serve docs --config vite.docs.config.js`,
+  },
+  {
+    command: "file",
+    path: "vite.docs.config.js",
+    contents: getViteDocsConfig(runtimes, presets, system),
+  },
+  {
+    command: "script",
+    name: "build:docs",
+    script: "vite build --config vite.docs.config.js --mode development",
+  },
 ]
 
 const getDistConfig = () => ({
@@ -147,8 +200,7 @@ const getViteAppConfig = (
   `
     : ""
 
-  const shouldConfigureHmr =
-    runtimes.includes("app") && presets.includes("codespaces")
+  const shouldConfigureHmr = presets.includes("codespaces")
 
   const codespaceSetup = shouldConfigureHmr
     ? `const inCodespace = Boolean(process.env.GITHUB_CODESPACE_TOKEN)`
@@ -174,6 +226,40 @@ const getViteAppConfig = (
       : ""
 
   return getViteConfig(runtimes, presets, system, [], "app", {
+    serverStuff,
+    codespaceSetup,
+    rollupStuff,
+  })
+}
+
+const getViteDocsConfig = (
+  runtimes: Runtimes,
+  presets: Presets,
+  system: System
+) => {
+  const rollupStuff = `
+      input: {
+        main: path.resolve(__dirname, "docs", "index.html"),
+      },
+    `
+
+  const shouldConfigureHmr = presets.includes("codespaces")
+
+  const codespaceSetup = shouldConfigureHmr
+    ? `const inCodespace = Boolean(process.env.GITHUB_CODESPACE_TOKEN)`
+    : ""
+
+  const serverStuff = shouldConfigureHmr
+    ? `
+    ...(inCodespace ? {
+      hmr: {
+        port: 443,
+      },
+    } : {}),
+  `
+    : ""
+
+  return getViteConfig(runtimes, presets, system, [], "docs", {
     serverStuff,
     codespaceSetup,
     rollupStuff,

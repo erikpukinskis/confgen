@@ -83,6 +83,7 @@ export type CommandGenerator = (input: {
 }) => CommandWithArgs[]
 
 export type Precheck = (input: {
+  runtimes: Runtime[]
   presets: Presets
   args: Args
   system: System
