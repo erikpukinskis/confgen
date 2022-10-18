@@ -2,6 +2,7 @@ export const PRESET_NAMES = [
   "all",
   "templates",
   "bin",
+  "codedocs",
   "codegen",
   "codespaces",
   "dist",

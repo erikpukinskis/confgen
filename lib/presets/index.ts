@@ -1,5 +1,6 @@
 import * as all from "./all"
 import * as bin from "./bin"
+import * as codedocs from "./codedocs"
 import * as codegen from "./codegen"
 import * as codespaces from "./codespaces"
 import * as dist from "./dist"
@@ -27,6 +28,7 @@ import type { Runtime } from "@/runtimes"
 const PRESETS = {
   all,
   bin,
+  codedocs,
   codegen,
   codespaces,
   dist,
