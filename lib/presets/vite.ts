@@ -155,7 +155,8 @@ const getDocsCommands = (
   {
     command: "script",
     name: "build:docs",
-    script: "vite build --config vite.docs.config.js --mode development",
+    script:
+      "vite build --config vite.docs.config.js --mode development && mv site/docs/index.html site && rmdir site/docs",
   },
 ]
 
@@ -248,8 +249,8 @@ const getViteDocsConfig = (runtimes: Runtimes, presets: Presets) => {
     : ""
 
   const buildStuff = `
-    emptyOutDir: false,
-    assetsDir: 'docs',
+    outDir: 'site',
+    assetsDir: './',
   `
 
   return getViteConfig(runtimes, presets, [], {

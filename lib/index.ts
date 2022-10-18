@@ -37,6 +37,7 @@ Options:
 
                 Available presets:
                   start                       Adds command to start a server
+                  codedocs                    Deploy a documentation site to Github Pages
                   codegen:resolvers           Generate types for Apollo Server resolvers
                   codegen:schema              Compiles a GraphQL schema to TypeScript so it it can
                                                 be exported from a library

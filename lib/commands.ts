@@ -18,7 +18,7 @@ export type FileCommand = {
   command: "file"
   path: string
   contents: string | string[] | Record<string, unknown>
-  merge?: "if-not-exists" | "prefer-existing" | "prefer-preset"
+  merge?: "if-not-exists" | "prefer-existing" | "prefer-preset" | "replace"
 }
 
 export type RunCommand = {
@@ -150,8 +150,13 @@ const logAndRun = async (log: string, func: () => void) => {
 
 const commands = {
   file: ({ path, contents, merge }: FileCommand, system: System) => {
-    if (merge === "if-not-exists" && system.exists(path)) return
-    syncFile(path, contents, merge === "prefer-existing", system)
+    if (merge === "if-not-exists" && system.exists(path)) {
+      return
+    } else if (merge === "replace") {
+      writeFile(path, contents, system)
+    } else {
+      syncFile(path, contents, merge === "prefer-existing", system)
+    }
   },
   run: ({ script }: RunCommand, system: System) => {
     const { status } = system.run(script)
@@ -193,6 +198,18 @@ const syncFile = (
   }
 }
 
+const writeFile = (filename: string, contents: FileChanges, system: System) => {
+  if (/[.]ya?ml$/.test(filename)) {
+    system.write(filename, YAML.stringify(contents))
+  } else if (Array.isArray(contents)) {
+    system.write(filename, contents.join("\n") + "\n")
+  } else if (typeof contents === "string") {
+    system.write(filename, contents)
+  } else {
+    system.write(filename, JSON.stringify(contents, null, 2))
+  }
+}
+
 const ensureLines = (filename: string, newLines: string[], system: System) => {
   const originalContents = system.exists(filename) ? system.read(filename) : ""
   const lines = originalContents.split("\n")
@@ -203,12 +220,15 @@ const ensureLines = (filename: string, newLines: string[], system: System) => {
   system.write(filename, lines.join("\n"))
 }
 
-export const readJson = (filename: string, system: System) => {
+export const readJson = <Format extends Record<string, unknown>>(
+  filename: string,
+  system: System
+): Format => {
   const contents = system.exists(filename) ? system.read(filename) : "{}"
 
-  let json: Record<string, unknown>
+  let json: Format
   try {
-    json = JSON.parse(contents) as Record<string, unknown>
+    json = JSON.parse(contents) as Format
   } catch (e: unknown) {
     throw new Error(
       `${(e as Error).message}:\n\n${filename}\n-------\n${contents}`

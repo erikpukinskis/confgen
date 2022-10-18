@@ -77,10 +77,6 @@ const getScript = (presets: Presets, runtimes: Runtimes, args: Args) => {
     prepend(`yarn build:lib`)
   }
 
-  if (runtimes.includes("docs")) {
-    prepend(`yarn build:docs`)
-  }
-
   if (args.dist.includes("app")) {
     prepend(`yarn build:app`)
   }
