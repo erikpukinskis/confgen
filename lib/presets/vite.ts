@@ -156,7 +156,7 @@ const getDocsCommands = (
     command: "script",
     name: "build:docs",
     script:
-      "vite build --config vite.docs.config.js --mode development && mv site/docs/index.html site && rmdir site/docs",
+      "vite build --config vite.docs.config.js --mode development && mv site/docs/index.html site && rmdir site/docs && cp site/docs/index.html site/docs/404.html",
   },
 ]
 
