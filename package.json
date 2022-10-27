@@ -1,7 +1,7 @@
 {
   "license": "MIT",
   "name": "confgen",
-  "version": "0.84.0",
+  "version": "0.85.0",
   "bin": "./dist/lib.umd.js",
   "repository": {
     "type": "git",
