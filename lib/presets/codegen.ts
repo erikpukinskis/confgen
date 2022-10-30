@@ -67,6 +67,13 @@ export const generator: CommandGenerator = ({ args, system }) => {
       path: "codegen.yml",
       contents: getHooksCodegen(generators),
     },
+    {
+      command: "file",
+      path: ".devcontainer/devcontainer.json",
+      contents: {
+        extensions: ["graphql.vscode-graphql"],
+      },
+    },
   ]
 
   if (generators.includes("resolvers")) {
