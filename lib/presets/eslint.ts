@@ -7,6 +7,11 @@ export const generator: CommandGenerator = ({ presets }) => [
     dev: true,
     pkg: "eslint",
   },
+  {
+    command: "yarn",
+    dev: true,
+    pkg: "eslint-plugin-import",
+  },
   ...(presets.includes("typescript")
     ? ([
         {
@@ -16,6 +21,11 @@ export const generator: CommandGenerator = ({ presets }) => [
           version: "^5.14.0",
         },
         { command: "yarn", dev: true, pkg: "@typescript-eslint/parser" },
+        {
+          command: "yarn",
+          dev: true,
+          pkg: "eslint-import-resolver-typescript",
+        },
       ] as const)
     : []),
   ...(presets.includes("react")
@@ -76,6 +86,10 @@ vendor
 
 const getEslintrc = (presets: Presets) => ({
   root: true,
+  plugins: [
+    "import",
+    ...(presets.includes("typescript") ? ["@typescript-eslint"] : []),
+  ],
   ...(presets.includes("typescript")
     ? {
         parser: "@typescript-eslint/parser",
@@ -83,8 +97,13 @@ const getEslintrc = (presets: Presets) => ({
           warnOnUnsupportedTypeScriptVersion: false,
           project: ["./tsconfig.json"],
         },
-        plugins: ["@typescript-eslint"],
         // ignorePatterns: ["*.js"],
+        settings: {
+          "import/resolver": {
+            typescript: true,
+            node: true,
+          },
+        },
       }
     : undefined),
   extends: [
@@ -133,6 +152,8 @@ const getEslintrc = (presets: Presets) => ({
                 ],
               }
             : undefined),
+          // being released in eslint-plugin-imports@2.27.0:
+          // "import/consistent-type-specifier-style": ["error", "prefer-inline"],
         }
       : undefined),
     ...(presets.includes("react") && presets.includes("typescript")
@@ -144,13 +165,21 @@ const getEslintrc = (presets: Presets) => ({
     "eol-last": ["error", "always"],
     "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"],
-    // ...(presets.includes("typescript")
-    //   ? {
-    //       "no-duplicate-imports": "off",
-    //       "@typescript-eslint/no-duplicate-imports": ["error"],
-    //     }
-    //   : {
-    //       "no-duplicate-imports": "error",
-    //     }),
+    "import/order": [
+      "error",
+      {
+        "alphabetize": { order: "asc", caseInsensitive: true },
+        "newlines-between": "never",
+      },
+    ],
+    "import/first": "error",
+    "import/newline-after-import": "error",
+    "import/no-duplicates": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        patterns: [".."],
+      },
+    ],
   },
 })

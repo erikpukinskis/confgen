@@ -1,5 +1,8 @@
-import type { CommandGenerator, CommandWithArgs } from "@/commands"
-import { readJson } from "@/commands"
+import {
+  readJson,
+  type CommandGenerator,
+  type CommandWithArgs,
+} from "@/commands"
 
 export const generator: CommandGenerator = ({ system }) => {
   const { name } = readJson<{ name: string }>("package.json", system)

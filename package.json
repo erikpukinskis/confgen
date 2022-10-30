@@ -25,6 +25,8 @@
     "@typescript-eslint/eslint-plugin": "^5.39.0",
     "@typescript-eslint/parser": "^5.39.0",
     "eslint": "^8.25.0",
+    "eslint-import-resolver-typescript": "^3.5.2",
+    "eslint-plugin-import": "^2.26.0",
     "prettier": "^2.7.1",
     "ts-node": "^10.5.0",
     "tsc-alias": "^1.7.0",
@@ -61,6 +63,8 @@
     "test": "vitest run --config vite.lib.config.js",
     "test:dist": "yarn build && yarn test -t @dist",
     "test:watch": "vitest watch --config vite.lib.config.js",
-    "build:lib": "vite build --config vite.lib.config.js --mode development"
+    "build:lib": "vite build --config vite.lib.config.js --mode development",
+    "start:bin": "ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
+    "check:format": "prettier --check --ignore-path .gitignore ."
   }
 }

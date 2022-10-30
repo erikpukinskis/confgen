@@ -1,7 +1,7 @@
 {
   "root": true,
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "import"],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
@@ -32,11 +32,36 @@
     "eol-last": ["error", "always"],
     "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"],
-    "no-unused-vars": "off"
+    "no-unused-vars": "off",
+    "import/order": [
+      "error",
+      {
+        "alphabetize": {
+          "order": "asc",
+          "caseInsensitive": true
+        },
+        "newlines-between": "never"
+      }
+    ],
+    "import/first": "error",
+    "import/newline-after-import": "error",
+    "import/no-duplicates": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [".."]
+      }
+    ]
   },
   "ignorePatterns": ["*.js"],
   "parserOptions": {
     "warnOnUnsupportedTypeScriptVersion": false,
     "project": ["./tsconfig.json"]
+  },
+  "settings": {
+    "import/resolver": {
+      "typescript": true,
+      "node": true
+    }
   }
 }

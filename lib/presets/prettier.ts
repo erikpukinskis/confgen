@@ -35,6 +35,11 @@ export const generator: CommandGenerator = ({ presets }) => [
     name: "fix:format",
     script: "prettier --write --ignore-path .gitignore .",
   },
+  {
+    command: "script",
+    name: "check:format",
+    script: "prettier --check --ignore-path .gitignore .",
+  },
   ...(presets.includes("codespaces")
     ? ([
         {
