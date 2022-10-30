@@ -1,5 +1,5 @@
-import type { CommandGenerator, CommandWithArgs } from "@/commands"
-// import type { System } from "@/system"
+import type { CommandGenerator, CommandWithArgs } from "~/commands"
+// import type { System } from "~/system"
 
 export const generator: CommandGenerator = ({ presets, args, system }) => {
   const commands: CommandWithArgs[] = []
@@ -52,7 +52,7 @@ export const generator: CommandGenerator = ({ presets, args, system }) => {
 //   InMemoryCache,
 //   useQuery,
 // } from "@apollo/client"
-// import { gql } from "@/gql"
+// import { gql } from "~/gql"
 // import fetch from "cross-fetch"
 
 // const client = new ApolloClient({

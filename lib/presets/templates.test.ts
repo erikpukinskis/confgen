@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { Project } from "@/project"
-import { MockSystem } from "@/system"
+import { Project } from "~/project"
+import { MockSystem } from "~/system"
 
 describe("presets/templates", () => {
   it.skip("should generate a JavaScript index ", async () => {

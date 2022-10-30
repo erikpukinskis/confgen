@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
-import { Project } from "@/project"
-import { TestSystem } from "@/system"
+import { Project } from "~/project"
+import { TestSystem } from "~/system"
 
 describe("presets/dist", () => {
   describe("a real system", () => {

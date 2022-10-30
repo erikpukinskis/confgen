@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { dedupeArray } from "@/dedupe"
+import { dedupeArray } from "~/dedupe"
 
 describe("dedupe", () => {
   it("detects identical objects", () => {

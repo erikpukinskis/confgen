@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import { Project } from "@/project"
-import { MockSystem, type System } from "@/system"
+import { Project } from "~/project"
+import { MockSystem, type System } from "~/system"
 
 describe("presets/eslint", () => {
   describe("without the react preset", () => {

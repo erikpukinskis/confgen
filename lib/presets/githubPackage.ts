@@ -1,4 +1,4 @@
-import type { CommandGenerator, Precheck } from "@/commands"
+import type { CommandGenerator, Precheck } from "~/commands"
 
 export const precheck: Precheck = ({ args }) => {
   if (!args.githubPackage[0]) {

@@ -1,4 +1,4 @@
-import type { CommandGenerator, Precheck, Presets } from "@/commands"
+import type { CommandGenerator, Precheck, Presets } from "~/commands"
 
 export const precheck: Precheck = ({ runtimes, args }) => {
   if (!runtimes.includes("lib")) {

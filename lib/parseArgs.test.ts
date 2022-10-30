@@ -1,5 +1,5 @@
 import { describe, beforeAll, it, expect, test } from "vitest"
-import { parseArgs, RUNTIME_PATTERN, PRESET_CONFIG_PATTERN } from "@/parseArgs"
+import { parseArgs, RUNTIME_PATTERN, PRESET_CONFIG_PATTERN } from "~/parseArgs"
 
 describe("parseArgs", () => {
   test("runtime pattern accepts a runtime with an @", () => {

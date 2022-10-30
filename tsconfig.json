@@ -4,7 +4,7 @@
     "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["lib/*"]
+      "~/*": ["lib/*"]
     },
     "forceConsistentCasingInFileNames": true,
     "strict": true,

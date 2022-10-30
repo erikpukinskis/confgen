@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { RealSystem } from "@/system"
+import { RealSystem } from "~/system"
 
 describe("system", () => {
   it("run method should return status codes > 0 on failure", () => {

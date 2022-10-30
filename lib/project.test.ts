@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
-import { readJson } from "@/commands"
-import { Project } from "@/project"
-import { MockSystem } from "@/system"
+import { readJson } from "~/commands"
+import { Project } from "~/project"
+import { MockSystem } from "~/system"
 
 describe("project", () => {
   it("should move existing devDependencies to dependencies if needed", async () => {

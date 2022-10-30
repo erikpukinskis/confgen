@@ -1,4 +1,4 @@
-import { type PresetName, PRESET_NAMES, isPresetName } from "@/presets"
+import { type PresetName, PRESET_NAMES, isPresetName } from "~/presets"
 
 const GLOBAL_ARGS = ["name"]
 

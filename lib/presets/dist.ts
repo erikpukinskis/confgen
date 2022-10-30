@@ -4,8 +4,8 @@ import type {
   Runtimes,
   Args,
   Precheck,
-} from "@/commands"
-import { isRuntime } from "@/runtimes"
+} from "~/commands"
+import { isRuntime } from "~/runtimes"
 
 export const precheck: Precheck = ({ args, runtimes, presets }) => {
   if (args.dist.length < 1) {

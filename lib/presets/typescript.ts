@@ -1,4 +1,4 @@
-import type { CommandGenerator, Precheck, Runtimes, Presets } from "@/commands"
+import type { CommandGenerator, Precheck, Runtimes, Presets } from "~/commands"
 
 export const precheck: Precheck = ({ args }) => {
   if (args.typescript.length > 0) {
@@ -62,7 +62,7 @@ export const generator: CommandGenerator = ({ presets, runtimes }) => [
  *     }
  */
 const getPathAliases = (runtimes: Runtimes) => ({
-  "@/*": [`${runtimes[0]}/*`],
+  "~/*": [`${runtimes[0]}/*`],
 })
 
 /**

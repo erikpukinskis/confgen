@@ -1,6 +1,6 @@
 import { describe, afterEach, it, expect, vi } from "vitest"
-import * as Packages from "@/packages"
-import { MockSystem, RealSystem } from "@/system"
+import * as Packages from "~/packages"
+import { MockSystem, RealSystem } from "~/system"
 
 const { packagesNeedingUpgrade, packagesToAdd } = Packages
 

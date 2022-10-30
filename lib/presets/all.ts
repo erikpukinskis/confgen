@@ -1,4 +1,4 @@
-import type { CommandGenerator, Presets } from "@/commands"
+import type { CommandGenerator, Presets } from "~/commands"
 
 export const generator: CommandGenerator = ({ presets }) => [
   ...(presets.includes("eslint") || presets.includes("prettier")

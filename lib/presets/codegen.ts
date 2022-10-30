@@ -1,5 +1,5 @@
-import type { CommandGenerator, CommandWithArgs, Precheck } from "@/commands"
-import { type Runtime, isRuntime } from "@/runtimes"
+import type { CommandGenerator, CommandWithArgs, Precheck } from "~/commands"
+import { type Runtime, isRuntime } from "~/runtimes"
 
 const GENERATORS = ["resolvers", "schema", "operations"] as const
 

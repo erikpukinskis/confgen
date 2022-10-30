@@ -1,5 +1,5 @@
-import { type CommandGenerator } from "@/commands"
-import type { Presets } from "@/presets"
+import { type CommandGenerator } from "~/commands"
+import type { Presets } from "~/presets"
 
 export const generator: CommandGenerator = ({ presets }) => [
   {

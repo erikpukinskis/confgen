@@ -7,7 +7,7 @@ import type {
   System,
   Runtimes,
   CommandWithArgs,
-} from "@/commands"
+} from "~/commands"
 
 export const precheck: Precheck = ({ args }) => {
   if (args.dist.includes("lib") && !args.global.name) {
@@ -363,7 +363,7 @@ export default defineConfig({
   ${jsdomStuff}
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./${runtimes[0]}"),
+      "~": path.resolve(__dirname, "./${runtimes[0]}"),
     },
   },
   ${pluginConfig(plugins)}

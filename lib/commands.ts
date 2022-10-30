@@ -1,16 +1,16 @@
 import merge from "merge-objects"
 import YAML from "yaml"
-import { type Args } from "@/args"
-import { dedupe } from "@/dedupe"
-import { type PresetName } from "@/presets"
-import type { Runtime } from "@/runtimes"
-import { type System } from "@/system"
+import { type Args } from "~/args"
+import { dedupe } from "~/dedupe"
+import { type PresetName } from "~/presets"
+import type { Runtime } from "~/runtimes"
+import { type System } from "~/system"
 
 export type Runtimes = Runtime[]
 
-export type { System } from "@/system"
+export type { System } from "~/system"
 
-export type { Args } from "@/args"
+export type { Args } from "~/args"
 
 export type Command = "file" | "run" | "script" | "yarn"
 

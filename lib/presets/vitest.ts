@@ -3,8 +3,8 @@ import type {
   System,
   Presets,
   CommandWithArgs,
-} from "@/commands"
-import type { Runtime } from "@/runtimes"
+} from "~/commands"
+import type { Runtime } from "~/runtimes"
 
 export const generator: CommandGenerator = ({ runtimes, presets, system }) => {
   const commands: CommandWithArgs[] = [

@@ -19,10 +19,10 @@ import * as typescript from "./typescript"
 import * as vite from "./vite"
 import * as vitest from "./vitest"
 import * as yarn from "./yarn"
-import type { Args } from "@/args"
-import type { Precheck } from "@/commands"
-import type { Runtime } from "@/runtimes"
-import type { System } from "@/system"
+import type { Args } from "~/args"
+import type { Precheck } from "~/commands"
+import type { Runtime } from "~/runtimes"
+import type { System } from "~/system"
 
 const PRESETS = {
   all,
