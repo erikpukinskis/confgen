@@ -1,5 +1,4 @@
 import sortBy from "lodash/sortBy"
-import { formatJson } from "./format"
 
 type PackageJson = {
   name?: string
@@ -83,7 +82,21 @@ export const sortPackageJson = async (packageJson: PackageJson) => {
     2
   )
 
-  return await formatJson(json)
+  /**
+   * For some reason if we format this with prettier, we get a different output
+   * than we do with the CLI. It will leave lines like "files": ["dist"] where
+   * the CLI version of prettier will format that as:
+   *
+   *     "files": [
+   *       "dist"
+   *     ]
+   *
+   * Not sure why, it'd be worth an investigation and maybe a prettier PR. But
+   * luckily the normal JSON.stringify(..., null, 2) is pretty close to what
+   * prettier does on the CLI. We just have to add an extra newline at the end
+   * of the file:
+   */
+  return `${json}\n`
 }
 
 const rebuildObject = (keys: string[], object: Record<string, unknown>) => {
