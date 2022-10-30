@@ -1,7 +1,7 @@
-import get from "lodash/get"
 import deepEqual from "deep-equal"
-import uniqWith from "lodash/uniqWith"
+import get from "lodash/get"
 import uniqBy from "lodash/uniqBy"
+import uniqWith from "lodash/uniqWith"
 
 type Json = Record<string, unknown>
 

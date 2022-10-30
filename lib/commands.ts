@@ -1,10 +1,10 @@
 import merge from "merge-objects"
 import YAML from "yaml"
-import { type System } from "@/system"
-import { type PresetName } from "@/presets"
 import { type Args } from "@/args"
 import { dedupe } from "@/dedupe"
+import { type PresetName } from "@/presets"
 import type { Runtime } from "@/runtimes"
+import { type System } from "@/system"
 
 export type Runtimes = Runtime[]
 

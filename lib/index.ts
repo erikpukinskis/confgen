@@ -1,9 +1,9 @@
-import path from "path"
-import { existsSync, readFileSync } from "fs"
-import { Project } from "./project"
-import { parseArgs, addDefaultPresets, ParseError } from "./parseArgs"
-import { RealSystem } from "./system"
 import { execSync } from "child_process"
+import { existsSync, readFileSync } from "fs"
+import path from "path"
+import { parseArgs, addDefaultPresets, ParseError } from "./parseArgs"
+import { Project } from "./project"
+import { RealSystem } from "./system"
 
 const USAGE = `
 confgen <runtimes> <presets>

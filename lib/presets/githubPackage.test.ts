@@ -1,8 +1,8 @@
+import { spawnSync } from "child_process"
+import { mkdirSync, rmSync, readFileSync } from "fs-extra"
 import { describe, beforeAll, it, expect, afterAll } from "vitest"
 import { Project } from "@/project"
 import { MockSystem } from "@/system"
-import { spawnSync } from "child_process"
-import { mkdirSync, rmSync, readFileSync } from "fs-extra"
 
 describe("presets/githubPackage", () => {
   let system: MockSystem

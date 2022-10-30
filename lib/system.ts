@@ -1,8 +1,7 @@
 import { execSync } from "child_process"
-import { existsSync, readFileSync } from "fs"
-import { outputFileSync } from "fs-extra"
+import { existsSync, readFileSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
-import { mkdirSync, rmSync } from "fs"
+import { outputFileSync } from "fs-extra"
 
 export type System = {
   silent: boolean

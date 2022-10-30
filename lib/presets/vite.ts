@@ -1,3 +1,4 @@
+import merge from "lodash/merge"
 import type {
   Precheck,
   CommandGenerator,
@@ -7,7 +8,6 @@ import type {
   Runtimes,
   CommandWithArgs,
 } from "@/commands"
-import merge from "lodash/merge"
 
 export const precheck: Precheck = ({ args }) => {
   if (args.dist.includes("lib") && !args.global.name) {

@@ -1,8 +1,8 @@
-import { runCommand, readJson, type PackageCommand } from "./commands"
-import { type System } from "@/system"
 import difference from "lodash/difference"
 import union from "lodash/union"
 import { satisfies } from "semver"
+import { runCommand, readJson, type PackageCommand } from "./commands"
+import { type System } from "@/system"
 
 export const swapDevPackages = (commands: PackageCommand[], system: System) => {
   const distPackages = currentlyInstalledPackages(false, system)

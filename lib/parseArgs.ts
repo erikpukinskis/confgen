@@ -1,6 +1,6 @@
-import { type Runtime, RUNTIMES } from "@/runtimes"
 import type { GlobalArgs } from "@/args"
 import { PRESET_NAMES } from "@/presets"
+import { type Runtime, RUNTIMES } from "@/runtimes"
 
 export class ParseError extends Error {}
 

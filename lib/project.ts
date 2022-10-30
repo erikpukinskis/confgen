@@ -1,6 +1,3 @@
-import { precheck, generate } from "@/presets"
-import { type Args, parsePresetConfigs, type GlobalArg } from "@/args"
-import { type PresetName } from "@/presets"
 import {
   runCommand,
   type DistPackageCommand,
@@ -10,9 +7,11 @@ import {
   isPackageCommand,
   type PackageCommand,
 } from "./commands"
-import { type System } from "@/system"
-import { type Runtime } from "@/runtimes"
+import { type Args, parsePresetConfigs, type GlobalArg } from "@/args"
 import { swapDevPackages, runCombinedInstall } from "@/packages"
+import { precheck, generate, type PresetName } from "@/presets"
+import { type Runtime } from "@/runtimes"
+import { type System } from "@/system"
 
 type ProjectOptions = {
   system: System

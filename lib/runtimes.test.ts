@@ -1,7 +1,7 @@
-import { describe, beforeAll, it, afterAll } from "vitest"
-import { mkdirSync, rmSync, existsSync } from "fs"
 import { execSync } from "child_process"
+import { mkdirSync, rmSync, existsSync } from "fs"
 import { join } from "path"
+import { describe, beforeAll, it, afterAll } from "vitest"
 
 describe("@runtimes", () => {
   const root = `/tmp/${randomFolder()}`
