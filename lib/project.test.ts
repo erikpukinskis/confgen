@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest"
+import { formatJson } from "./format"
 import { readJson } from "~/commands"
 import { Project } from "~/project"
 import { MockSystem } from "~/system"
@@ -13,11 +14,14 @@ describe("project", () => {
       system,
     })
 
-    system.write("package.json", {
-      devDependencies: {
-        react: "6.0.0",
-      },
-    })
+    system.write(
+      "package.json",
+      await formatJson({
+        devDependencies: {
+          react: "6.0.0",
+        },
+      })
+    )
 
     await project.confgen()
 

@@ -8,6 +8,7 @@ import type {
   Runtimes,
   CommandWithArgs,
 } from "~/commands"
+import { formatTypescript } from "~/format"
 
 export const precheck: Precheck = ({ args }) => {
   if (args.dist.includes("lib") && !args.global.name) {
@@ -17,7 +18,7 @@ export const precheck: Precheck = ({ args }) => {
   }
 }
 
-export const generator: CommandGenerator = ({
+export const generator: CommandGenerator = async ({
   runtimes,
   presets,
   args,
@@ -76,44 +77,51 @@ export const generator: CommandGenerator = ({
   // Commands for runtimes:
 
   if (runtimes.includes("app")) {
-    commands.push(...getAppCommands(runtimes, presets, args))
+    commands.push(...(await getAppCommands(runtimes, presets, args)))
   }
 
   if (args.dist.includes("lib")) {
-    commands.push(...getLibCommands(runtimes, presets, args, system))
+    commands.push(...(await getLibCommands(runtimes, presets, args, system)))
   }
 
   if (runtimes.includes("docs")) {
-    commands.push(...getDocsCommands(runtimes, presets))
+    commands.push(...(await getDocsCommands(runtimes, presets)))
   }
 
   return commands
 }
 
-const getLibCommands = (
+const getLibCommands = async (
   runtimes: Runtimes,
   presets: Presets,
   args: Args,
   system: System
-): CommandWithArgs[] => [
-  {
-    command: "script",
-    name: "build:lib",
-    script: "vite build --config vite.lib.config.js --mode development",
-  },
-  {
-    command: "file",
-    path: "package.json",
-    contents: getDistConfig(),
-  },
-  {
-    command: "file",
-    path: "vite.lib.config.js",
-    contents: getViteLibConfig(runtimes, presets, args, system),
-  },
-]
+) => {
+  const commands: CommandWithArgs[] = [
+    {
+      command: "script",
+      name: "build:lib",
+      script: "vite build --config vite.lib.config.js --mode development",
+    },
+    {
+      command: "file",
+      path: "package.json",
+      contents: getDistConfig(),
+    },
+    {
+      command: "file",
+      path: "vite.lib.config.js",
+      contents: await getViteLibConfig(runtimes, presets, args, system),
+    },
+  ]
+  return commands
+}
 
-const getAppCommands = (runtimes: Runtimes, presets: Presets, args: Args) => {
+const getAppCommands = async (
+  runtimes: Runtimes,
+  presets: Presets,
+  args: Args
+) => {
   const commands: CommandWithArgs[] = [
     {
       command: "script",
@@ -123,7 +131,7 @@ const getAppCommands = (runtimes: Runtimes, presets: Presets, args: Args) => {
     {
       command: "file",
       path: "vite.app.config.js",
-      contents: getViteAppConfig(runtimes, presets, args),
+      contents: await getViteAppConfig(runtimes, presets, args),
     },
   ]
 
@@ -138,27 +146,28 @@ const getAppCommands = (runtimes: Runtimes, presets: Presets, args: Args) => {
   return commands
 }
 
-const getDocsCommands = (
-  runtimes: Runtimes,
-  presets: Presets
-): CommandWithArgs[] => [
-  {
-    command: "script",
-    name: `start:docs:dev`,
-    script: `vite serve docs --config vite.docs.config.js`,
-  },
-  {
-    command: "file",
-    path: "vite.docs.config.js",
-    contents: getViteDocsConfig(runtimes, presets),
-  },
-  {
-    command: "script",
-    name: "build:docs",
-    script:
-      "vite build --config vite.docs.config.js --mode development && mv site/docs/index.html site && rmdir site/docs && cp site/index.html site/404.html",
-  },
-]
+const getDocsCommands = async (runtimes: Runtimes, presets: Presets) => {
+  const commands: CommandWithArgs[] = [
+    {
+      command: "script",
+      name: `start:docs:dev`,
+      script: `vite serve docs --config vite.docs.config.js`,
+    },
+    {
+      command: "file",
+      path: "vite.docs.config.js",
+      contents: await getViteDocsConfig(runtimes, presets),
+    },
+    {
+      command: "script",
+      name: "build:docs",
+      script:
+        "vite build --config vite.docs.config.js --mode development && mv site/docs/index.html site && rmdir site/docs && cp site/index.html site/404.html",
+    },
+  ]
+
+  return commands
+}
 
 const getDistConfig = () => ({
   files: ["dist"],
@@ -172,7 +181,11 @@ const getDistConfig = () => ({
   },
 })
 
-const getViteAppConfig = (runtimes: Runtimes, presets: Presets, args: Args) => {
+const getViteAppConfig = async (
+  runtimes: Runtimes,
+  presets: Presets,
+  args: Args
+) => {
   const rollupStuff = args.dist.includes("app")
     ? `
       input: path.resolve(__dirname, "app", "index.html"),
@@ -219,7 +232,7 @@ const getViteAppConfig = (runtimes: Runtimes, presets: Presets, args: Args) => {
 `
       : ""
 
-  return getViteConfig(runtimes, presets, [], {
+  return await getViteConfig(runtimes, presets, [], {
     buildStuff,
     serverStuff,
     codespaceSetup,
@@ -227,7 +240,7 @@ const getViteAppConfig = (runtimes: Runtimes, presets: Presets, args: Args) => {
   })
 }
 
-const getViteDocsConfig = (runtimes: Runtimes, presets: Presets) => {
+const getViteDocsConfig = async (runtimes: Runtimes, presets: Presets) => {
   const rollupStuff = `
       input: path.resolve(__dirname, "docs", "index.html"),
     `
@@ -253,7 +266,7 @@ const getViteDocsConfig = (runtimes: Runtimes, presets: Presets) => {
     assetsDir: './',
   `
 
-  return getViteConfig(runtimes, presets, [], {
+  return await getViteConfig(runtimes, presets, [], {
     buildStuff,
     serverStuff,
     codespaceSetup,
@@ -261,7 +274,7 @@ const getViteDocsConfig = (runtimes: Runtimes, presets: Presets) => {
   })
 }
 
-const getViteLibConfig = (
+const getViteLibConfig = async (
   runtimes: Runtimes,
   presets: Presets,
   args: Args,
@@ -308,7 +321,7 @@ const getViteLibConfig = (
       },
   `
 
-  return getViteConfig(runtimes, presets, plugins, {
+  return await getViteConfig(runtimes, presets, plugins, {
     buildStuff,
     rollupStuff,
   })
@@ -321,7 +334,7 @@ type Scripts = {
   rollupStuff?: string
 }
 
-const getViteConfig = (
+const getViteConfig = async (
   runtimes: Runtimes,
   presets: Presets,
   plugins: VitePlugin[],
@@ -337,10 +350,10 @@ const getViteConfig = (
   const jsdomStuff =
     presets.includes("vitest") && presets.includes("react")
       ? `
-  test: {
-    environment: "jsdom",
-  },
-  `
+        test: {
+          environment: "jsdom",
+        },
+      `
       : ""
 
   if (presets.includes("macros") || presets.includes("sql")) {
@@ -351,30 +364,32 @@ const getViteConfig = (
     plugins.push(["react", "@vitejs/plugin-react"])
   }
 
-  return `
-import path from "path"
-import { defineConfig } from "vite"
-${pluginImports(plugins)}
+  const source = `
+    import path from "path"
+    import { defineConfig } from "vite"
+    ${pluginImports(plugins)}
 
-${codespaceSetup}
+    ${codespaceSetup}
 
-export default defineConfig({
-  ${serverStuff}
-  ${jsdomStuff}
-  resolve: {
-    alias: {
-      "~": path.resolve(__dirname, "./${runtimes[0]}"),
-    },
-  },
-  ${pluginConfig(plugins)}
-  build: {
-    ${buildStuff}
-    rollupOptions: {
-      ${rollupStuff}
-    }
-  }
-})
-`
+    export default defineConfig({
+      ${serverStuff}
+      ${jsdomStuff}
+      resolve: {
+        alias: {
+          "~": path.resolve(__dirname, "./${runtimes[0]}"),
+        },
+      },
+      ${pluginConfig(plugins)}
+      build: {
+        ${buildStuff}
+        rollupOptions: {
+          ${rollupStuff}
+        }
+      }
+    })
+  `
+
+  return await formatTypescript(source)
 }
 
 const getDependencies = (system: System) => {

@@ -2,10 +2,13 @@ import difference from "lodash/difference"
 import union from "lodash/union"
 import { satisfies } from "semver"
 import { runCommand, readJson, type PackageCommand } from "./commands"
+import { formatJson } from "./format"
 import { type System } from "~/system"
 
-export const swapDevPackages = (commands: PackageCommand[], system: System) => {
-  const distPackages = currentlyInstalledPackages(false, system)
+export const swapDevPackages = async (
+  commands: PackageCommand[],
+  system: System
+) => {
   const devPackages = currentlyInstalledPackages(true, system)
 
   const json = readJson("package.json", system)
@@ -17,24 +20,17 @@ export const swapDevPackages = (commands: PackageCommand[], system: System) => {
   }
 
   for (const command of commands) {
-    if (command.dev && distPackages.includes(command.pkg)) {
-      json.devDependencies[command.pkg] = json.dependencies[command.pkg]
-      delete json.dependencies[command.pkg]
-    } else if (!command.dev && devPackages.includes(command.pkg)) {
+    if (!command.dev && devPackages.includes(command.pkg)) {
       json.dependencies[command.pkg] = json.devDependencies[command.pkg]
       delete json.devDependencies[command.pkg]
     }
-  }
-
-  if (Object.keys(json.dependencies).length < 1) {
-    delete (json as Record<string, unknown>).dependencies
   }
 
   if (Object.keys(json.devDependencies).length < 1) {
     delete (json as Record<string, unknown>).devDependencies
   }
 
-  system.write("package.json", json)
+  system.write("package.json", await formatJson(json))
 }
 
 const ensureDevDependencies = (

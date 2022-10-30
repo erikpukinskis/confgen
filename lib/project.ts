@@ -69,20 +69,21 @@ export class Project {
     for (const presetName of this.presetNames) {
       this.system.silent ||
         console.info(`Generating commands for preset [${presetName}]...`)
-      const generated = generate(
+      const generated = await generate(
         presetName,
         this.runtimes,
         this.presetNames,
         this.argsByPresetName,
         this.system
       )
+
       generated.forEach((command) => {
         command.preset = presetName
       })
       generatedCommands.push(...generated)
     }
 
-    swapDevPackages(
+    await swapDevPackages(
       generatedCommands.filter<PackageCommand>(isPackageCommand),
       this.system
     )
@@ -106,6 +107,6 @@ export class Project {
     }
 
     const packageJson = readJson("package.json", this.system)
-    this.system.write("package.json", sortPackageJson(packageJson))
+    this.system.write("package.json", await sortPackageJson(packageJson))
   }
 }
