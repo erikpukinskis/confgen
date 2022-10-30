@@ -1,6 +1,6 @@
 {
   "name": "confgen",
-  "version": "0.87.0",
+  "version": "0.88.0-beta.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -9,7 +9,9 @@
   "main": "./dist/lib.umd.js",
   "module": "./dist/lib.es.js",
   "bin": "./dist/lib.umd.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "import": "./dist/lib.es.js",
