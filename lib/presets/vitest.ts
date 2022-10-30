@@ -75,7 +75,9 @@ export const generator: CommandGenerator = ({ runtimes, presets, system }) => {
 
 const hasTestFiles = (system: System) => {
   const { status } = system.run(
-    `find . -not -path "./node_modules/*" | grep -E '^.+[.]test[.][tj]sx?$' | grep .`
+    `find . -not -path "./node_modules/*" | grep -E '^.+[.]test[.][tj]sx?$' | grep .`,
+    undefined,
+    true
   )
   return status === 0
 }

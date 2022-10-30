@@ -106,15 +106,25 @@ export const runCommand = async (command: CommandWithArgs, system: System) => {
     ? "yarnDev"
     : command.command
 
-  const foo = command[Object.keys(command)[1] as keyof CommandWithArgs]
+  let log = ""
 
-  const log = system.silent
-    ? ""
-    : `----------------------------------------
-👷 ${descriptions[descriptionKey]}${
-        command.preset ? ` for preset [${command.preset}]` : ""
-      }...
-   ${foo}\n`
+  if (!system.silent) {
+    log += "------------------------------------------------\n"
+
+    const presetDetails = command.preset ? `[${command.preset}] ` : ""
+    log += `👷 ${descriptions[descriptionKey]} ${presetDetails}\n`
+    if (command.command === "file") {
+      log += `   ${command.path}\n`
+    } else if (command.command === "run") {
+      log += `   ${command.script}\n`
+    } else if (command.command === "script") {
+      log += `   yarn run ${command.name}\n`
+    } else if (command.command === "yarn") {
+      log += `   ${command.pkg}${
+        command.version ? `@${command.version}` : ""
+      }\n`
+    }
+  }
 
   await logAndRun(log, () => {
     // @ts-expect-error Typescript doesn't know that command.command narrows the type sufficiently here

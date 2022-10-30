@@ -6,7 +6,11 @@ import { outputFileSync } from "fs-extra"
 export type System = {
   silent: boolean
 
-  run(command: string, out?: string[]): { status: number | null }
+  run(
+    command: string,
+    out?: string[],
+    silent?: boolean
+  ): { status: number | null }
   exists(path: string): boolean
   read(path: string): string
   write(path: string, contents: string | object): void
@@ -22,11 +26,11 @@ export class RealSystem implements System {
     this.cwd = cwd
   }
 
-  run(command: string, out?: string[]) {
+  run(command: string, out?: string[], silent?: boolean) {
     try {
       const result = execSync(`echo "$ ${command}" && ${command}`, {
         cwd: this.cwd,
-        stdio: out ? "pipe" : this.silent ? "ignore" : "inherit",
+        stdio: out ? "pipe" : silent || this.silent ? "ignore" : "inherit",
       })
       if (out) {
         const lines = result.toString().split("\n")

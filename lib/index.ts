@@ -104,9 +104,9 @@ try {
   const system = new RealSystem({ silent: Boolean(globalArgs.silent) })
 
   system.silent ||
-    console.info(`----------------------------------------
+    console.info(`------------------------------------------------
 👷 Running confgen@${getVersion()}
-----------------------------------------`)
+------------------------------------------------`)
 
   const project = new Project({ presetConfigs, runtimes, globalArgs, system })
 

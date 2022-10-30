@@ -51,7 +51,8 @@
       {
         "patterns": [".."]
       }
-    ]
+    ],
+    "@typescript-eslint/no-floating-promises": "error"
   },
   "ignorePatterns": ["*.js"],
   "parserOptions": {
