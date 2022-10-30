@@ -12,7 +12,8 @@ export const formatTypescript = async (source: string) => {
 
 export const formatJson = async (input: string | Record<string, unknown>) => {
   const config = await prettier.resolveConfig(process.cwd())
-  const source = typeof input === "object" ? JSON.stringify(input) : input
+  const source =
+    typeof input === "object" ? JSON.stringify(input, null, 2) : input
   return prettier.format(source, {
     parser: "json",
     ...config,

@@ -317,7 +317,7 @@ const getViteLibConfig = async (
       output: {
         // Provide global variables to use in the UMD build
         // for externalized deps
-        globals: ${JSON.stringify(globals, null, 10)},
+        globals: ${JSON.stringify(globals)},
       },
   `
 
@@ -426,7 +426,7 @@ const pluginConfig = (plugins: VitePlugin[]) => `
 ${plugins
   .map(
     ([variable, , config]) =>
-      `${variable}(${config ? JSON.stringify(config, null, 4) : ""})`
+      `${variable}(${config ? JSON.stringify(config) : ""})`
   )
   .join(",\n")}
   ],

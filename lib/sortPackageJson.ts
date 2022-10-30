@@ -59,25 +59,29 @@ export const sortPackageJson = async (packageJson: PackageJson) => {
     [] as unknown[]
   )
 
-  const json = JSON.stringify(packageJson, (key: string, value: unknown) => {
-    if (!(value instanceof Object)) return value
+  const json = JSON.stringify(
+    packageJson,
+    (key: string, value: unknown) => {
+      if (!(value instanceof Object)) return value
 
-    if (value === packageJson) {
-      const keys = sortBy(Object.keys(packageJson), (key) =>
-        KEY_ORDER.indexOf(key)
-      ) as unknown as (keyof PackageJson)[]
+      if (value === packageJson) {
+        const keys = sortBy(Object.keys(packageJson), (key) =>
+          KEY_ORDER.indexOf(key)
+        ) as unknown as (keyof PackageJson)[]
 
-      return rebuildObject(keys, value as Record<string, unknown>)
-    } else if (valuesToSort.includes(value)) {
-      if (Array.isArray(value)) {
-        return value.sort() as unknown[]
+        return rebuildObject(keys, value as Record<string, unknown>)
+      } else if (valuesToSort.includes(value)) {
+        if (Array.isArray(value)) {
+          return value.sort() as unknown[]
+        }
+        const keys = Object.keys(value).sort()
+        return rebuildObject(keys, value as Record<string, unknown>)
       }
-      const keys = Object.keys(value).sort()
-      return rebuildObject(keys, value as Record<string, unknown>)
-    }
 
-    return value
-  })
+      return value
+    },
+    2
+  )
 
   return await formatJson(json)
 }

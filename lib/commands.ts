@@ -213,7 +213,11 @@ const syncFile = async (
   }
 }
 
-const writeFile = (filename: string, contents: FileChanges, system: System) => {
+const writeFile = async (
+  filename: string,
+  contents: FileChanges,
+  system: System
+) => {
   if (/[.]ya?ml$/.test(filename)) {
     system.write(filename, YAML.stringify(contents))
   } else if (Array.isArray(contents)) {
@@ -221,7 +225,7 @@ const writeFile = (filename: string, contents: FileChanges, system: System) => {
   } else if (typeof contents === "string") {
     system.write(filename, contents)
   } else {
-    system.write(filename, JSON.stringify(contents, null, 2))
+    system.write(filename, formatJson(contents))
   }
 }
 
@@ -264,7 +268,7 @@ const amendJson = async (
   const newJson = dedupe(
     preferExisting ? merge(json, originalJson) : merge(originalJson, json)
   )
-  system.write(filename, await formatJson(JSON.stringify(newJson)))
+  system.write(filename, await formatJson(newJson))
 }
 
 const amendYaml = (

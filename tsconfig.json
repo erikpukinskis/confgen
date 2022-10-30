@@ -3,7 +3,9 @@
     "noImplicitAny": true,
     "esModuleInterop": true,
     "baseUrl": ".",
-    "paths": { "~/*": ["lib/*"] },
+    "paths": {
+      "~/*": ["lib/*"]
+    },
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,

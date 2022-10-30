@@ -8,6 +8,11 @@
   ],
   "postCreateCommand": "yarn",
   "name": "Node.js",
-  "build": { "dockerfile": "Dockerfile", "args": { "VARIANT": "18-buster" } },
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "VARIANT": "18-buster"
+    }
+  },
   "remoteUser": "node"
 }

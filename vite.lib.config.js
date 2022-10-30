@@ -10,9 +10,7 @@ export default defineConfig({
   },
 
   plugins: [
-    commonjsExternals({
-      "externals": ["fs", "child_process", "path"],
-    }),
+    commonjsExternals({ "externals": ["fs", "child_process", "path"] }),
   ],
 
   build: {
