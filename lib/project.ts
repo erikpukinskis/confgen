@@ -6,7 +6,9 @@ import {
   isDevPackageCommand,
   isPackageCommand,
   type PackageCommand,
+  readJson,
 } from "./commands"
+import { sortPackageJson } from "./sortPackageJson"
 import { type Args, parsePresetConfigs, type GlobalArg } from "~/args"
 import { swapDevPackages, runCombinedInstall } from "~/packages"
 import { precheck, generate, type PresetName } from "~/presets"
@@ -67,20 +69,21 @@ export class Project {
     for (const presetName of this.presetNames) {
       this.system.silent ||
         console.info(`Generating commands for preset [${presetName}]...`)
-      const generated = generate(
+      const generated = await generate(
         presetName,
         this.runtimes,
         this.presetNames,
         this.argsByPresetName,
         this.system
       )
+
       generated.forEach((command) => {
         command.preset = presetName
       })
       generatedCommands.push(...generated)
     }
 
-    swapDevPackages(
+    await swapDevPackages(
       generatedCommands.filter<PackageCommand>(isPackageCommand),
       this.system
     )
@@ -102,5 +105,8 @@ export class Project {
     for (const command of otherCommands) {
       await runCommand(command, this.system)
     }
+
+    const packageJson = readJson("package.json", this.system)
+    this.system.write("package.json", await sortPackageJson(packageJson))
   }
 }

@@ -10,9 +10,7 @@ export default defineConfig({
   },
 
   plugins: [
-    commonjsExternals({
-      "externals": ["fs", "child_process", "path"],
-    }),
+    commonjsExternals({ "externals": ["fs", "child_process", "path"] }),
   ],
 
   build: {
@@ -32,6 +30,7 @@ export default defineConfig({
         "fs-extra",
         "lodash",
         "merge-objects",
+        "prettier",
         "semver",
         "yaml",
       ],
@@ -43,6 +42,7 @@ export default defineConfig({
           "fs-extra": "fsextra",
           "lodash": "lodash",
           "merge-objects": "mergeobjects",
+          "prettier": "prettier",
           "semver": "semver",
           "yaml": "yaml",
         },

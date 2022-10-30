@@ -2,6 +2,7 @@ import merge from "merge-objects"
 import YAML from "yaml"
 import { type Args } from "~/args"
 import { dedupe } from "~/dedupe"
+import { formatJson } from "~/format"
 import { type PresetName } from "~/presets"
 import type { Runtime } from "~/runtimes"
 import { type System } from "~/system"
@@ -80,7 +81,7 @@ export type CommandGenerator = (input: {
   presets: Presets
   args: Args
   system: System
-}) => CommandWithArgs[]
+}) => CommandWithArgs[] | Promise<CommandWithArgs[]>
 
 export type Precheck = (input: {
   runtimes: Runtime[]
@@ -126,9 +127,9 @@ export const runCommand = async (command: CommandWithArgs, system: System) => {
     }
   }
 
-  await logAndRun(log, () => {
+  await logAndRun(log, async () => {
     // @ts-expect-error Typescript doesn't know that command.command narrows the type sufficiently here
-    commands[command.command](command, system)
+    await commands[command.command](command, system)
   })
 }
 
@@ -148,24 +149,28 @@ const tick = () => new Promise<void>((resolve) => setTimeout(resolve))
  * This seems to work fairly reliably, but who knows it could require further
  * tweaks.
  */
-const logAndRun = async (log: string, func: () => void) => {
+const logAndRun = async (log: string, func: () => void | Promise<void>) => {
   await tick()
   return new Promise<void>((resolve) => {
     process.stdout.write(log, () => {
-      func()
-      resolve()
+      const promise = func()
+      if (promise) {
+        void promise.then(resolve)
+      } else {
+        resolve()
+      }
     })
   })
 }
 
 const commands = {
-  file: ({ path, contents, merge }: FileCommand, system: System) => {
+  file: async ({ path, contents, merge }: FileCommand, system: System) => {
     if (merge === "if-not-exists" && system.exists(path)) {
       return
     } else if (merge === "replace") {
       writeFile(path, contents, system)
     } else {
-      syncFile(path, contents, merge === "prefer-existing", system)
+      await syncFile(path, contents, merge === "prefer-existing", system)
     }
   },
   run: ({ script }: RunCommand, system: System) => {
@@ -174,8 +179,8 @@ const commands = {
       throw new Error(`Command failed: ${script}`)
     }
   },
-  script: ({ name, script }: ScriptCommand, system: System) => {
-    amendJson(
+  script: async ({ name, script }: ScriptCommand, system: System) => {
+    await amendJson(
       "package.json",
       {
         scripts: {
@@ -191,7 +196,7 @@ const commands = {
   },
 } as const
 
-const syncFile = (
+const syncFile = async (
   filename: string,
   changes: FileChanges,
   preferExisting: boolean,
@@ -204,11 +209,15 @@ const syncFile = (
   } else if (typeof changes === "string") {
     system.write(filename, changes)
   } else {
-    amendJson(filename, changes, preferExisting, system)
+    await amendJson(filename, changes, preferExisting, system)
   }
 }
 
-const writeFile = (filename: string, contents: FileChanges, system: System) => {
+const writeFile = async (
+  filename: string,
+  contents: FileChanges,
+  system: System
+) => {
   if (/[.]ya?ml$/.test(filename)) {
     system.write(filename, YAML.stringify(contents))
   } else if (Array.isArray(contents)) {
@@ -216,7 +225,7 @@ const writeFile = (filename: string, contents: FileChanges, system: System) => {
   } else if (typeof contents === "string") {
     system.write(filename, contents)
   } else {
-    system.write(filename, JSON.stringify(contents, null, 2))
+    system.write(filename, formatJson(contents))
   }
 }
 
@@ -248,7 +257,7 @@ export const readJson = <Format extends Record<string, unknown>>(
   return json
 }
 
-const amendJson = (
+const amendJson = async (
   filename: string,
   json: Record<string, unknown>,
   preferExisting: boolean,
@@ -259,7 +268,7 @@ const amendJson = (
   const newJson = dedupe(
     preferExisting ? merge(json, originalJson) : merge(originalJson, json)
   )
-  system.write(filename, JSON.stringify(newJson, null, 2))
+  system.write(filename, await formatJson(newJson))
 }
 
 const amendYaml = (

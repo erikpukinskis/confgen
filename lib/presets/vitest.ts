@@ -4,9 +4,14 @@ import type {
   Presets,
   CommandWithArgs,
 } from "~/commands"
+import { formatTypescript } from "~/format"
 import type { Runtime } from "~/runtimes"
 
-export const generator: CommandGenerator = ({ runtimes, presets, system }) => {
+export const generator: CommandGenerator = async ({
+  runtimes,
+  presets,
+  system,
+}) => {
   const commands: CommandWithArgs[] = [
     {
       command: "yarn",
@@ -52,7 +57,7 @@ export const generator: CommandGenerator = ({ runtimes, presets, system }) => {
       command: "file",
       path: getExampleTestPath(runtimes[0], presets),
       merge: "if-not-exists",
-      contents: getExampleTest(runtimes[0], presets),
+      contents: await getExampleTest(runtimes[0], presets),
     })
   }
 
@@ -95,7 +100,7 @@ const getExampleTestPath = (runtime: Runtime, presets: Presets) => {
 const getExampleTest = (runtime: Runtime, presets: Presets) => {
   const componentName = runtime === "app" ? "App" : "MyComponent"
 
-  return presets.includes("react")
+  const source = presets.includes("react")
     ? `import React from "react"
 import { ${componentName} } from "./"
 import { describe, it } from "vitest"
@@ -113,4 +118,5 @@ test("true is true", () => {
   expect(true).toBeTruthy()
 })
 `
+  return formatTypescript(source)
 }

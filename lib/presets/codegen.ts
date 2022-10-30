@@ -1,4 +1,5 @@
 import type { CommandGenerator, CommandWithArgs, Precheck } from "~/commands"
+import { formatTypescript } from "~/format"
 import { type Runtime, isRuntime } from "~/runtimes"
 
 const GENERATORS = ["resolvers", "schema", "operations"] as const
@@ -38,7 +39,7 @@ export const precheck: Precheck = ({ presets, args }) => {
   }
 }
 
-export const generator: CommandGenerator = ({ args, system }) => {
+export const generator: CommandGenerator = async ({ args, system }) => {
   const [runtime, ...generators] = args.codegen as [Runtime, ...Generator[]]
 
   const commands: CommandWithArgs[] = [
@@ -93,9 +94,10 @@ export const generator: CommandGenerator = ({ args, system }) => {
           command: "file",
           path: `${runtime}/context.ts`,
           merge: "if-not-exists",
-          contents: `export type ResolverContext = {
-  db: "..." // replace with your resolver context
-}`,
+          contents: await formatTypescript(`
+            export type ResolverContext = {
+              db: "..." // replace with your resolver context
+            }`),
         },
         {
           command: "file",

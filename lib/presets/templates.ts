@@ -14,7 +14,8 @@ export const generator: CommandGenerator = ({ presets, args, system }) => {
     commands.push({
       command: "file",
       path: `lib/${filename}`,
-      contents: `export default () => {}`,
+      contents: `export default () => {}
+`,
     })
   }
 

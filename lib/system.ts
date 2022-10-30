@@ -51,8 +51,8 @@ export class RealSystem implements System {
   read(path: string) {
     return readFileSync(this.join(path)).toString()
   }
-  write(path: string, contents: string | object) {
-    outputFileSync(this.join(path), stringify(contents))
+  write(path: string, contents: string) {
+    outputFileSync(this.join(path), contents)
   }
   addPackage(pkg: string, isDevOnly: boolean) {
     const dashDev = isDevOnly ? "-D " : ""
@@ -81,8 +81,8 @@ export class MockSystem implements System {
   read(path: string) {
     return this.contentsByPath[path]
   }
-  write(path: string, contents: string | object) {
-    this.contentsByPath[path] = stringify(contents)
+  write(path: string, contents: string) {
+    this.contentsByPath[path] = contents
   }
   addPackage(pkgStrings: string, isDevOnly: boolean) {
     if (!this.exists("package.json")) {
@@ -104,16 +104,9 @@ export class MockSystem implements System {
       deps[name] = version || "*"
     }
 
-    this.write("package.json", stringify(packageJson))
+    this.write("package.json", JSON.stringify(packageJson, null, 2))
   }
 }
-
-const stringify = (contents: string | object) => {
-  return typeof contents === "string"
-    ? contents
-    : JSON.stringify(contents, null, 2)
-}
-
 export class TestSystem extends RealSystem {
   root: string
 

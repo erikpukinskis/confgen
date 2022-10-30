@@ -1,4 +1,5 @@
 import { describe, afterEach, it, expect, vi } from "vitest"
+import { formatJson } from "./format"
 import * as Packages from "~/packages"
 import { MockSystem, RealSystem } from "~/system"
 
@@ -33,13 +34,16 @@ describe("packages", () => {
     ).toContain("yaml")
   })
 
-  it("excludes installed packages from packagesToAdd", () => {
+  it("excludes installed packages from packagesToAdd", async () => {
     const system = new MockSystem()
-    system.write("package.json", {
-      dependencies: {
-        react: "16.0.0",
-      },
-    })
+    system.write(
+      "package.json",
+      await formatJson({
+        dependencies: {
+          react: "16.0.0",
+        },
+      })
+    )
 
     expect(
       packagesToAdd(system, [{ command: "yarn", pkg: "react" }])
@@ -48,7 +52,7 @@ describe("packages", () => {
 
   it("includes missing packages in packagesToAdd", () => {
     const system = new MockSystem()
-    system.write("package.json", {})
+    system.write("package.json", "{}")
 
     expect(
       packagesToAdd(system, [{ command: "yarn", pkg: "react" }])
@@ -57,7 +61,7 @@ describe("packages", () => {
 
   it("includes versions in packagesToAdd", () => {
     const system = new MockSystem()
-    system.write("package.json", {})
+    system.write("package.json", "{}")
 
     expect(
       packagesToAdd(system, [
@@ -66,13 +70,16 @@ describe("packages", () => {
     ).toContain("react@^18.0.0")
   })
 
-  it("includes packages that need to be upgraded packagesToAdd", () => {
+  it("includes packages that need to be upgraded packagesToAdd", async () => {
     const system = new MockSystem()
-    system.write("package.json", {
-      dependencies: {
-        react: "^16.4.1",
-      },
-    })
+    system.write(
+      "package.json",
+      await formatJson({
+        dependencies: {
+          react: "^16.4.1",
+        },
+      })
+    )
 
     vi.spyOn(Packages, "packagesNeedingUpgrade").mockImplementation(() => [
       "react",
