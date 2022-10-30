@@ -9,14 +9,9 @@
   "main": "./dist/lib.umd.js",
   "module": "./dist/lib.es.js",
   "bin": "./dist/lib.umd.js",
-  "files": {
-    "0": "dist"
-  },
+  "files": { "0": "dist" },
   "exports": {
-    ".": {
-      "import": "./dist/lib.es.js",
-      "require": "./dist/lib.umd.js"
-    }
+    ".": { "import": "./dist/lib.es.js", "require": "./dist/lib.umd.js" }
   },
   "dependencies": {
     "deep-equal": "^2.0.5",
