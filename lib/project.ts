@@ -6,7 +6,9 @@ import {
   isDevPackageCommand,
   isPackageCommand,
   type PackageCommand,
+  readJson,
 } from "./commands"
+import { sortPackageJson } from "./sortPackageJson"
 import { type Args, parsePresetConfigs, type GlobalArg } from "~/args"
 import { swapDevPackages, runCombinedInstall } from "~/packages"
 import { precheck, generate, type PresetName } from "~/presets"
@@ -102,5 +104,8 @@ export class Project {
     for (const command of otherCommands) {
       await runCommand(command, this.system)
     }
+
+    const packageJson = readJson("package.json", this.system)
+    this.system.write("package.json", sortPackageJson(packageJson))
   }
 }
