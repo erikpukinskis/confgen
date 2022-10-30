@@ -42,7 +42,7 @@ export const generator: CommandGenerator = ({ presets }) => [
     ? ([
         {
           command: "yarn",
-          pkg: "tsconfig-paths/register",
+          pkg: "tsconfig-paths",
           dev: true,
         },
       ] as const)
