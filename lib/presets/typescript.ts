@@ -83,7 +83,7 @@ const getConfig = (presets: Presets, runtimes: Runtimes) => ({
     strict: true,
     skipLibCheck: true,
     downlevelIteration: true,
-    ...(presets.includes("react") ? { jsx: "react" } : undefined),
+    ...(presets.includes("react") ? { jsx: "react-jsx" } : undefined),
     ...(presets.includes("dist") ? { outDir: "dist" } : undefined),
   },
   include: runtimes,

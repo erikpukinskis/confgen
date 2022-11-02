@@ -140,18 +140,6 @@ const getEslintrc = (presets: Presets) => ({
             { args: "after-used" },
           ],
           "semi": ["error", "never"],
-          ...(presets.includes("react") // Sometimes you want to pass async event handlers
-            ? {
-                "@typescript-eslint/no-misused-promises": [
-                  "error",
-                  {
-                    checksVoidReturn: {
-                      attributes: false,
-                    },
-                  },
-                ],
-              }
-            : undefined),
           // being released in eslint-plugin-imports@2.27.0:
           // "import/consistent-type-specifier-style": ["error", "prefer-inline"],
         }
@@ -160,6 +148,19 @@ const getEslintrc = (presets: Presets) => ({
       ? {
           // Doesn't work that great with const Foo: SomeType = ... style components
           "react/prop-types": ["off"],
+          "@typescript-eslint/no-misused-promises": [
+            "error",
+            {
+              checksVoidReturn: {
+                attributes: false,
+              },
+            },
+          ],
+        }
+      : undefined),
+    ...(presets.includes("react")
+      ? {
+          "react/react-in-jsx-scope": "off",
         }
       : undefined),
     "eol-last": ["error", "always"],
