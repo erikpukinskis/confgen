@@ -37,6 +37,7 @@
     "@types/semver": "^7.3.12",
     "@typescript-eslint/eslint-plugin": "^5.39.0",
     "@typescript-eslint/parser": "^5.39.0",
+    "chokidar-cli": "^3.0.0",
     "eslint": "^8.25.0",
     "eslint-import-resolver-typescript": "^3.5.2",
     "eslint-plugin-import": "^2.26.0",
@@ -66,6 +67,7 @@
     "start:bin": "ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
     "test": "vitest run --config vite.lib.config.js",
     "test:dist": "yarn build && yarn test -t @dist",
-    "test:watch": "vitest watch --config vite.lib.config.js"
+    "watch:build": "chokidar \"lib/**/*\" -c \"yarn build\"",
+    "watch:test": "vitest watch --config vite.lib.config.js"
   }
 }
