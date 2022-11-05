@@ -249,13 +249,13 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 ### Might happen
 
+- [x] Need to be more specific about these devServer/library folders. I don't want to open confgen up to a multi-package kind of situation, but currently we do technically support multiple packages, you could have any combo of: src, devServer, and api folders
 - Adding an init command that lets you check off which presets you want
 - Adding a system notification when commands have finished
 - PM2 preset
 - Making room for other "ecosystems". E.g. maybe there's a separate Webpack ecosystem preset like:
-  `npx cofgen webpack node`.
+  `npx confgen webpack node`.
 - While `confgen` doesn't currently bootstrap a working app, it might be close. Maybe in the future running `npx confgen vite react devServer` could fully bootstrap a runnable app.
-- Need to be more specific about these devServer/library folders. I don't want to open confgen up to a multi-package kind of situation, but currently we do technically support multiple packages, you could have any combo of: src, devServer, and api folders
 - Adding a `pojo` command. Right now the `vite` preset generates a POJO (Plain Old JavaScript Object)
   by concatenating top level blocks of JavaScript, like `{ server: { hmr: { port: 443 } } }`. This
   seems to be working for now. But it means that, unlike with JSON files, you can'd add your own
@@ -305,25 +305,31 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Allow yarn commands to specify a version range
 - [x] Use the path as the version when confgen is linked
 - [x] Rename "builds" to "runtimes"?
-- [ ] Improve the logging of command args
-- [ ] Required packages should understand peerDependencies, and maybe we only move dev->non-dev, we don't move non-dev->dev
+- [x] Improve the logging of command args
+- [x] Required packages should understand peerDependencies, and maybe we only move dev->non-dev, we don't move non-dev->dev
+- [x] Add @docs runtime
+- [x] Runs without a package.json
+- [x] Add eslint-plugin-simple-import-sort
+- [x] Use `"import/no-duplicates": ["error"]` instead of `"no-duplicate-imports": "off"` in TypeScript mode
+- [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
+- [x] Sort scripts
+- [x] Remove and ban .. in import paths
+- [x] Include graphql.vscode-graphql extension when... well we don't have an apollo preset anymore, so just when we include codegen?
+- [x] Add `"@typescript-eslint/no-floating-promises": ["error"]`
+- [x] See if pnpm can speed up tests
+- [x] Use ~ instead of @
+- [ ] Figure out why outerframe/application installs eslint-plugin-react@7.28.0 every time?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 - [ ] Make the build artifacts adhere to some kind of naming scheme (app.html, server.js, etc)
-- [ ] Add @docs runtime
-- [ ] Figure out why outerframe/application installs eslint-plugin-react@7.28.0 every time?
-- [ ] Runs without a package.json
-- [ ] Add eslint-plugin-simple-import-sort
-- [ ] Use `"@typescript-eslint/no-duplicate-imports": ["error"]` instead of `"no-duplicate-imports": "off"` in TypeScript mode
-- [ ] Do import type { foo } from 'bar' in most places since eslint does that when it autofixes
-- [ ] Sort scripts
-- [ ] Remove and ban .. in import paths
-- [ ] Include graphql.vscode-graphql extension when... well we don't have an apollo preset anymore, so just when we include codegen?
-- [ ] Add `"@typescript-eslint/no-floating-promises": ["error"]`
-- [ ] See if pnpm can speed up tests
-- [ ] Use ~ instead of @
 - [ ] Account for peerDependencies that are already in the package.json
 - [ ] Add start:package preset
 - [ ] See if we can stop babel being installed
 - [ ] Add debug:test and debug:start commands
 - [ ] Add watch:test, watch:build, watch:generate, and watch commands
 - [ ] @bin should probably be a preset since we might want to have a command and also export some stuff (like in codedocs-fastify)
+- [ ] Figure out why useRef<HTMLElement>() doesn't cause a tserror
+- [ ] Do ts build in rollup?
+- [ ] Use https://github.com/dudykr/stc for type checking?
+- [ ] If no confgen command is present, add one
+- [ ] Get codedocs templates working OOB
+- [ ] Get vitest templates working OOB
