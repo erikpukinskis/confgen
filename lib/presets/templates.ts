@@ -1,4 +1,6 @@
+import get from "lodash/get"
 import type { CommandGenerator, CommandWithArgs } from "~/commands"
+import { readJson } from "~/commands"
 // import type { System } from "~/system"
 
 export const generator: CommandGenerator = ({ presets, args, system }) => {
@@ -16,6 +18,21 @@ export const generator: CommandGenerator = ({ presets, args, system }) => {
       path: `lib/${filename}`,
       contents: `export default () => {}
 `,
+    })
+  }
+
+  const packageJson = readJson("package.json", system)
+
+  if (!get(packageJson, "scripts.confgen")) {
+    const args = process.argv.slice(2)
+    commands.push({
+      command: "file",
+      path: "package.json",
+      contents: {
+        scripts: {
+          confgen: `npx confgen@latest ${args.join(" ")}`,
+        },
+      },
     })
   }
 

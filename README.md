@@ -325,11 +325,12 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Add start:package preset
 - [ ] See if we can stop babel being installed
 - [ ] Add debug:test and debug:start commands
-- [ ] Add watch:test, watch:build, watch:generate, and watch commands
 - [ ] @bin should probably be a preset since we might want to have a command and also export some stuff (like in codedocs-fastify)
 - [ ] Figure out why useRef<HTMLElement>() doesn't cause a tserror
-- [ ] Do ts build in rollup?
+- [ ] Do ts build in rollup
+- [ ] Add watch:build command
+- [ ] Add watch:generate, and watch commands
 - [ ] Use https://github.com/dudykr/stc for type checking?
-- [ ] If no confgen command is present, add one
+- [x] If no confgen command is present, add one
 - [ ] Get codedocs templates working OOB
 - [ ] Get vitest templates working OOB
