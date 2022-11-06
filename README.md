@@ -318,6 +318,11 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Add `"@typescript-eslint/no-floating-promises": ["error"]`
 - [x] See if pnpm can speed up tests
 - [x] Use ~ instead of @
+- [x] If no confgen command is present, add one
+- [x] start:docs:dev runs in zeroconfig scenario
+- [x] check:lint and check:types run in zeroconfig scenario
+- [x] yarn:test runs in zeroconfig scenario
+- [ ] Try to run yarn in offline mode in tests
 - [ ] Figure out why outerframe/application installs eslint-plugin-react@7.28.0 every time?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 - [ ] Make the build artifacts adhere to some kind of naming scheme (app.html, server.js, etc)
@@ -331,10 +336,6 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Add watch:build command
 - [ ] Add watch:generate, and watch commands
 - [ ] Use https://github.com/dudykr/stc for type checking?
-- [x] If no confgen command is present, add one
-- [ ] start:docs:dev runs in zeroconfig scenario
-- [x] check:lint and check:types run in zeroconfig scenario
-- [x] yarn:test runs in zeroconfig scenario
 - [ ] Confgen with git preset does git init if needed
 - [ ] Don't think we need `environment: "jsdom"` in vite.docs.config.js?
 - [ ] Sort .eslintrc? .ignore files?
