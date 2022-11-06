@@ -98,24 +98,25 @@ const getExampleTestPath = (runtime: Runtime, presets: Presets) => {
 }
 
 const getExampleTest = (runtime: Runtime, presets: Presets) => {
-  const componentName = runtime === "app" ? "App" : "MyComponent"
-
   const source = presets.includes("react")
-    ? `import React from "react"
-import { ${componentName} } from "./"
+    ? `import { render } from "@testing-library/react"
+import React from "react"
 import { describe, it } from "vitest"
-import { render } from "@testing-library/react"
 
-describe("${componentName}", () => {
+const MyComponent = () => "hello world!"
+
+describe("MyComponent", () => {
   it("should render without errors", () => {
-    render(<${componentName} />)
+    render(<MyComponent />)
   })
 })
 `
-    : `import { test, expect } from "vitest"
+    : `import { it, expect } from "vitest"
 
-test("true is true", () => {
-  expect(true).toBeTruthy()
+const myFunction = () => "hello world!"
+
+it("returns a greeting", () => {
+  expect(myFunction()).toContain("hello")
 })
 `
   return formatTypescript(source)
