@@ -90,6 +90,7 @@ const getEslintrc = (presets: Presets) => ({
     "import",
     ...(presets.includes("typescript") ? ["@typescript-eslint"] : []),
   ],
+  ignorePatterns: ["*.js"],
   ...(presets.includes("typescript")
     ? {
         parser: "@typescript-eslint/parser",

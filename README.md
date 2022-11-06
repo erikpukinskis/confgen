@@ -333,4 +333,8 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Use https://github.com/dudykr/stc for type checking?
 - [x] If no confgen command is present, add one
 - [ ] start:docs:dev runs in zeroconfig scenario
-- [ ] yarn:test runs in zeroconfig scenario
+- [x] check:lint and check:types run in zeroconfig scenario
+- [x] yarn:test runs in zeroconfig scenario
+- [ ] Confgen with git preset does git init if needed
+- [ ] Don't think we need `environment: "jsdom"` in vite.docs.config.js?
+- [ ] Sort .eslintrc? .ignore files?
