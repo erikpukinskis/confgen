@@ -21,12 +21,12 @@ export const generator: CommandGenerator = async ({
     {
       command: "script",
       name: "test",
-      script: "vitest run --config vite.lib.config.js",
+      script: "vitest run --config vite.test.config.js",
     },
     {
       command: "script",
       name: "watch:test",
-      script: "vitest watch --config vite.lib.config.js",
+      script: "vitest watch --config vite.test.config.js",
     },
   ]
 

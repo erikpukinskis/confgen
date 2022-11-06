@@ -74,10 +74,14 @@ export const generator: CommandGenerator = async ({
     })
   }
 
-  // Commands for runtimes:
+  // Write configs:
 
   if (runtimes.includes("app")) {
     commands.push(...(await getAppCommands(runtimes, presets, args)))
+  }
+
+  if (presets.includes("vitest")) {
+    commands.push(...(await getTestCommands(runtimes, presets, args)))
   }
 
   if (args.dist.includes("lib")) {
@@ -90,6 +94,19 @@ export const generator: CommandGenerator = async ({
 
   return commands
 }
+
+const getTestCommands = async (
+  runtimes: Runtimes,
+  presets: Presets,
+  args: Args
+) =>
+  [
+    {
+      command: "file",
+      path: "vite.test.config.js",
+      contents: await getViteTestConfig(runtimes, presets, args),
+    },
+  ] as const
 
 const getLibCommands = async (
   runtimes: Runtimes,
@@ -290,6 +307,38 @@ const getViteLibConfig = async (
     },
   `
 
+  const dependencies = getDependencies(system)
+
+  const globals = getGlobals(dependencies)
+
+  const rollupStuff = `
+      // make sure to externalize deps that shouldn't be bundled
+      // into your library
+      external: ${JSON.stringify(dependencies)},
+      output: {
+        // Provide global variables to use in the UMD build
+        // for externalized deps
+        globals: ${JSON.stringify(globals)},
+      },
+  `
+
+  return getViteBaseConfig(runtimes, presets, args, { buildStuff, rollupStuff })
+}
+
+const getViteTestConfig = async (
+  runtimes: Runtimes,
+  presets: Presets,
+  args: Args
+) => {
+  return getViteBaseConfig(runtimes, presets, args)
+}
+
+const getViteBaseConfig = async (
+  runtimes: Runtimes,
+  presets: Presets,
+  args: Args,
+  scripts: Partial<Scripts> = {}
+) => {
   const plugins: VitePlugin[] = []
 
   if (presets.includes("node") && args.node.length > 0) {
@@ -306,39 +355,21 @@ const getViteLibConfig = async (
     plugins.push(["sql", "vite-plugin-sql"])
   }
 
-  const dependencies = getDependencies(system)
-
-  const globals = getGlobals(dependencies)
-
-  const rollupStuff = `
-      // make sure to externalize deps that shouldn't be bundled
-      // into your library
-      external: ${JSON.stringify(dependencies)},
-      output: {
-        // Provide global variables to use in the UMD build
-        // for externalized deps
-        globals: ${JSON.stringify(globals)},
-      },
-  `
-
-  return await getViteConfig(runtimes, presets, plugins, {
-    buildStuff,
-    rollupStuff,
-  })
+  return await getViteConfig(runtimes, presets, plugins, scripts)
 }
 
 type Scripts = {
-  codespaceSetup?: string
-  serverStuff?: string
-  buildStuff?: string
-  rollupStuff?: string
+  codespaceSetup: string
+  serverStuff: string
+  buildStuff: string
+  rollupStuff: string
 }
 
 const getViteConfig = async (
   runtimes: Runtimes,
   presets: Presets,
   plugins: VitePlugin[],
-  scripts: Scripts
+  scripts: Partial<Scripts>
 ) => {
   const {
     codespaceSetup = "",

@@ -332,5 +332,5 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Add watch:generate, and watch commands
 - [ ] Use https://github.com/dudykr/stc for type checking?
 - [x] If no confgen command is present, add one
-- [ ] Get codedocs templates working OOB
-- [ ] Get vitest templates working OOB
+- [ ] start:docs:dev runs in zeroconfig scenario
+- [ ] yarn:test runs in zeroconfig scenario
