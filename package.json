@@ -64,6 +64,7 @@
     "fix:format": "prettier --write --ignore-path .gitignore .",
     "fix:lint": "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
     "gen": "npx ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
+    "preinstall": "npx only-allow pnpm",
     "start:bin": "ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
     "test": "vitest run --config vite.lib.config.js",
     "test:dist": "yarn build && yarn test -t @dist",
