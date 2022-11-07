@@ -2,13 +2,13 @@ import type { CommandGenerator } from "~/commands"
 
 export const generator: CommandGenerator = ({ presets }) => [
   {
-    command: "yarn",
+    command: "package",
     pkg: "react",
   },
   ...(presets.includes("typescript")
     ? ([
         {
-          command: "yarn",
+          command: "package",
           pkg: "@types/react",
           dev: true,
         },

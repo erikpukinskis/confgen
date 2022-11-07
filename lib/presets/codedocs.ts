@@ -21,7 +21,7 @@ export const generator: CommandGenerator = async ({ system, presets }) => {
       contents: getWorkflow(packageJson.name),
     },
     {
-      command: "yarn",
+      command: "package",
       pkg: "react-router-dom",
       dev: true,
     },
@@ -29,7 +29,7 @@ export const generator: CommandGenerator = async ({ system, presets }) => {
 
   if (packageJson.name !== "codedocs") {
     commands.push({
-      command: "yarn",
+      command: "package",
       pkg: "codedocs",
       dev: true,
     })

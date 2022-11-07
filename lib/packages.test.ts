@@ -16,7 +16,7 @@ describe("packages", () => {
     expect(
       packagesNeedingUpgrade(system, [
         {
-          command: "yarn",
+          command: "package",
           pkg: "yaml",
           version: "^1.10.2",
         },
@@ -26,7 +26,7 @@ describe("packages", () => {
     expect(
       packagesNeedingUpgrade(system, [
         {
-          command: "yarn",
+          command: "package",
           pkg: "yaml",
           version: "^1.10.3",
         },
@@ -46,7 +46,7 @@ describe("packages", () => {
     )
 
     expect(
-      packagesToAdd(system, [{ command: "yarn", pkg: "react" }])
+      packagesToAdd(system, [{ command: "package", pkg: "react" }])
     ).toHaveLength(0)
   })
 
@@ -55,7 +55,7 @@ describe("packages", () => {
     system.write("package.json", "{}")
 
     expect(
-      packagesToAdd(system, [{ command: "yarn", pkg: "react" }])
+      packagesToAdd(system, [{ command: "package", pkg: "react" }])
     ).toContain("react")
   })
 
@@ -65,7 +65,7 @@ describe("packages", () => {
 
     expect(
       packagesToAdd(system, [
-        { command: "yarn", pkg: "react", version: "^18.0.0" },
+        { command: "package", pkg: "react", version: "^18.0.0" },
       ])
     ).toContain("react@^18.0.0")
   })
@@ -87,7 +87,7 @@ describe("packages", () => {
 
     expect(
       packagesToAdd(system, [
-        { command: "yarn", pkg: "react", version: "^18.0.0" },
+        { command: "package", pkg: "react", version: "^18.0.0" },
       ])
     ).toContain("react@^18.0.0")
   })

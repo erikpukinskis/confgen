@@ -13,7 +13,7 @@ export type { System } from "~/system"
 
 export type { Args } from "~/args"
 
-export type Command = "file" | "run" | "script" | "yarn"
+export type Command = "file" | "run" | "script" | "package"
 
 export type FileCommand = {
   command: "file"
@@ -47,14 +47,14 @@ export function isDistPackageCommand(
 }
 
 export type DistPackageCommand = {
-  command: "yarn"
+  command: "package"
   dev?: false
   pkg: string
   version?: string
 }
 
 export type DevPackageCommand = {
-  command: "yarn"
+  command: "package"
   dev: true
   pkg: string
   version?: string
@@ -71,7 +71,7 @@ export function isDevPackageCommand(
 export function isPackageCommand(
   command: CommandWithArgs
 ): command is PackageCommand {
-  return command.command === "yarn"
+  return command.command === "package"
 }
 
 export type Presets = PresetName[]
@@ -120,7 +120,7 @@ export const runCommand = async (command: CommandWithArgs, system: System) => {
       log += `   ${command.script}\n`
     } else if (command.command === "script") {
       log += `   yarn run ${command.name}\n`
-    } else if (command.command === "yarn") {
+    } else if (command.command === "package") {
       log += `   ${command.pkg}${
         command.version ? `@${command.version}` : ""
       }\n`

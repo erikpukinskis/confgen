@@ -3,26 +3,26 @@ import { type Presets } from "~/presets"
 
 export const generator: CommandGenerator = ({ presets }) => [
   {
-    command: "yarn",
+    command: "package",
     dev: true,
     pkg: "eslint",
   },
   {
-    command: "yarn",
+    command: "package",
     dev: true,
     pkg: "eslint-plugin-import",
   },
   ...(presets.includes("typescript")
     ? ([
         {
-          command: "yarn",
+          command: "package",
           dev: true,
           pkg: "@typescript-eslint/eslint-plugin",
           version: "^5.14.0",
         },
-        { command: "yarn", dev: true, pkg: "@typescript-eslint/parser" },
+        { command: "package", dev: true, pkg: "@typescript-eslint/parser" },
         {
-          command: "yarn",
+          command: "package",
           dev: true,
           pkg: "eslint-import-resolver-typescript",
         },
@@ -31,7 +31,7 @@ export const generator: CommandGenerator = ({ presets }) => [
   ...(presets.includes("react")
     ? ([
         {
-          command: "yarn",
+          command: "package",
           dev: true,
           pkg: "eslint-plugin-react@7.28.0",
         },

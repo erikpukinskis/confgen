@@ -12,7 +12,7 @@ export const generator: CommandGenerator = ({ presets, runtimes }) => {
     ...(runtimes.includes("server")
       ? ([
           {
-            command: "yarn",
+            command: "package",
             dev: true,
             pkg: "vite-node",
           },

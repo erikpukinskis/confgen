@@ -99,7 +99,7 @@ export class Project {
     )
 
     const otherCommands = generatedCommands.filter(
-      ({ command }) => command !== "yarn"
+      ({ command }) => command !== "package"
     )
 
     for (const command of otherCommands) {

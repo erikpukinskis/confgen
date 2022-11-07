@@ -14,7 +14,7 @@ export const generator: CommandGenerator = async ({
 }) => {
   const commands: CommandWithArgs[] = [
     {
-      command: "yarn",
+      command: "package",
       dev: true,
       pkg: "vitest",
     },
@@ -64,12 +64,12 @@ export const generator: CommandGenerator = async ({
   if (presets.includes("react")) {
     commands.push(
       {
-        command: "yarn",
+        command: "package",
         pkg: "@testing-library/react",
         dev: true,
       },
       {
-        command: "yarn",
+        command: "package",
         pkg: "react-dom",
       }
     )

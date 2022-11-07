@@ -26,7 +26,7 @@ export const generator: CommandGenerator = async ({
 }) => {
   const commands: CommandWithArgs[] = [
     {
-      command: "yarn",
+      command: "package",
       dev: true,
       pkg: "vite",
     },
@@ -36,7 +36,7 @@ export const generator: CommandGenerator = async ({
 
   if (presets.includes("node") && args.node.length > 0) {
     commands.push({
-      command: "yarn",
+      command: "package",
       dev: true,
       pkg: "vite-plugin-commonjs-externals",
     })
@@ -44,7 +44,7 @@ export const generator: CommandGenerator = async ({
 
   if (presets.includes("macros")) {
     commands.push({
-      command: "yarn",
+      command: "package",
       dev: true,
       pkg: "vite-plugin-babel-macros",
     })
@@ -52,7 +52,7 @@ export const generator: CommandGenerator = async ({
 
   if (presets.includes("sql")) {
     commands.push({
-      command: "yarn",
+      command: "package",
       pkg: "vite-plugin-sql",
       dev: true,
     })
@@ -60,7 +60,7 @@ export const generator: CommandGenerator = async ({
 
   if (presets.includes("react")) {
     commands.push({
-      command: "yarn",
+      command: "package",
       pkg: "@vitejs/plugin-react",
       dev: true,
     })
@@ -68,7 +68,7 @@ export const generator: CommandGenerator = async ({
 
   if (presets.includes("vitest") && presets.includes("react")) {
     commands.push({
-      command: "yarn",
+      command: "package",
       pkg: "jsdom",
       dev: true,
     })

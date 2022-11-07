@@ -66,7 +66,7 @@ export const runCombinedInstall = (
 
   return runCommand(
     {
-      command: "yarn",
+      command: "package",
       dev: commands[0].dev,
       pkg: packages.join(" "),
     },

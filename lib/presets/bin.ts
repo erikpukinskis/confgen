@@ -34,14 +34,14 @@ export const generator: CommandGenerator = ({ presets }) => [
     script: getStartScript(presets),
   },
   {
-    command: "yarn",
+    command: "package",
     pkg: "ts-node",
     dev: true,
   },
   ...(presets.includes("typescript")
     ? ([
         {
-          command: "yarn",
+          command: "package",
           pkg: "tsconfig-paths",
           dev: true,
         },

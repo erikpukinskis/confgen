@@ -44,12 +44,12 @@ export const generator: CommandGenerator = async ({ args, system }) => {
 
   const commands: CommandWithArgs[] = [
     {
-      command: "yarn",
+      command: "package",
       dev: true,
       pkg: "@graphql-codegen/cli",
     },
     {
-      command: "yarn",
+      command: "package",
       dev: true,
       pkg: "graphql",
     },
@@ -81,12 +81,12 @@ export const generator: CommandGenerator = async ({ args, system }) => {
     commands.push(
       ...([
         {
-          command: "yarn",
+          command: "package",
           dev: true,
           pkg: "@graphql-codegen/typescript-resolvers",
         },
         {
-          command: "yarn",
+          command: "package",
           dev: true,
           pkg: "@graphql-codegen/add",
         },
@@ -120,7 +120,7 @@ export const generator: CommandGenerator = async ({ args, system }) => {
             },
           ] as const)),
       {
-        command: "yarn",
+        command: "package",
         pkg: "graphql-codegen-schema-script",
         dev: true,
       },
@@ -136,7 +136,7 @@ export const generator: CommandGenerator = async ({ args, system }) => {
     commands.push(
       ...([
         {
-          command: "yarn",
+          command: "package",
           pkg: "@graphql-codegen/client-preset",
           dev: true,
         },

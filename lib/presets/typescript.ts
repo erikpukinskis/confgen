@@ -10,19 +10,19 @@ const tsconfigPath = () => "tsconfig.json"
 
 export const generator: CommandGenerator = ({ presets, runtimes }) => [
   {
-    command: "yarn",
+    command: "package",
     pkg: "typescript",
     dev: true,
   },
   {
-    command: "yarn",
+    command: "package",
     pkg: "@types/node",
     dev: true,
   },
   ...(presets.includes("dist")
     ? ([
         {
-          command: "yarn",
+          command: "package",
           dev: true,
           pkg: "tsc-alias",
         },

@@ -2,7 +2,7 @@ import type { CommandGenerator } from "~/commands"
 
 export const generator: CommandGenerator = ({ presets }) => [
   {
-    command: "yarn",
+    command: "package",
     dev: true,
     pkg: "prettier",
   },
