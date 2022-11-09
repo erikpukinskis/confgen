@@ -96,15 +96,15 @@ const descriptions: Record<string, string> = {
   file: "Updating file",
   run: "Running command",
   script: "Updating script in package.json",
-  yarn: "Adding package(s) to package.json",
-  yarnDev: "Adding development package(s) to package.json",
+  package: "Adding package(s) to package.json",
+  devPackage: "Adding development package(s) to package.json",
 }
 
 export const runCommand = async (command: CommandWithArgs, system: System) => {
   await tick()
 
   const descriptionKey = isDevPackageCommand(command)
-    ? "yarnDev"
+    ? "devPackage"
     : command.command
 
   let log = ""
@@ -115,13 +115,13 @@ export const runCommand = async (command: CommandWithArgs, system: System) => {
     const presetDetails = command.preset ? `[${command.preset}] ` : ""
     log += `👷 ${descriptions[descriptionKey]} ${presetDetails}\n`
     if (command.command === "file") {
-      log += `   ${command.path}\n`
+      log += `   updating ${command.path}\n`
     } else if (command.command === "run") {
-      log += `   ${command.script}\n`
+      log += `   running ${command.script}\n`
     } else if (command.command === "script") {
-      log += `   yarn run ${command.name}\n`
+      log += `   updating ${command.name} script\n`
     } else if (command.command === "package") {
-      log += `   ${command.pkg}${
+      log += `   adding package ${command.pkg}${
         command.version ? `@${command.version}` : ""
       }\n`
     }
@@ -191,7 +191,7 @@ const commands = {
       system
     )
   },
-  yarn: (command: PackageCommand, system: System) => {
+  package: (command: PackageCommand, system: System) => {
     system.addPackage(command.pkg, isDevPackageCommand(command))
   },
 } as const

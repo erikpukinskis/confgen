@@ -52,9 +52,9 @@ const ensureDependencies = (
 }
 
 /**
- * Takes an array of package commands and combines them into a single `yarn
- * add`. Skips packages already in the package.json unless they need to be
- * upgraded.
+ * Takes an array of package commands and combines them into a single yarn
+ * add/pnpm add/etc. Skips packages already in the package.json unless they need
+ * to be upgraded.
  */
 export const runCombinedInstall = (
   commands: PackageCommand[],
