@@ -170,7 +170,6 @@ const getEslintrc = (presets: Presets) => ({
         }
       : undefined),
     "eol-last": ["error", "always"],
-    "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"],
     "import/order": [
       "error",
