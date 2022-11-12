@@ -38,12 +38,17 @@ export const generator: CommandGenerator = async ({
         version: "0.2.0",
         configurations: [
           {
-            type: "pwa-node",
+            type: "node",
             request: "launch",
             name: "Debug Current Test File",
             skipFiles: ["<node_internals>/**", "**/node_modules/**"],
             program: "${workspaceRoot}/node_modules/vitest/vitest.mjs",
-            args: ["run", "${relativeFile}"],
+            args: [
+              "related",
+              "--config",
+              "vite.test.config.js",
+              "${relativeFile}",
+            ],
             smartStep: true,
             console: "integratedTerminal",
           },
