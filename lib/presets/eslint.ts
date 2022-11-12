@@ -138,13 +138,18 @@ const getEslintrc = (presets: Presets) => ({
           "no-unused-vars": "off",
           "@typescript-eslint/no-unused-vars": [
             "error",
-            { args: "after-used" },
+            { args: "after-used", varsIgnorePattern: "^_+$" },
           ],
           "semi": ["error", "never"],
-          // being released in eslint-plugin-imports@2.27.0:
+          // being released in eslint-plugin-import@2.27.0:
           // "import/consistent-type-specifier-style": ["error", "prefer-inline"],
         }
-      : undefined),
+      : {
+          "no-unused-vars": [
+            "error",
+            { args: "after-used", varsIgnorePattern: "^_+$" },
+          ],
+        }),
     ...(presets.includes("react") && presets.includes("typescript")
       ? {
           // Doesn't work that great with const Foo: SomeType = ... style components
