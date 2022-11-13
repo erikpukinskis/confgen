@@ -9,6 +9,7 @@ import * as git from "./git"
 import * as githubPackage from "./githubPackage"
 import * as macros from "./macros"
 import * as node from "./node"
+import * as pnpm from "./pnpm"
 import * as prettier from "./prettier"
 import * as react from "./react"
 import * as sql from "./sql"
@@ -36,6 +37,7 @@ const PRESETS = {
   githubPackage,
   macros,
   node,
+  pnpm,
   prettier,
   react,
   sql,

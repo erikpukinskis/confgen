@@ -1,7 +1,12 @@
 import difference from "lodash/difference"
 import union from "lodash/union"
 import { satisfies } from "semver"
-import { runCommand, readJson, type PackageCommand } from "./commands"
+import {
+  runCommand,
+  readJson,
+  type PackageCommand,
+  type Presets,
+} from "./commands"
 import { formatJson } from "./format"
 import { type System } from "~/system"
 
@@ -134,6 +139,7 @@ const currentlyInstalledPackages = (isDev: boolean, system: System) => {
 
 export const packagesNeedingUpgrade = (
   system: System,
+  presets: Presets,
   commands: PackageCommand[]
 ) => {
   const out: string[] = []

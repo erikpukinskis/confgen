@@ -54,6 +54,15 @@ export class Project {
   }
 
   async confgen() {
+    if (
+      !this.presetNames.includes("yarn") &&
+      !this.presetNames.includes("pnpm")
+    ) {
+      throw new Error(
+        "You must include either the yarn preset or the pnpm preset otherwise confgen won't know how to install packages"
+      )
+    }
+
     for (const presetName of this.presetNames) {
       precheck(
         presetName,

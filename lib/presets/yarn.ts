@@ -1,4 +1,14 @@
-import type { CommandGenerator, CommandWithArgs } from "~/commands"
+import type { CommandGenerator, CommandWithArgs, Precheck } from "~/commands"
+
+export const precheck: Precheck = ({ system }) => {
+  const out: string[] = []
+  system.run("which yarn", out)
+  if (!/yarn/.test(out.join(""))) {
+    throw new Error(
+      "yarn must be installed to use the yarn preset: https://classic.yarnpkg.com/lang/en/docs/cli/install"
+    )
+  }
+}
 
 export const generator: CommandGenerator = ({ system }) => {
   const commands: CommandWithArgs[] = [
@@ -13,6 +23,10 @@ export const generator: CommandGenerator = ({ system }) => {
     {
       command: "run",
       script: "rm -f package-lock.json",
+    },
+    {
+      command: "run",
+      script: "rm -f pnpm-lock.yaml",
     },
   ]
 

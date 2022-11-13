@@ -53,13 +53,14 @@ Options:
                   macros                      Enables babel macros in Vite
                   node[:fs][:path][etc...]    Configures codespace to use the Node.js environment
                                                 and sets up the Node packages needed inVite
+                  pnpm                        Use pnpm for package installation
                   prettier                    Code formatting with format-on-save in codespace
                   react                       Enable React in eslint, typescript, etc
                   sql                         Sets up Vite plugin for importing sql
                   typescript:[tsconfig path]  Do stuff in TypeScript, check types, etc
                   vite                        Use Vite for dev server and builds
                   vitest                      Configures test scripts
-                  yarn                        Creates a yarn.lock file
+                  yarn                        Use yarn for package installation
 
   --silent      Suppress logging during normal operation
 `

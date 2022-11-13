@@ -141,6 +141,8 @@ const getEslintrc = (presets: Presets) => ({
             { args: "after-used", varsIgnorePattern: "^_+$" },
           ],
           "semi": ["error", "never"],
+          // Prettier will insert a leading semicolon when needed, which breaks this
+          "@typescript-eslint/no-extra-semi": "off",
           // being released in eslint-plugin-import@2.27.0:
           // "import/consistent-type-specifier-style": ["error", "prefer-inline"],
         }

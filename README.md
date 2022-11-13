@@ -339,3 +339,8 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [ ] Confgen with git preset does git init if needed
 - [ ] Don't think we need `environment: "jsdom"` in vite.docs.config.js?
 - [ ] Sort .eslintrc? .ignore files?
+- [ ] Figure out why exhaustive-deps, jsx-key, etc isn't working
+- [ ] Add eslint-plugin-react-hooks
+- [ ] Add eslint-plugin-jsx-a11y?
+- [ ] Add axe in unit tests? or docs?
+- [ ] Remove .eslintignore?

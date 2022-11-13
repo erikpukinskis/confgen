@@ -11,6 +11,7 @@ export const PRESET_NAMES = [
   "githubPackage",
   "macros",
   "node",
+  "pnpm",
   "prettier",
   "react",
   "sql",
