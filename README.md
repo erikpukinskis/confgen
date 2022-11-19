@@ -322,20 +322,30 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] start:docs:dev runs in zeroconfig scenario
 - [x] check:lint and check:types run in zeroconfig scenario
 - [x] yarn:test runs in zeroconfig scenario
+- [x] Account for peerDependencies that are already in the package.json
+
+Higher priority:
 - [ ] Try to run yarn in offline mode in tests
+- [ ] Add pnpm preset
+- [ ] Do ts build in rollup
+- [ ] Don't think we need `environment: "jsdom"` in vite.docs.config.js?
+- [ ] Remove .eslintignore?
+- [ ] Add https://www.npmjs.com/package/validate-peer-dependencies as a preinstall hook
+
+Later:
 - [ ] Figure out why outerframe/application installs eslint-plugin-react@7.28.0 every time?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 - [ ] Make the build artifacts adhere to some kind of naming scheme (app.html, server.js, etc)
-- [ ] Account for peerDependencies that are already in the package.json
 - [ ] Add start:package preset
 - [ ] See if we can stop babel being installed
-- [ ] Add debug:test and debug:start commands
-- [ ] @bin should probably be a preset since we might want to have a command and also export some stuff (like in codedocs-fastify)
+- [ ] @bin could be a runtime if we want to have a start command and also export a start function
 - [ ] Figure out why useRef<HTMLElement>() doesn't cause a tserror
-- [ ] Do ts build in rollup
 - [ ] Add watch:build command
 - [ ] Add watch:generate, and watch commands
 - [ ] Use https://github.com/dudykr/stc for type checking?
 - [ ] Confgen with git preset does git init if needed
-- [ ] Don't think we need `environment: "jsdom"` in vite.docs.config.js?
 - [ ] Sort .eslintrc? .ignore files?
+- [ ] Figure out why exhaustive-deps, jsx-key, etc isn't working
+- [ ] Add eslint-plugin-react-hooks
+- [ ] Add eslint-plugin-jsx-a11y?
+- [ ] Add axe in unit tests? or docs?
