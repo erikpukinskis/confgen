@@ -39,26 +39,27 @@ Options:
                   codegen:lib:schema:resolvers
 
                 Available presets:
-                  start                       Adds command to start a server
+                  bin                         Adds a "bin" to your package JSON
                   codedocs                    Deploy a documentation site to Github Pages
                   codegen:resolvers           Generate types for Apollo Server resolvers
                   codegen:schema              Compiles a GraphQL schema to TypeScript so it it can
-                                                be exported from a library
+                                              be exported from a library
                   codegen:operations          Compiles a typed gql function for all of your Apollo
-                                                Client queries and mutations
-                  bin                         Adds a "bin" to your package JSON
+                                              Client queries and mutations
                   codespaces                  Sets up some good VSCode defaults, and adds
-                                                extensions eslint, prettier, etc presets
+                                              extensions eslint, prettier, etc presets
+                  dist[:runtime1][:runtime2]  Generate importable files for selected runtimes
+                                              importable from dist/
                   eslint                      Sets up linting with fix-on-save in codespaces
                   git                         Pre-populates gitignore
-                  dist[:runtime1][:runtime2]  Generate importable files for selected runtimes
-                                                importable from dist/
+                  githubPackage               Use Github to publish and install packages
                   macros                      Enables babel macros in Vite
                   node[:fs][:path][etc...]    Configures codespace to use the Node.js environment
-                                                and sets up the Node packages needed inVite
+                                              and sets up the Node packages needed inVite
                   prettier                    Code formatting with format-on-save in codespace
                   react                       Enable React in eslint, typescript, etc
                   sql                         Sets up Vite plugin for importing sql
+                  start                       Adds command to start a server
                   typescript:[tsconfig path]  Do stuff in TypeScript, check types, etc
                   vite                        Use Vite for dev server and builds
                   vitest                      Configures test scripts
@@ -325,7 +326,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Account for peerDependencies that are already in the package.json
 
 Higher priority:
-- [ ] Try to run yarn in offline mode in tests
+- [ ] No bad peer dependencies!!!
 - [ ] Add pnpm preset
 - [ ] Do ts build in rollup
 - [ ] Don't think we need `environment: "jsdom"` in vite.docs.config.js?
@@ -336,6 +337,8 @@ Later:
 - [ ] Figure out why outerframe/application installs eslint-plugin-react@7.28.0 every time?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 - [ ] Make the build artifacts adhere to some kind of naming scheme (app.html, server.js, etc)
+- [ ] Try to run yarn in offline mode in tests
+- [ ] Generate typical Ambic repos from a single confgen command
 - [ ] Add start:package preset
 - [ ] See if we can stop babel being installed
 - [ ] @bin could be a runtime if we want to have a start command and also export a start function
