@@ -15,4 +15,7 @@ jobs:
 concurrency:
   group: check-lint
   cancel-in-progress: true
-on: push
+on:
+  push:
+    tags-ignore:
+      - "**"

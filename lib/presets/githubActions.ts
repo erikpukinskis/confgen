@@ -10,7 +10,9 @@ type GithubJob = {
 
 type GithubWorkflow = {
   name?: string
-  on?: unknown
+  on?: {
+    push: Record<string, unknown>
+  }
   concurrency?: unknown
   jobs: Record<string, GithubJob>
 }
@@ -67,12 +69,12 @@ export const getGithubWorkflow = ({
     },
   }
 
+  workflow.on = { push: { "tags-ignore": ["**"] } }
+
   if (includeBranch) {
-    workflow.on = { push: { branches: ["main"] } }
+    workflow.on.push.branches = ["main"]
   } else if (excludeBranch) {
-    workflow.on = { push: { "branches-ignore": ["main"] } }
-  } else {
-    workflow.on = "push"
+    workflow.on.push["branches-ignore"] = ["main"]
   }
 
   jobOptions.forEach(({ jobName }) => {

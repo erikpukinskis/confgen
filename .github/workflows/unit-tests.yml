@@ -16,4 +16,7 @@ jobs:
 concurrency:
   group: run-unit-tests
   cancel-in-progress: true
-on: push
+on:
+  push:
+    tags-ignore:
+      - "**"
