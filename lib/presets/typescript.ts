@@ -1,4 +1,11 @@
-import type { CommandGenerator, Precheck, Runtimes, Presets } from "~/commands"
+import { getGithubWorkflow } from "./githubActions"
+import type {
+  CommandGenerator,
+  Precheck,
+  Runtimes,
+  Presets,
+  CommandWithArgs,
+} from "~/commands"
 
 export const precheck: Precheck = ({ args }) => {
   if (args.typescript.length > 0) {
@@ -8,47 +15,76 @@ export const precheck: Precheck = ({ args }) => {
 
 const tsconfigPath = () => "tsconfig.json"
 
-export const generator: CommandGenerator = ({ presets, runtimes }) => [
-  {
-    command: "yarn",
-    pkg: "typescript@4.9.4",
-    dev: true,
-  },
-  {
-    command: "yarn",
-    pkg: "@types/node@16.18.8",
-    dev: true,
-  },
-  ...(presets.includes("dist")
-    ? ([
-        {
-          command: "yarn",
-          dev: true,
-          pkg: "tsc-alias",
-        },
-        {
-          command: "file",
-          path: "tsconfig.dist.json",
-          contents: getDistConfig(),
-        },
-        {
-          command: "script",
-          name: "build:types",
-          script: `tsc --declaration --emitDeclarationOnly -p tsconfig.dist.json --skipLibCheck && tsc-alias -p ${tsconfigPath()} && mv dist/index.d.ts dist/lib.umd.d.ts`,
-        },
-      ] as const)
-    : []),
-  {
-    command: "script",
-    name: "check:types",
-    script: `tsc --noEmit -p ${tsconfigPath()}; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi`,
-  },
-  {
-    command: "file",
-    path: tsconfigPath(),
-    contents: getConfig(presets, runtimes),
-  },
-]
+export const generator: CommandGenerator = ({ presets, runtimes }) => {
+  const commands: CommandWithArgs[] = [
+    {
+      command: "yarn",
+      pkg: "typescript@4.9.4",
+      dev: true,
+    },
+    {
+      command: "yarn",
+      pkg: "@types/node@16.18.8",
+      dev: true,
+    },
+    {
+      command: "script",
+      name: "check:types",
+      script: `tsc --noEmit -p ${tsconfigPath()}; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi`,
+    },
+    {
+      command: "file",
+      path: tsconfigPath(),
+      contents: getConfig(presets, runtimes),
+    },
+  ]
+
+  if (presets.includes("dist")) {
+    commands.push(
+      {
+        command: "yarn",
+        dev: true,
+        pkg: "tsc-alias",
+      },
+      {
+        command: "file",
+        path: "tsconfig.dist.json",
+        contents: getDistConfig(),
+      },
+      {
+        command: "script",
+        name: "build:types",
+        script: `tsc --declaration --emitDeclarationOnly -p tsconfig.dist.json --skipLibCheck && tsc-alias -p ${tsconfigPath()} && mv dist/index.d.ts dist/lib.umd.d.ts`,
+      }
+    )
+  }
+
+  if (presets.includes("githubActions")) {
+    commands.push({
+      command: "file",
+      path: ".github/workflows/check-types.yml",
+      contents: getTypeCheckWorkflow(),
+      merge: "replace",
+    })
+  }
+  return commands
+}
+
+const getTypeCheckWorkflow = () =>
+  getGithubWorkflow({
+    needsPackages: true,
+    workflowName: "types",
+    jobs: [
+      {
+        jobName: "check",
+        steps: [
+          {
+            run: "yarn check:types",
+          },
+        ],
+      },
+    ],
+  })
 
 /**
  * ~~~~~Takes an array of runtimes (['app', 'lib', etc]) and returns the top-down path

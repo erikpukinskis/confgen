@@ -1,3 +1,4 @@
+import { getGithubWorkflow } from "./githubActions"
 import type {
   CommandGenerator,
   System,
@@ -92,38 +93,24 @@ export const generator: CommandGenerator = async ({
   return commands
 }
 
-const getUnitTestsWorkflow = () => ({
-  name: "Run unit tests",
-  on: "push",
-  jobs: {
-    test: {
-      "runs-on": "ubuntu-latest",
-      "steps": [
-        {
-          name: "Check out",
-          uses: "actions/checkout@v3",
-        },
-        {
-          name: "Set up Yarn cache",
-          uses: "actions/setup-node@v3",
-          with: {
-            "node-version": "16",
-            "cache": "yarn",
+const getUnitTestsWorkflow = () =>
+  getGithubWorkflow({
+    needsPackages: true,
+    workflowName: "unit tests",
+    jobs: [
+      {
+        jobName: "run",
+        steps: [
+          {
+            run: "yarn build",
           },
-        },
-        {
-          run: "yarn install --frozen-lockfile",
-        },
-        {
-          run: "yarn build",
-        },
-        {
-          run: "yarn test",
-        },
-      ],
-    },
-  },
-})
+          {
+            run: "yarn test",
+          },
+        ],
+      },
+    ],
+  })
 
 const hasTestFiles = (system: System) => {
   const { status } = system.run(

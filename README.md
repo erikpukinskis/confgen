@@ -325,11 +325,11 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] check:lint and check:types run in zeroconfig scenario
 - [x] yarn:test runs in zeroconfig scenario
 - [x] Account for peerDependencies that are already in the package.json
+- [x] Don't add packages if they're already peerDependencies
+- [x] Add githubActions preset
 
 Higher priority:
 
-- [ ] Don't add packages if they're already peerDependencies
-- [ ] Add githubActions preset
 - [ ] Add "Watch for TypeScript problems" task
 - [ ] No bad peer dependencies!!!
 - [ ] Add Codedocs preset to this repo
