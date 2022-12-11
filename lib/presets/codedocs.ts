@@ -145,7 +145,7 @@ const getWorkflow = (
           name: "Set up Yarn cache",
           uses: "actions/setup-node@v3",
           with: {
-            "node-version": "14",
+            "node-version": "16",
             "cache": "yarn",
           },
         },
@@ -180,7 +180,7 @@ const getWorkflow = (
           name: "Set up Yarn cache",
           uses: "actions/setup-node@v3",
           with: {
-            "node-version": "14",
+            "node-version": "16",
             "cache": "yarn",
           },
         },
