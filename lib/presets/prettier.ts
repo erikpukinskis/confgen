@@ -62,8 +62,6 @@ export const generator: CommandGenerator = ({ presets }) => {
       contents: getCheckFormatWorkflow(),
       merge: "replace",
     })
-  } else {
-    console.log("no ADDD workflow")
   }
 
   return commands

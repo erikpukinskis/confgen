@@ -115,6 +115,9 @@ const getUnitTestsWorkflow = () => ({
           run: "yarn install --frozen-lockfile",
         },
         {
+          run: "yarn build",
+        },
+        {
           run: "yarn test",
         },
       ],

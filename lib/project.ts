@@ -83,8 +83,6 @@ export class Project {
       generatedCommands.push(...generated)
     }
 
-    console.log("v2")
-
     const withoutPeer = generatedCommands.filter((command) => {
       if (!isPackageCommand(command)) return false
       const packageType = getPackageType(command.pkg, this.system)
