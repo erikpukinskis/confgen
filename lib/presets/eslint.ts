@@ -1,87 +1,133 @@
+import type { CommandWithArgs } from "~/commands"
 import { type CommandGenerator } from "~/commands"
 import { type Presets } from "~/presets"
 
-export const generator: CommandGenerator = ({ presets }) => [
-  {
-    command: "yarn",
-    dev: true,
-    pkg: "eslint@8.29.0",
-  },
-  {
-    command: "yarn",
-    dev: true,
-    pkg: "eslint-plugin-import",
-  },
-  ...(presets.includes("typescript")
-    ? ([
-        {
-          command: "yarn",
-          dev: true,
-          pkg: "@typescript-eslint/eslint-plugin@5.46.0",
-        },
-        { command: "yarn", dev: true, pkg: "@typescript-eslint/parser" },
-        {
-          command: "yarn",
-          dev: true,
-          pkg: "eslint-import-resolver-typescript",
-        },
-      ] as const)
-    : []),
-  ...(presets.includes("react")
-    ? ([
-        {
-          command: "yarn",
-          dev: true,
-          pkg: "eslint-plugin-react@7.31.11",
-        },
-      ] as const)
-    : []),
-  {
-    command: "file",
-    path: ".eslintignore",
-    contents: `node_modules
+export const generator: CommandGenerator = ({ presets }) => {
+  const commands: CommandWithArgs[] = [
+    {
+      command: "yarn",
+      dev: true,
+      pkg: "eslint@8.29.0",
+    },
+    {
+      command: "yarn",
+      dev: true,
+      pkg: "eslint-plugin-import",
+    },
+
+    {
+      command: "file",
+      path: ".eslintignore",
+      contents: `node_modules
 dist
 vendor
 `,
-  },
-  {
-    command: "file",
-    path: ".eslintrc",
-    contents: getEslintrc(presets),
-  },
-  ...(presets.includes("codespaces")
-    ? ([
+    },
+    {
+      command: "file",
+      path: ".eslintrc",
+      contents: getEslintrc(presets),
+    },
+    {
+      command: "script",
+      name: "check:lint",
+      script:
+        "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
+    },
+    {
+      command: "script",
+      name: "fix:lint",
+      script:
+        "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
+    },
+  ]
+
+  if (presets.includes("typescript")) {
+    commands.push(
+      {
+        command: "yarn",
+        dev: true,
+        pkg: "@typescript-eslint/eslint-plugin@5.46.0",
+      },
+      { command: "yarn", dev: true, pkg: "@typescript-eslint/parser" },
+      {
+        command: "yarn",
+        dev: true,
+        pkg: "eslint-import-resolver-typescript",
+      }
+    )
+  }
+
+  if (presets.includes("react")) {
+    commands.push({
+      command: "yarn",
+      dev: true,
+      pkg: "eslint-plugin-react@7.31.11",
+    })
+  }
+
+  if (presets.includes("codespaces")) {
+    commands.push(
+      {
+        command: "file",
+        path: ".devcontainer/devcontainer.json",
+        contents: {
+          extensions: ["dbaeumer.vscode-eslint"],
+        },
+      },
+      {
+        command: "file",
+        path: ".vscode/settings.json",
+        contents: {
+          "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": true,
+          },
+        },
+      }
+    )
+  }
+
+  if (presets.includes("githubActions")) {
+    commands.push({
+      command: "file",
+      path: ".github/workflows/check-lint.yml",
+      contents: getCheckLintWorkfow(),
+      merge: "replace",
+    })
+  }
+
+  return commands
+}
+
+const getCheckLintWorkfow = () => ({
+  name: "Check lint",
+  on: "push",
+  jobs: {
+    check: {
+      "runs-on": "ubuntu-latest",
+      "steps": [
         {
-          command: "file",
-          path: ".devcontainer/devcontainer.json",
-          contents: {
-            extensions: ["dbaeumer.vscode-eslint"],
+          name: "Check out",
+          uses: "actions/checkout@v3",
+        },
+        {
+          name: "Set up Yarn cache",
+          uses: "actions/setup-node@v3",
+          with: {
+            "node-version": "16",
+            "cache": "yarn",
           },
         },
         {
-          command: "file",
-          path: ".vscode/settings.json",
-          contents: {
-            "editor.codeActionsOnSave": {
-              "source.fixAll.eslint": true,
-            },
-          },
+          run: "yarn install --frozen-lockfile",
         },
-      ] as const)
-    : []),
-  {
-    command: "script",
-    name: "check:lint",
-    script:
-      "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
+        {
+          run: "yarn check:lint",
+        },
+      ],
+    },
   },
-  {
-    command: "script",
-    name: "fix:lint",
-    script:
-      "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
-  },
-]
+})
 
 const getEslintrc = (presets: Presets) => ({
   root: true,

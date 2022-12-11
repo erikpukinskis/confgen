@@ -52,6 +52,7 @@ Options:
                                               importable from dist/
                   eslint                      Sets up linting with fix-on-save in codespaces
                   git                         Pre-populates gitignore
+                  githubActions               Add workflows for testing, linting, publishing, etc
                   githubPackage               Use Github to publish and install packages
                   macros                      Enables babel macros in Vite
                   node[:fs][:path][etc...]    Configures codespace to use the Node.js environment

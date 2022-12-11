@@ -6,6 +6,7 @@ import * as codespaces from "./codespaces"
 import * as dist from "./dist"
 import * as eslint from "./eslint"
 import * as git from "./git"
+import * as githubActions from "./githubActions"
 import * as githubPackage from "./githubPackage"
 import * as macros from "./macros"
 import * as node from "./node"
@@ -33,6 +34,7 @@ const PRESETS = {
   dist,
   eslint,
   git,
+  githubActions,
   githubPackage,
   macros,
   node,

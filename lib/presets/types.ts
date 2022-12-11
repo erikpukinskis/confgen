@@ -8,6 +8,7 @@ export const PRESET_NAMES = [
   "dist",
   "eslint",
   "git",
+  "githubActions",
   "githubPackage",
   "macros",
   "node",
