@@ -69,7 +69,7 @@ export const getGithubWorkflow = ({
     },
   }
 
-  workflow.on = { push: { "tags-ignore": ["**"] } }
+  workflow.on = { push: { tags: ["!**"] } }
 
   if (includeBranch) {
     workflow.on.push.branches = ["main"]
