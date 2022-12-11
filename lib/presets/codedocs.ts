@@ -1,5 +1,6 @@
 import startCase from "lodash/startCase"
 import { getGithubWorkflow } from "./githubActions"
+import type { Presets } from "~/commands"
 import {
   readJson,
   type CommandGenerator,
@@ -53,7 +54,7 @@ export const generator: CommandGenerator = async ({ system, presets }) => {
       {
         command: "file",
         path: ".github/workflows/build-docs-site.yml",
-        contents: getBuildWorkflow(),
+        contents: getBuildWorkflow(presets),
         merge: "replace",
       }
     )
@@ -212,19 +213,24 @@ const getDeployWorkflow = (packageName: string | undefined) => {
   })
 }
 
-const getBuildWorkflow = () => {
+const getBuildWorkflow = (presets: Presets) => {
+  const steps = [
+    {
+      name: "Build site",
+      run: "yarn build:docs",
+    },
+  ]
+
+  if (presets.includes("dist")) {
+    steps.unshift({
+      name: "Build Codedocs",
+      run: "yarn build",
+    })
+  }
+
   const buildJob = {
     jobName: "build",
-    steps: [
-      {
-        name: "Build Codedocs",
-        run: "yarn build",
-      },
-      {
-        name: "Build site",
-        run: "yarn build:docs",
-      },
-    ],
+    steps,
   }
 
   return getGithubWorkflow({
