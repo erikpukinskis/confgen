@@ -35,7 +35,7 @@ export const generator: CommandGenerator = async ({
     commands.push({
       command: "file",
       path: ".github/workflows/unit-tests.yml",
-      contents: getUnitTestsWorkflow(),
+      contents: getUnitTestsWorkflow(presets),
       merge: "replace",
     })
   }
@@ -93,24 +93,30 @@ export const generator: CommandGenerator = async ({
   return commands
 }
 
-const getUnitTestsWorkflow = () =>
-  getGithubWorkflow({
+const getUnitTestsWorkflow = (presets: Presets) => {
+  const steps = [
+    {
+      run: "yarn test",
+    },
+  ]
+
+  if (presets.includes("dist")) {
+    steps.unshift({
+      run: "yarn build",
+    })
+  }
+
+  return getGithubWorkflow({
     needsPackages: true,
     workflowName: "unit tests",
     jobs: [
       {
         jobName: "run",
-        steps: [
-          {
-            run: "yarn build",
-          },
-          {
-            run: "yarn test",
-          },
-        ],
+        steps,
       },
     ],
   })
+}
 
 const hasTestFiles = (system: System) => {
   const { status } = system.run(
