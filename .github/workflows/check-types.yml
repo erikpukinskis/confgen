@@ -11,6 +11,7 @@ jobs:
           node-version: "16"
           cache: yarn
       - run: yarn install --frozen-lockfile
+      - run: yarn build
       - run: yarn check:types
 concurrency:
   group: check-types

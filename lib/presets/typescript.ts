@@ -63,28 +63,37 @@ export const generator: CommandGenerator = ({ presets, runtimes }) => {
     commands.push({
       command: "file",
       path: ".github/workflows/check-types.yml",
-      contents: getTypeCheckWorkflow(),
+      contents: getTypeCheckWorkflow(presets),
       merge: "replace",
     })
   }
   return commands
 }
 
-const getTypeCheckWorkflow = () =>
-  getGithubWorkflow({
+const getTypeCheckWorkflow = (presets: Presets) => {
+  const steps = [
+    {
+      run: "yarn check:types",
+    },
+  ]
+
+  if (presets.includes("dist")) {
+    steps.unshift({
+      run: "yarn build",
+    })
+  }
+
+  return getGithubWorkflow({
     needsPackages: true,
     workflowName: "types",
     jobs: [
       {
         jobName: "check",
-        steps: [
-          {
-            run: "yarn check:types",
-          },
-        ],
+        steps,
       },
     ],
   })
+}
 
 /**
  * ~~~~~Takes an array of runtimes (['app', 'lib', etc]) and returns the top-down path
