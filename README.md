@@ -326,7 +326,11 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Account for peerDependencies that are already in the package.json
 
 Higher priority:
+
+- [ ] Add githubActions preset
+- [ ] Add "Watch for TypeScript problems" task
 - [ ] No bad peer dependencies!!!
+- [ ] Add Codedocs preset to this repo
 - [ ] Add pnpm preset
 - [ ] Do ts build in rollup
 - [ ] Don't think we need `environment: "jsdom"` in vite.docs.config.js?
@@ -334,6 +338,7 @@ Higher priority:
 - [ ] Add https://www.npmjs.com/package/validate-peer-dependencies as a preinstall hook
 
 Later:
+
 - [ ] Figure out why outerframe/application installs eslint-plugin-react@7.28.0 every time?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 - [ ] Make the build artifacts adhere to some kind of naming scheme (app.html, server.js, etc)
@@ -352,3 +357,5 @@ Later:
 - [ ] Add eslint-plugin-react-hooks
 - [ ] Add eslint-plugin-jsx-a11y?
 - [ ] Add axe in unit tests? or docs?
+
+---

@@ -107,6 +107,6 @@ export class Project {
     }
 
     const packageJson = readJson("package.json", this.system)
-    this.system.write("package.json", await sortPackageJson(packageJson))
+    this.system.write("package.json", sortPackageJson(packageJson))
   }
 }
