@@ -23,12 +23,20 @@ export const generator: CommandGenerator = async ({ system, presets }) => {
   ]
 
   if (presets.includes("githubActions")) {
-    commands.push({
-      command: "file",
-      path: ".github/workflows/publish-docs.yml",
-      contents: getWorkflow(packageJson.name),
-      merge: "replace",
-    })
+    commands.push(
+      {
+        command: "file",
+        path: ".github/workflows/deploy-docs-site.yml",
+        contents: getDeployWorkflow(packageJson.name),
+        merge: "replace",
+      },
+      {
+        command: "file",
+        path: ".github/workflows/build-docs-site.yml",
+        contents: getBuildWorkflow(),
+        merge: "replace",
+      }
+    )
   }
 
   if (packageJson.name !== "codedocs") {
@@ -123,28 +131,10 @@ const getIndexHtml = async (title: string) =>
     </html>
   `)
 
-const getWorkflow = (
-  packageName: string | undefined
-): Record<string, unknown> => {
-  const buildJob = {
-    jobName: "build",
-    steps: [
-      {
-        name: "Build Codedocs",
-        run: "yarn build",
-      },
-      {
-        name: "Build site",
-        run: "yarn build:docs",
-      },
-    ],
-  }
-
+const getDeployWorkflow = (packageName: string | undefined) => {
   const deployJob = {
     jobName: "deploy",
     jobOptions: {
-      if: "${{ github.ref == 'refs/heads/main' }}",
-      needs: ["build"],
       environment: {
         name: "github-pages",
         url: "${{ steps.deployment.outputs.page_url }}",
@@ -174,7 +164,6 @@ const getWorkflow = (
       },
       {
         name: "Upload artifact",
-        if: "github.ref == 'refs/heads/main'",
         uses: "actions/upload-pages-artifact@v1",
         with: {
           path: "site",
@@ -182,9 +171,18 @@ const getWorkflow = (
       },
       {
         name: "Deploy pages",
-        if: "github.ref == 'refs/heads/main'",
         id: "deployment",
         uses: "actions/deploy-pages@v1",
+      },
+      {
+        name: "Create GitHub deployment",
+        id: "github_deployment",
+        uses: "chrnorm/deployment-action@v2",
+        with: {
+          "token": "${{ github.token }}",
+          "environment-url": "http://codedocs.ambic.app",
+          "environment": "production",
+        },
       },
     ],
   }
@@ -192,17 +190,37 @@ const getWorkflow = (
   return getGithubWorkflow({
     needsPackages: true,
     workflowName: "docs site",
+    includeBranch: "main",
     workflowOptions: {
       permissions: {
         "contents": "read",
         "pages": "write",
         "id-token": "write",
       },
-      concurrency: {
-        "group": "pages",
-        "cancel-in-progress": true,
-      },
     },
-    jobs: [buildJob, deployJob],
+    jobs: [deployJob],
+  })
+}
+
+const getBuildWorkflow = () => {
+  const buildJob = {
+    jobName: "build",
+    steps: [
+      {
+        name: "Build Codedocs",
+        run: "yarn build",
+      },
+      {
+        name: "Build site",
+        run: "yarn build:docs",
+      },
+    ],
+  }
+
+  return getGithubWorkflow({
+    needsPackages: true,
+    workflowName: "docs site",
+    excludeBranch: "main",
+    jobs: [buildJob],
   })
 }

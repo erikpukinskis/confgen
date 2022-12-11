@@ -10,7 +10,7 @@ type GithubJob = {
 
 type GithubWorkflow = {
   name?: string
-  on?: string
+  on?: unknown
   concurrency?: unknown
   jobs: Record<string, GithubJob>
 }
@@ -28,6 +28,8 @@ type GetGithubWorkflowOptions = {
   workflowName: string
   jobs: GithubJobConfig[]
   workflowOptions?: Record<string, unknown>
+  includeBranch?: string
+  excludeBranch?: string
 }
 
 export const getGithubWorkflow = ({
@@ -35,6 +37,8 @@ export const getGithubWorkflow = ({
   workflowName,
   workflowOptions,
   jobs: jobOptions,
+  includeBranch,
+  excludeBranch,
 }: GetGithubWorkflowOptions) => {
   const githubJobs = jobOptions.reduce(
     (jobs, { jobName, jobOptions, steps }) => {
@@ -54,7 +58,6 @@ export const getGithubWorkflow = ({
 
   const workflow: GithubWorkflow = {
     name: workflowName,
-    on: "push",
     ...workflowOptions,
     jobs: githubJobs,
 
@@ -62,6 +65,14 @@ export const getGithubWorkflow = ({
       "group": kebabCase(`${jobOptions[0].jobName} ${workflowName}`),
       "cancel-in-progress": true,
     },
+  }
+
+  if (includeBranch) {
+    workflow.on = { push: { branches: ["main"] } }
+  } else if (excludeBranch) {
+    workflow.on = { push: { branches: ["!main"] } }
+  } else {
+    workflow.on = "push"
   }
 
   jobOptions.forEach(({ jobName }) => {
