@@ -174,16 +174,6 @@ const getDeployWorkflow = (packageName: string | undefined) => {
         id: "deployment",
         uses: "actions/deploy-pages@v1",
       },
-      {
-        name: "Create GitHub deployment",
-        id: "github_deployment",
-        uses: "chrnorm/deployment-action@v2",
-        with: {
-          "token": "${{ github.token }}",
-          "environment-url": "http://codedocs.ambic.app",
-          "environment": "production",
-        },
-      },
     ],
   }
 
