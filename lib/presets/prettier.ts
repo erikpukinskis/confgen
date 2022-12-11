@@ -1,3 +1,4 @@
+import { getGithubWorkflow } from "./githubActions"
 import type { CommandGenerator, CommandWithArgs } from "~/commands"
 
 export const generator: CommandGenerator = ({ presets }) => {
@@ -67,32 +68,18 @@ export const generator: CommandGenerator = ({ presets }) => {
   return commands
 }
 
-const getCheckFormatWorkflow = () => ({
-  name: "Check code format",
-  on: "push",
-  jobs: {
-    check: {
-      "runs-on": "ubuntu-latest",
-      "steps": [
-        {
-          name: "Check out",
-          uses: "actions/checkout@v3",
-        },
-        {
-          name: "Set up Yarn cache",
-          uses: "actions/setup-node@v3",
-          with: {
-            "node-version": "16",
-            "cache": "yarn",
+const getCheckFormatWorkflow = () =>
+  getGithubWorkflow({
+    needsPackages: true,
+    workflowName: "Check code format",
+    jobs: [
+      {
+        jobName: "check",
+        steps: [
+          {
+            run: "yarn check:format",
           },
-        },
-        {
-          run: "yarn install --frozen-lockfile",
-        },
-        {
-          run: "yarn check:format",
-        },
-      ],
-    },
-  },
-})
+        ],
+      },
+    ],
+  })

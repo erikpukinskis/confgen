@@ -1,4 +1,5 @@
 import startCase from "lodash/startCase"
+import { getGithubWorkflow } from "./githubActions"
 import {
   readJson,
   type CommandGenerator,
@@ -124,109 +125,84 @@ const getIndexHtml = async (title: string) =>
 
 const getWorkflow = (
   packageName: string | undefined
-): Record<string, unknown> => ({
-  name: "Docs",
-  on: "push",
-  permissions: {
-    "contents": "read",
-    "pages": "write",
-    "id-token": "write",
-  },
-  concurrency: {
-    "group": "pages",
-    "cancel-in-progress": true,
-  },
-  jobs: {
-    build: {
-      "runs-on": "ubuntu-latest",
-      "steps": [
-        {
-          name: "Check out",
-          uses: "actions/checkout@v3",
-        },
-        {
-          name: "Set up Yarn cache",
-          uses: "actions/setup-node@v3",
-          with: {
-            "node-version": "16",
-            "cache": "yarn",
-          },
-        },
-        {
-          name: "Install",
-          run: "yarn install --frozen-lockfile",
-        },
-        {
-          name: "Build Codedocs",
-          run: "yarn build",
-        },
-        {
-          name: "Build site",
-          run: "yarn build:docs",
-        },
-      ],
-    },
-    deploy: {
-      "if": "${{ github.ref == 'refs/heads/main' }}",
-      "needs": ["build"],
-      "runs-on": "ubuntu-latest",
-      "environment": {
+): Record<string, unknown> => {
+  const buildJob = {
+    jobName: "build",
+    steps: [
+      {
+        name: "Build Codedocs",
+        run: "yarn build",
+      },
+      {
+        name: "Build site",
+        run: "yarn build:docs",
+      },
+    ],
+  }
+
+  const deployJob = {
+    jobName: "deploy",
+    jobOptions: {
+      if: "${{ github.ref == 'refs/heads/main' }}",
+      needs: ["build"],
+      environment: {
         name: "github-pages",
         url: "${{ steps.deployment.outputs.page_url }}",
       },
-      "steps": [
-        {
-          name: "Check out",
-          uses: "actions/checkout@v3",
-        },
-        {
-          name: "Set up Yarn cache",
-          uses: "actions/setup-node@v3",
-          with: {
-            "node-version": "16",
-            "cache": "yarn",
-          },
-        },
-        {
-          name: "Configure pages",
-          uses: "actions/configure-pages@v2",
-        },
-        {
-          name: "Install",
-          run: "yarn install --frozen-lockfile",
-        },
-        // In the very special case of Codedocs itself, the docs reference
-        // the current version of the lib in the current branch, so we
-        // need to build that before building the site. Most apps will
-        // just import { ... } from "codedocs" so they don't need this
-        // step:
-        ...(packageName === "codedocs"
-          ? [
-              {
-                name: "Build Codedocs",
-                run: "yarn build",
-              },
-            ]
-          : []),
-        {
-          name: "Build site",
-          run: "yarn build:docs",
-        },
-        {
-          name: "Upload artifact",
-          if: "github.ref == 'refs/heads/main'",
-          uses: "actions/upload-pages-artifact@v1",
-          with: {
-            path: "site",
-          },
-        },
-        {
-          name: "Deploy pages",
-          if: "github.ref == 'refs/heads/main'",
-          id: "deployment",
-          uses: "actions/deploy-pages@v1",
-        },
-      ],
     },
-  },
-})
+    steps: [
+      {
+        name: "Configure pages",
+        uses: "actions/configure-pages@v2",
+      },
+      // In the very special case of Codedocs itself, the docs reference
+      // the current version of the lib in the current branch, so we
+      // need to build that before building the site. Most apps will
+      // just import { ... } from "codedocs" so they don't need this
+      // step:
+      ...(packageName === "codedocs"
+        ? [
+            {
+              name: "Build Codedocs",
+              run: "yarn build",
+            },
+          ]
+        : []),
+      {
+        name: "Build site",
+        run: "yarn build:docs",
+      },
+      {
+        name: "Upload artifact",
+        if: "github.ref == 'refs/heads/main'",
+        uses: "actions/upload-pages-artifact@v1",
+        with: {
+          path: "site",
+        },
+      },
+      {
+        name: "Deploy pages",
+        if: "github.ref == 'refs/heads/main'",
+        id: "deployment",
+        uses: "actions/deploy-pages@v1",
+      },
+    ],
+  }
+
+  return getGithubWorkflow({
+    needsPackages: true,
+    workflowName: "Build docs site",
+    workflowOptions: {
+      permissions: {
+        "contents": "read",
+        "pages": "write",
+        "id-token": "write",
+      },
+      concurrency: {
+        "group": "pages",
+        "cancel-in-progress": true,
+      },
+    },
+    jobs: [buildJob, deployJob],
+  })
+}

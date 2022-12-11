@@ -1,3 +1,4 @@
+import { getGithubWorkflow } from "./githubActions"
 import type { CommandWithArgs } from "~/commands"
 import { type CommandGenerator } from "~/commands"
 import { type Presets } from "~/presets"
@@ -99,35 +100,21 @@ vendor
   return commands
 }
 
-const getCheckLintWorkfow = () => ({
-  name: "Check lint",
-  on: "push",
-  jobs: {
-    check: {
-      "runs-on": "ubuntu-latest",
-      "steps": [
-        {
-          name: "Check out",
-          uses: "actions/checkout@v3",
-        },
-        {
-          name: "Set up Yarn cache",
-          uses: "actions/setup-node@v3",
-          with: {
-            "node-version": "16",
-            "cache": "yarn",
+const getCheckLintWorkfow = () =>
+  getGithubWorkflow({
+    needsPackages: true,
+    workflowName: "Check lint",
+    jobs: [
+      {
+        jobName: "check",
+        steps: [
+          {
+            run: "yarn check:lint",
           },
-        },
-        {
-          run: "yarn install --frozen-lockfile",
-        },
-        {
-          run: "yarn check:lint",
-        },
-      ],
-    },
-  },
-})
+        ],
+      },
+    ],
+  })
 
 const getEslintrc = (presets: Presets) => ({
   root: true,
