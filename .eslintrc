@@ -33,13 +33,7 @@
     "eol-last": ["error", "always"],
     "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"],
-    "no-unused-vars": [
-      "error",
-      {
-        "args": "after-used",
-        "varsIgnorePattern": "^_+$"
-      }
-    ],
+    "no-unused-vars": "off",
     "import/order": [
       "error",
       {
