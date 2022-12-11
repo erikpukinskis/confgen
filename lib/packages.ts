@@ -2,54 +2,7 @@ import difference from "lodash/difference"
 import union from "lodash/union"
 import { satisfies } from "semver"
 import { runCommand, readJson, type PackageCommand } from "./commands"
-import { formatJson } from "./format"
 import { type System } from "~/system"
-
-export const swapDevPackages = async (
-  commands: PackageCommand[],
-  system: System
-) => {
-  const devPackages = currentlyInstalledPackages(true, system)
-
-  const json = readJson("package.json", system)
-
-  if (!ensureDependencies(json) || !ensureDevDependencies(json)) {
-    throw new Error(
-      "shouldn't be possible, this error is here to help the type checker"
-    )
-  }
-
-  for (const command of commands) {
-    if (!command.dev && devPackages.includes(command.pkg)) {
-      json.dependencies[command.pkg] = json.devDependencies[command.pkg]
-      delete json.devDependencies[command.pkg]
-    }
-  }
-
-  if (Object.keys(json.devDependencies).length < 1) {
-    delete (json as Record<string, unknown>).devDependencies
-  }
-
-  system.write("package.json", await formatJson(json))
-}
-
-const ensureDevDependencies = (
-  json: Record<string, unknown>
-): json is { devDependencies: Record<string, string> } => {
-  if (!json.devDependencies) {
-    json.devDependencies = {}
-  }
-  return true
-}
-
-const ensureDependencies = (
-  json: Record<string, unknown>
-): json is { dependencies: Record<string, string> } => {
-  if (!json.dependencies) {
-    json.dependencies = {}
-  }
-  return true
-}
 
 /**
  * Takes an array of package commands and combines them into a single `yarn
@@ -85,7 +38,7 @@ export const packagesToAdd = (system: System, commands: PackageCommand[]) => {
   if (commands.length < 1) return []
 
   const isDev = Boolean(commands[0].dev)
-  assertDev(commands, isDev)
+  // assertDev(commands, isDev)
 
   const packageNames = commands.map(({ pkg }) => pkg)
   const installedPackageNames = currentlyInstalledPackages(isDev, system)
@@ -110,19 +63,19 @@ export const packagesToAdd = (system: System, commands: PackageCommand[]) => {
  *
  * Throws an error if there is a mixture of the two.
  */
-const assertDev = (commands: PackageCommand[], isDev: boolean) => {
-  for (const { pkg, dev } of commands) {
-    if (Boolean(dev) !== isDev) {
-      throw new Error(
-        `packagesToInstall needs all dependencies to be either dev or not dev... ${
-          commands[0].pkg
-        } ${isDev ? "was" : "was not"} dev, but ${pkg} ${
-          isDev ? "was not" : "was"
-        }`
-      )
-    }
-  }
-}
+// const assertDev = (commands: PackageCommand[], isDev: boolean) => {
+//   for (const { pkg, dev } of commands) {
+//     if (Boolean(dev) !== isDev) {
+//       throw new Error(
+//         `packagesToInstall needs all dependencies to be either dev or not dev... ${
+//           commands[0].pkg
+//         } ${isDev ? "was" : "was not"} dev, but ${pkg} ${
+//           isDev ? "was not" : "was"
+//         }`
+//       )
+//     }
+//   }
+// }
 
 const currentlyInstalledPackages = (isDev: boolean, system: System) => {
   const deps = readJson("package.json", system)[

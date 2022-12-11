@@ -40,11 +40,13 @@ export type CommandWithArgs = { preset?: PresetName } & (
   | PackageCommand
 )
 
-export function isDistPackageCommand(
-  command: CommandWithArgs
-): command is DistPackageCommand {
-  return isPackageCommand(command) && !command.dev
-}
+export const isDistPackageCommand =
+  (system: System) =>
+  (command: CommandWithArgs): command is DistPackageCommand => {
+    if (!isPackageCommand(command)) return false
+    if (isDistAlready(command.pkg, system)) return true
+    return isPackageCommand(command) && !command.dev
+  }
 
 export type DistPackageCommand = {
   command: "yarn"
@@ -62,16 +64,51 @@ export type DevPackageCommand = {
 
 export type PackageCommand = DistPackageCommand | DevPackageCommand
 
-export function isDevPackageCommand(
-  command: CommandWithArgs
-): command is DevPackageCommand {
-  return isPackageCommand(command) && Boolean(command.dev)
-}
+export const isDevPackageCommand =
+  (system: System) =>
+  (command: CommandWithArgs): command is DevPackageCommand => {
+    if (!isPackageCommand(command)) return false
+    if (isDevAlready(command.pkg, system)) return true
+    return isPackageCommand(command) && Boolean(command.dev)
+  }
 
 export function isPackageCommand(
   command: CommandWithArgs
 ): command is PackageCommand {
   return command.command === "yarn"
+}
+
+function isDevAlready(pkg: string, system: System) {
+  return getPackageType(pkg, system) === "dev"
+}
+
+function isDistAlready(pkg: string, system: System) {
+  return getPackageType(pkg, system) === "dev"
+}
+
+type PackageJsonDependencies = {
+  dependencies: Record<string, string>
+  devDependencies: Record<string, string>
+}
+
+export function getPackageType(
+  pkg: string,
+  system: System
+): "dist" | "dev" | "peer" | undefined {
+  const packageName = pkg.replace(/(.)@.+$/, "$1")
+
+  const { dependencies, devDependencies } = readJson<PackageJsonDependencies>(
+    "package.json",
+    system
+  )
+
+  if (dependencies?.[packageName]) {
+    return "dist"
+  } else if (devDependencies?.[packageName]) {
+    return "dev"
+  } else {
+    return undefined
+  }
 }
 
 export type Presets = PresetName[]
@@ -103,7 +140,7 @@ const descriptions: Record<string, string> = {
 export const runCommand = async (command: CommandWithArgs, system: System) => {
   await tick()
 
-  const descriptionKey = isDevPackageCommand(command)
+  const descriptionKey = isDevPackageCommand(system)(command)
     ? "yarnDev"
     : command.command
 
@@ -192,7 +229,7 @@ const commands = {
     )
   },
   yarn: (command: PackageCommand, system: System) => {
-    system.addPackage(command.pkg, isDevPackageCommand(command))
+    system.addPackage(command.pkg, isDevPackageCommand(system)(command))
   },
 } as const
 

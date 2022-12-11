@@ -4,13 +4,13 @@ import {
   isDistPackageCommand,
   type DevPackageCommand,
   isDevPackageCommand,
-  isPackageCommand,
-  type PackageCommand,
   readJson,
+  getPackageType,
+  isPackageCommand,
 } from "./commands"
 import { sortPackageJson } from "./sortPackageJson"
 import { type Args, parsePresetConfigs, type GlobalArg } from "~/args"
-import { swapDevPackages, runCombinedInstall } from "~/packages"
+import { runCombinedInstall } from "~/packages"
 import { precheck, generate, type PresetName } from "~/presets"
 import { type Runtime } from "~/runtimes"
 import { type System } from "~/system"
@@ -83,18 +83,23 @@ export class Project {
       generatedCommands.push(...generated)
     }
 
-    await swapDevPackages(
-      generatedCommands.filter<PackageCommand>(isPackageCommand),
+    console.log("v2")
+
+    const withoutPeer = generatedCommands.filter((command) => {
+      if (!isPackageCommand(command)) return false
+      const packageType = getPackageType(command.pkg, this.system)
+      console.log("checking whether", command.pkg, "is a peer...", packageType)
+      if (packageType === "peer") return false
+      else return true
+    })
+
+    await runCombinedInstall(
+      withoutPeer.filter<DistPackageCommand>(isDistPackageCommand(this.system)),
       this.system
     )
 
     await runCombinedInstall(
-      generatedCommands.filter<DistPackageCommand>(isDistPackageCommand),
-      this.system
-    )
-
-    await runCombinedInstall(
-      generatedCommands.filter<DevPackageCommand>(isDevPackageCommand),
+      withoutPeer.filter<DevPackageCommand>(isDevPackageCommand(this.system)),
       this.system
     )
 

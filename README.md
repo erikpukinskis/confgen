@@ -327,6 +327,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 Higher priority:
 
+- [ ] Don't add packages if they're already peerDependencies
 - [ ] Add githubActions preset
 - [ ] Add "Watch for TypeScript problems" task
 - [ ] No bad peer dependencies!!!
@@ -339,6 +340,7 @@ Higher priority:
 
 Later:
 
+- [ ] Add ability to specify for "file" command to overwrite array instead of merging it
 - [ ] Figure out why outerframe/application installs eslint-plugin-react@7.28.0 every time?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
 - [ ] Make the build artifacts adhere to some kind of naming scheme (app.html, server.js, etc)
