@@ -15,17 +15,20 @@ export const generator: CommandGenerator = async ({ system, presets }) => {
 
   const commands: CommandWithArgs[] = [
     {
-      command: "file",
-      path: ".github/workflows/publish-docs.yml",
-      merge: "replace",
-      contents: getWorkflow(packageJson.name),
-    },
-    {
       command: "yarn",
       pkg: "react-router-dom",
       dev: true,
     },
   ]
+
+  if (presets.includes("githubActions")) {
+    commands.push({
+      command: "file",
+      path: ".github/workflows/publish-docs.yml",
+      contents: getWorkflow(packageJson.name),
+      merge: "replace",
+    })
+  }
 
   if (packageJson.name !== "codedocs") {
     commands.push({
@@ -51,10 +54,10 @@ export const generator: CommandGenerator = async ({ system, presets }) => {
     })
   }
 
-  if (!system.exists("docs/Home.docs.tsx")) {
+  if (!system.exists("docs/HomePage.docs.tsx")) {
     commands.push({
       command: "file",
-      path: "docs/Home.docs.tsx",
+      path: "docs/HomePage.docs.tsx",
       contents: await getHomeTsx(),
     })
   }
@@ -84,12 +87,12 @@ const getIndexTsx = async (title: string) =>
   import { DocsApp } from "codedocs"
   import React from "react"
   import { render } from "react-dom"
-  import * as Home from "./Home.docs"
+  import * as HomePage from "./HomePage.docs"
 
   render(
     <DocsApp
       logo="${title}"
-      docs={[Home]}
+      docs={[HomePage]}
     />,
     document.getElementById("root")
   )

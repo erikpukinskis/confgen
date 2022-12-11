@@ -35,27 +35,29 @@ Options:
                   dist:app:lib
                   codegen:lib:schema:resolvers
 
-                Available presets:
-                  start                       Adds command to start a server
+                  Available presets:
+                  bin                         Adds a "bin" to your package JSON
                   codedocs                    Deploy a documentation site to Github Pages
                   codegen:resolvers           Generate types for Apollo Server resolvers
                   codegen:schema              Compiles a GraphQL schema to TypeScript so it it can
-                                                be exported from a library
+                                              be exported from a library
                   codegen:operations          Compiles a typed gql function for all of your Apollo
-                                                Client queries and mutations
-                  bin                         Adds a "bin" to your package JSON
+                                              Client queries and mutations
                   codespaces                  Sets up some good VSCode defaults, and adds
-                                                extensions eslint, prettier, etc presets
+                                              extensions eslint, prettier, etc presets
+                  dist[:runtime1][:runtime2]  Generate importable files for selected runtimes
+                                              importable from dist/
                   eslint                      Sets up linting with fix-on-save in codespaces
                   git                         Pre-populates gitignore
-                  dist[:runtime1][:runtime2]  Generate importable files for selected runtimes
-                                                importable from dist/
+                  githubActions               Add workflows for testing, linting, publishing, etc
+                  githubPackage               Use Github to publish and install packages
                   macros                      Enables babel macros in Vite
                   node[:fs][:path][etc...]    Configures codespace to use the Node.js environment
-                                                and sets up the Node packages needed inVite
+                                              and sets up the Node packages needed inVite
                   prettier                    Code formatting with format-on-save in codespace
                   react                       Enable React in eslint, typescript, etc
                   sql                         Sets up Vite plugin for importing sql
+                  start                       Adds command to start a server
                   typescript:[tsconfig path]  Do stuff in TypeScript, check types, etc
                   vite                        Use Vite for dev server and builds
                   vitest                      Configures test scripts

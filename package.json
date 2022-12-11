@@ -59,7 +59,7 @@
     "check:format": "prettier --check --ignore-path .gitignore .",
     "check:lint": "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
     "check:types": "tsc --noEmit -p tsconfig.json; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi",
-    "confgen": "./dist/lib.umd.js @lib --name Confgen git codespaces prettier yarn typescript vite vitest dist:lib bin node:fs:child_process:path eslint",
+    "confgen": "./dist/lib.umd.js @lib --name Confgen git codespaces prettier yarn typescript vite vitest dist:lib bin node:fs:child_process:path eslint githubActions",
     "fix": "yarn fix:lint && yarn fix:format",
     "fix:format": "prettier --write --ignore-path .gitignore .",
     "fix:lint": "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",

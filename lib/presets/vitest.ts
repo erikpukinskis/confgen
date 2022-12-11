@@ -30,6 +30,15 @@ export const generator: CommandGenerator = async ({
     },
   ]
 
+  if (presets.includes("githubActions")) {
+    commands.push({
+      command: "file",
+      path: ".github/workflows/unit-tests.yml",
+      contents: getUnitTestsWorkflow(),
+      merge: "replace",
+    })
+  }
+
   if (presets.includes("codespaces")) {
     commands.push({
       command: "file",
@@ -82,6 +91,36 @@ export const generator: CommandGenerator = async ({
 
   return commands
 }
+
+const getUnitTestsWorkflow = () => ({
+  name: "Run unit tests",
+  on: "push",
+  jobs: {
+    test: {
+      "runs-on": "ubuntu-latest",
+      "steps": [
+        {
+          name: "Check out",
+          uses: "actions/checkout@v3",
+        },
+        {
+          name: "Set up Yarn cache",
+          uses: "actions/setup-node@v3",
+          with: {
+            "node-version": "16",
+            "cache": "yarn",
+          },
+        },
+        {
+          run: "yarn install --frozen-lockfile",
+        },
+        {
+          run: "yarn test",
+        },
+      ],
+    },
+  },
+})
 
 const hasTestFiles = (system: System) => {
   const { status } = system.run(
