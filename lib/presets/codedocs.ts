@@ -134,16 +134,55 @@ const getWorkflow = (
     "cancel-in-progress": true,
   },
   jobs: {
-    docs: {
+    build: {
+      "runs-on": "ubuntu-latest",
+      "steps": [
+        {
+          name: "Check out",
+          uses: "actions/checkout@v3",
+        },
+        {
+          name: "Set up Yarn cache",
+          uses: "actions/setup-node@v3",
+          with: {
+            "node-version": "14",
+            "cache": "yarn",
+          },
+        },
+        {
+          name: "Install",
+          run: "yarn install --frozen-lockfile",
+        },
+        {
+          name: "Build Codedocs",
+          run: "yarn build",
+        },
+        {
+          name: "Build site",
+          run: "yarn build:docs",
+        },
+      ],
+    },
+    deploy: {
+      "if": "${{ github.ref == 'refs/heads/main' }}",
+      "needs": ["build"],
+      "runs-on": "ubuntu-latest",
       "environment": {
         name: "github-pages",
         url: "${{ steps.deployment.outputs.page_url }}",
       },
-      "runs-on": "ubuntu-latest",
       "steps": [
         {
-          name: "Checkout",
+          name: "Check out",
           uses: "actions/checkout@v3",
+        },
+        {
+          name: "Set up Yarn cache",
+          uses: "actions/setup-node@v3",
+          with: {
+            "node-version": "14",
+            "cache": "yarn",
+          },
         },
         {
           name: "Configure pages",
@@ -151,7 +190,7 @@ const getWorkflow = (
         },
         {
           name: "Install",
-          run: "yarn install",
+          run: "yarn install --frozen-lockfile",
         },
         // In the very special case of Codedocs itself, the docs reference
         // the current version of the lib in the current branch, so we
