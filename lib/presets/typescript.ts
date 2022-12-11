@@ -118,18 +118,22 @@ const getDistConfig = () => ({
   include: ["lib"],
 })
 
-const getConfig = (presets: Presets, runtimes: Runtimes) => ({
-  compilerOptions: {
-    lib: ["es2017", ...(presets.includes("react") ? ["dom"] : [])],
-    baseUrl: ".",
-    paths: getPathAliases(runtimes),
-    esModuleInterop: true,
-    forceConsistentCasingInFileNames: true,
-    strict: true,
-    skipLibCheck: true,
-    downlevelIteration: true,
-    ...(presets.includes("react") ? { jsx: "react-jsx" } : undefined),
-    ...(presets.includes("dist") ? { outDir: "dist" } : undefined),
-  },
-  include: runtimes,
-})
+const getConfig = (presets: Presets, runtimes: Runtimes) => {
+  const needsReact = presets.includes("react") || presets.includes("codedocs")
+
+  return {
+    compilerOptions: {
+      lib: ["es2017", ...(needsReact ? ["dom"] : [])],
+      baseUrl: ".",
+      paths: getPathAliases(runtimes),
+      esModuleInterop: true,
+      forceConsistentCasingInFileNames: true,
+      strict: true,
+      skipLibCheck: true,
+      downlevelIteration: true,
+      ...(needsReact ? { jsx: "react-jsx" } : undefined),
+      ...(presets.includes("dist") ? { outDir: "dist" } : undefined),
+    },
+    include: runtimes,
+  }
+}
