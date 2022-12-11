@@ -4,7 +4,7 @@ export const generator: CommandGenerator = ({ presets }) => [
   {
     command: "yarn",
     dev: true,
-    pkg: "prettier",
+    pkg: "prettier@2.8.1",
   },
   ...(presets.includes("codespaces")
     ? ([

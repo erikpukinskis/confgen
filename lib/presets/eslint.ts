@@ -5,7 +5,7 @@ export const generator: CommandGenerator = ({ presets }) => [
   {
     command: "yarn",
     dev: true,
-    pkg: "eslint",
+    pkg: "eslint@8.29.0",
   },
   {
     command: "yarn",
@@ -17,8 +17,7 @@ export const generator: CommandGenerator = ({ presets }) => [
         {
           command: "yarn",
           dev: true,
-          pkg: "@typescript-eslint/eslint-plugin",
-          version: "^5.14.0",
+          pkg: "@typescript-eslint/eslint-plugin@5.46.0",
         },
         { command: "yarn", dev: true, pkg: "@typescript-eslint/parser" },
         {
@@ -33,7 +32,7 @@ export const generator: CommandGenerator = ({ presets }) => [
         {
           command: "yarn",
           dev: true,
-          pkg: "eslint-plugin-react@7.28.0",
+          pkg: "eslint-plugin-react@7.31.11",
         },
       ] as const)
     : []),
