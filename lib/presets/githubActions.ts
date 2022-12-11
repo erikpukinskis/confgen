@@ -70,7 +70,7 @@ export const getGithubWorkflow = ({
   if (includeBranch) {
     workflow.on = { push: { branches: ["main"] } }
   } else if (excludeBranch) {
-    workflow.on = { push: { branches: ["!main"] } }
+    workflow.on = { push: { "branches-ignore": ["main"] } }
   } else {
     workflow.on = "push"
   }
