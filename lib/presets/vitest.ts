@@ -21,12 +21,12 @@ export const generator: CommandGenerator = async ({
     {
       command: "script",
       name: "test",
-      script: "vitest run --config vite.lib.config.js",
+      script: "vitest run --config vite.test.config.js",
     },
     {
       command: "script",
-      name: "test:watch",
-      script: "vitest watch --config vite.lib.config.js",
+      name: "watch:test",
+      script: "vitest watch --config vite.test.config.js",
     },
   ]
 
@@ -38,12 +38,17 @@ export const generator: CommandGenerator = async ({
         version: "0.2.0",
         configurations: [
           {
-            type: "pwa-node",
+            type: "node",
             request: "launch",
             name: "Debug Current Test File",
             skipFiles: ["<node_internals>/**", "**/node_modules/**"],
             program: "${workspaceRoot}/node_modules/vitest/vitest.mjs",
-            args: ["run", "${relativeFile}"],
+            args: [
+              "related",
+              "--config",
+              "vite.test.config.js",
+              "${relativeFile}",
+            ],
             smartStep: true,
             console: "integratedTerminal",
           },
@@ -98,24 +103,25 @@ const getExampleTestPath = (runtime: Runtime, presets: Presets) => {
 }
 
 const getExampleTest = (runtime: Runtime, presets: Presets) => {
-  const componentName = runtime === "app" ? "App" : "MyComponent"
-
   const source = presets.includes("react")
-    ? `import React from "react"
-import { ${componentName} } from "./"
+    ? `import { render } from "@testing-library/react"
+import React from "react"
 import { describe, it } from "vitest"
-import { render } from "@testing-library/react"
 
-describe("${componentName}", () => {
+const MyComponent = () => <>hello world!</>
+
+describe("MyComponent", () => {
   it("should render without errors", () => {
-    render(<${componentName} />)
+    render(<MyComponent />)
   })
 })
 `
-    : `import { test, expect } from "vitest"
+    : `import { it, expect } from "vitest"
 
-test("true is true", () => {
-  expect(true).toBeTruthy()
+const myFunction = () => "hello world!"
+
+it("returns a greeting", () => {
+  expect(myFunction()).toContain("hello")
 })
 `
   return formatTypescript(source)

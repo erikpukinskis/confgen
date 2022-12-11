@@ -11,12 +11,12 @@ const tsconfigPath = () => "tsconfig.json"
 export const generator: CommandGenerator = ({ presets, runtimes }) => [
   {
     command: "yarn",
-    pkg: "typescript",
+    pkg: "typescript@4.9.4",
     dev: true,
   },
   {
     command: "yarn",
-    pkg: "@types/node",
+    pkg: "@types/node@16.18.8",
     dev: true,
   },
   ...(presets.includes("dist")
@@ -83,7 +83,7 @@ const getConfig = (presets: Presets, runtimes: Runtimes) => ({
     strict: true,
     skipLibCheck: true,
     downlevelIteration: true,
-    ...(presets.includes("react") ? { jsx: "react" } : undefined),
+    ...(presets.includes("react") ? { jsx: "react-jsx" } : undefined),
     ...(presets.includes("dist") ? { outDir: "dist" } : undefined),
   },
   include: runtimes,

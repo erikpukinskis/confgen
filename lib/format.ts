@@ -19,3 +19,11 @@ export const formatJson = async (input: string | Record<string, unknown>) => {
     ...config,
   })
 }
+
+export const formatHtml = async (source: string) => {
+  const config = await prettier.resolveConfig(process.cwd())
+  return prettier.format(source, {
+    parser: "html",
+    ...config,
+  })
+}

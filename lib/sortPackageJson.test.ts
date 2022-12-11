@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest"
 import { sortPackageJson } from "./sortPackageJson"
 
 describe("sortPackageJson", () => {
-  it("should sort dependencies", async () => {
+  it("should sort dependencies", () => {
     const packageJson = {
       dependencies: {
         beta: "0.0.1",
@@ -10,7 +10,7 @@ describe("sortPackageJson", () => {
       },
     }
 
-    expect(await sortPackageJson(packageJson)).toEqual(`{
+    expect(sortPackageJson(packageJson)).toEqual(`{
   "dependencies": {
     "alpha": "0.0.0",
     "beta": "0.0.1"
@@ -19,13 +19,13 @@ describe("sortPackageJson", () => {
 `)
   })
 
-  it("should sort top level keys", async () => {
+  it("should sort top level keys", () => {
     const packageJson = {
       version: "0.0.0",
       name: "alpha",
     }
 
-    expect(await sortPackageJson(packageJson)).toEqual(`{
+    expect(sortPackageJson(packageJson)).toEqual(`{
   "name": "alpha",
   "version": "0.0.0"
 }

@@ -46,7 +46,7 @@ const KEYS_TO_SORT = [
   "files",
 ]
 
-export const sortPackageJson = async (packageJson: PackageJson) => {
+export const sortPackageJson = (packageJson: PackageJson) => {
   const valuesToSort = Object.entries(packageJson).reduce(
     (toSort, [key, value]) => {
       if (KEYS_TO_SORT.includes(key)) {

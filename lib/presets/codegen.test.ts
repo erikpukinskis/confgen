@@ -42,7 +42,7 @@ describe("presets/codegen", () => {
     })
   })
 
-  describe("with Typescript in a real system", () => {
+  describe.skip("with Typescript in a real system", () => {
     let system: TestSystem
 
     beforeAll(async () => {

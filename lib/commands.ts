@@ -110,7 +110,7 @@ export const runCommand = async (command: CommandWithArgs, system: System) => {
   let log = ""
 
   if (!system.silent) {
-    log += "------------------------------------------------\n"
+    log += "————————————————————————————————————————————————\n"
 
     const presetDetails = command.preset ? `[${command.preset}] ` : ""
     log += `👷 ${descriptions[descriptionKey]} ${presetDetails}\n`
@@ -213,11 +213,7 @@ const syncFile = async (
   }
 }
 
-const writeFile = async (
-  filename: string,
-  contents: FileChanges,
-  system: System
-) => {
+const writeFile = (filename: string, contents: FileChanges, system: System) => {
   if (/[.]ya?ml$/.test(filename)) {
     system.write(filename, YAML.stringify(contents))
   } else if (Array.isArray(contents)) {
@@ -250,7 +246,7 @@ export const readJson = <Format extends Record<string, unknown>>(
     json = JSON.parse(contents) as Format
   } catch (e: unknown) {
     throw new Error(
-      `${(e as Error).message}:\n\n${filename}\n-------\n${contents}`
+      `${(e as Error).message}:\n\n${filename}\n———————\n${contents}`
     )
   }
 

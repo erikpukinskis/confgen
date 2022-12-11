@@ -5,7 +5,7 @@ export const generator: CommandGenerator = ({ presets }) => [
   {
     command: "yarn",
     dev: true,
-    pkg: "eslint",
+    pkg: "eslint@8.29.0",
   },
   {
     command: "yarn",
@@ -17,8 +17,7 @@ export const generator: CommandGenerator = ({ presets }) => [
         {
           command: "yarn",
           dev: true,
-          pkg: "@typescript-eslint/eslint-plugin",
-          version: "^5.14.0",
+          pkg: "@typescript-eslint/eslint-plugin@5.46.0",
         },
         { command: "yarn", dev: true, pkg: "@typescript-eslint/parser" },
         {
@@ -33,7 +32,7 @@ export const generator: CommandGenerator = ({ presets }) => [
         {
           command: "yarn",
           dev: true,
-          pkg: "eslint-plugin-react@7.28.0",
+          pkg: "eslint-plugin-react@7.31.11",
         },
       ] as const)
     : []),
@@ -90,6 +89,7 @@ const getEslintrc = (presets: Presets) => ({
     "import",
     ...(presets.includes("typescript") ? ["@typescript-eslint"] : []),
   ],
+  ignorePatterns: ["*.js"],
   ...(presets.includes("typescript")
     ? {
         parser: "@typescript-eslint/parser",
@@ -137,33 +137,38 @@ const getEslintrc = (presets: Presets) => ({
           "no-unused-vars": "off",
           "@typescript-eslint/no-unused-vars": [
             "error",
-            { args: "after-used" },
+            { args: "after-used", varsIgnorePattern: "^_+$" },
           ],
           "semi": ["error", "never"],
-          ...(presets.includes("react") // Sometimes you want to pass async event handlers
-            ? {
-                "@typescript-eslint/no-misused-promises": [
-                  "error",
-                  {
-                    checksVoidReturn: {
-                      attributes: false,
-                    },
-                  },
-                ],
-              }
-            : undefined),
-          // being released in eslint-plugin-imports@2.27.0:
+          // being released in eslint-plugin-import@2.27.0:
           // "import/consistent-type-specifier-style": ["error", "prefer-inline"],
         }
-      : undefined),
+      : {
+          "no-unused-vars": [
+            "error",
+            { args: "after-used", varsIgnorePattern: "^_+$" },
+          ],
+        }),
     ...(presets.includes("react") && presets.includes("typescript")
       ? {
           // Doesn't work that great with const Foo: SomeType = ... style components
           "react/prop-types": ["off"],
+          "@typescript-eslint/no-misused-promises": [
+            "error",
+            {
+              checksVoidReturn: {
+                attributes: false,
+              },
+            },
+          ],
+        }
+      : undefined),
+    ...(presets.includes("react")
+      ? {
+          "react/react-in-jsx-scope": "off",
         }
       : undefined),
     "eol-last": ["error", "always"],
-    "quote-props": ["error", "consistent-as-needed"],
     "array-element-newline": ["off"],
     "import/order": [
       "error",
