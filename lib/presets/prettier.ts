@@ -71,7 +71,7 @@ export const generator: CommandGenerator = ({ presets }) => {
 const getCheckFormatWorkflow = () =>
   getGithubWorkflow({
     needsPackages: true,
-    workflowName: "Check code format",
+    workflowName: "code format",
     jobs: [
       {
         jobName: "check",

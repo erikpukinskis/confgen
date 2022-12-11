@@ -191,7 +191,7 @@ const getWorkflow = (
 
   return getGithubWorkflow({
     needsPackages: true,
-    workflowName: "Build docs site",
+    workflowName: "docs site",
     workflowOptions: {
       permissions: {
         "contents": "read",

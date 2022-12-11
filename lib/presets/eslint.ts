@@ -103,7 +103,7 @@ vendor
 const getCheckLintWorkfow = () =>
   getGithubWorkflow({
     needsPackages: true,
-    workflowName: "Check lint",
+    workflowName: "lint",
     jobs: [
       {
         jobName: "check",

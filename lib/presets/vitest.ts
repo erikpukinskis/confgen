@@ -96,10 +96,10 @@ export const generator: CommandGenerator = async ({
 const getUnitTestsWorkflow = () =>
   getGithubWorkflow({
     needsPackages: true,
-    workflowName: "Run unit tests",
+    workflowName: "unit tests",
     jobs: [
       {
-        jobName: "test",
+        jobName: "run",
         steps: [
           {
             run: "yarn build",
