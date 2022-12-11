@@ -13,3 +13,6 @@ jobs:
           cache: yarn
       - run: yarn install --frozen-lockfile
       - run: yarn check:format
+concurrency:
+  group: check-code-format
+  cancel-in-progress: true

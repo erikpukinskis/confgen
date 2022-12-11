@@ -1,3 +1,4 @@
+import kebabCase from "lodash/kebabCase"
 import type { CommandGenerator } from "~/commands"
 
 export const generator: CommandGenerator = () => []
@@ -10,6 +11,7 @@ type GithubJob = {
 type GithubWorkflow = {
   name?: string
   on?: string
+  concurrency?: unknown
   jobs: Record<string, GithubJob>
 }
 
@@ -55,6 +57,11 @@ export const getGithubWorkflow = ({
     on: "push",
     ...workflowOptions,
     jobs: githubJobs,
+
+    concurrency: {
+      "group": kebabCase(`${jobOptions[0].jobName} ${workflowName}`),
+      "cancel-in-progress": true,
+    },
   }
 
   jobOptions.forEach(({ jobName }) => {
