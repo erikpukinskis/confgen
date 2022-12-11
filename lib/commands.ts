@@ -89,6 +89,7 @@ function isDistAlready(pkg: string, system: System) {
 type PackageJsonDependencies = {
   dependencies: Record<string, string>
   devDependencies: Record<string, string>
+  peerDependencies: Record<string, string>
 }
 
 export function getPackageType(
@@ -97,15 +98,15 @@ export function getPackageType(
 ): "dist" | "dev" | "peer" | undefined {
   const packageName = pkg.replace(/(.)@.+$/, "$1")
 
-  const { dependencies, devDependencies } = readJson<PackageJsonDependencies>(
-    "package.json",
-    system
-  )
+  const { dependencies, devDependencies, peerDependencies } =
+    readJson<PackageJsonDependencies>("package.json", system)
 
   if (dependencies?.[packageName]) {
     return "dist"
   } else if (devDependencies?.[packageName]) {
     return "dev"
+  } else if (peerDependencies?.[packageName]) {
+    return "peer"
   } else {
     return undefined
   }
