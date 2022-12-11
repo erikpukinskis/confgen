@@ -330,6 +330,7 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 Higher priority:
 
+- [ ] Figure out why index.test.ts got semicolons on initial confgen
 - [ ] Add "Watch for TypeScript problems" task
 - [ ] No bad peer dependencies!!!
 - [ ] Add Codedocs preset to this repo

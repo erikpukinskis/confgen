@@ -17,6 +17,26 @@ export const generator: CommandGenerator = async ({ system, presets }) => {
   const commands: CommandWithArgs[] = [
     {
       command: "yarn",
+      pkg: "react@^17.0.0",
+      dev: true,
+    },
+    {
+      command: "yarn",
+      pkg: "react-dom@^17.0.0",
+      dev: true,
+    },
+    {
+      command: "yarn",
+      pkg: "@types/react@^17.0.0",
+      dev: true,
+    },
+    {
+      command: "yarn",
+      pkg: "@types/react-dom@^17.0.0",
+      dev: true,
+    },
+    {
+      command: "yarn",
       pkg: "react-router-dom",
       dev: true,
     },
