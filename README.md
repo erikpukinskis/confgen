@@ -327,9 +327,44 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 - [x] Account for peerDependencies that are already in the package.json
 - [x] Don't add packages if they're already peerDependencies
 - [x] Add githubActions preset
+- [ ] Don't require a React import in JSX/TSX files in dist:lib projects
+- [ ] Get react-headless-accessible-hooks working with a fresh confgen
 
 Higher priority:
 
+- [ ] Add dotenv preset
+- [ ] Add GraphQL Codegen Watch task
+- [ ] Add TypeScript Watch task
+- [ ] Use .ts for GraphQL codegen
+- [ ] Update args on Debug Current Test File
+- [ ] node-version: "18"?
+- [ ] "@typescript-eslint/no-explicit-any": should not have an array around ["error"]
+- [ ] source.fixAll.eslint and source.formatDocument should be "explicit" not true
+- [ ] Support dist:server for building servers to be put into Docker images
+- [ ] Generate an entrypoint when you add the @server runtime
+- [ ] Before build:generate do `mkdir -p lib/gql`
+- [ ] Add `"*": ["lib/*"],` to tsconfig so .d.ts files work
+- [ ] Add `"packageManager": "^yarn@1.22.19"` to package.json
+- [ ] Add `noUncheckedIndexedAccess`
+- [ ] Go through this thread: https://twitter.com/mattpocockuk/status/1694102744594858129
+- [ ] Add eslint-plugin-import-order-autofix (instead of eslint-plugin-import?)
+- [ ] Add https://www.npmjs.com/package/eslint-plugin-unused-imports
+- [ ] Add noUncheckedIndexedAccess: true
+- [ ] Max out at @testing-library/react 12
+- [ ] Add yarn3 preset
+  - [ ] remove `yarn &&` from build
+  - [ ] `yarn dlx @yarnpkg/sdks vscode`
+  - [ ] Recommend `arcanis.vscode-zipfs` extension in codespaces
+- [ ] No `rollupOptions` if empty
+- [ ] Replace `rm -rf dist/*` with `rm -rf dist`
+- [ ] Don't include @vitejs/plugin-react in vite.config unless using it
+- [ ] Use && instead of if statement in NPM scripts
+- [ ] Remove @vitejs/plugin-react because it's dragging @babel/core into everything
+- [ ] Don't replace "workbench.colorTheme" or workbench.colorCustomizations if they are already customized.
+- [ ] Consider switching to "After Dark No Italics" by default.
+- [ ] Add wildcard externals like /firebase\/.+/
+- [ ] Remove output.globals? When is it needed?
+- [ ] Figure out how to throw a file path on the end of `yarn test`
 - [ ] Don't use any groups when on main
 - [ ] Figure out why index.test.ts got semicolons on initial confgen
 - [ ] Add "Watch for TypeScript problems" task
@@ -340,9 +375,12 @@ Higher priority:
 - [ ] Don't think we need `environment: "jsdom"` in vite.docs.config.js?
 - [ ] Remove .eslintignore?
 - [ ] Add https://www.npmjs.com/package/validate-peer-dependencies as a preinstall hook
+- [ ] Use https://github.com/lukeed/resolve.exports (or however Vite exposes to use it?) to add package.json exports
 
 Later:
 
+- [ ] Use a JSON parser that can handle comments in .vscode/ files
+- [ ] Add vite/client to tsconfig? https://vitejs.dev/guide/features.html#client-types
 - [ ] Add ability to specify for "file" command to overwrite array instead of merging it
 - [ ] Figure out why outerframe/application installs eslint-plugin-react@7.28.0 every time?
 - [ ] Rename `check` to `validate` so we can have a `yarn validate` command
