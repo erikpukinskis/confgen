@@ -67,6 +67,34 @@ export const generator: CommandGenerator = ({ presets, runtimes }) => {
       merge: "replace",
     })
   }
+
+  if (presets.includes("codespaces")) {
+    commands.push({
+      command: "file",
+      path: ".vscode/tasks.json",
+      contents: {
+        "version": "2.0.0",
+      },
+      merge: "prefer-preset",
+    })
+    commands.push({
+      command: "json",
+      path: ".vscode/tasks.json",
+      accessor: "tasks[label=TypeScript Watch]",
+      contents: {
+        "label": "TypeScript Watch",
+        "type": "typescript",
+        "tsconfig": "tsconfig.check.json",
+        "option": "watch",
+        "problemMatcher": ["$tsc-watch"],
+        "group": "build",
+        "runOptions": {
+          "runOn": "folderOpen",
+        },
+      },
+      merge: "replace",
+    })
+  }
   return commands
 }
 
