@@ -378,14 +378,17 @@ const getViteConfig = async (
     rollupStuff = "",
   } = scripts
 
-  const jsdomStuff =
-    presets.includes("vitest") && presets.includes("react")
-      ? `
-        test: {
-          environment: "jsdom",
-        },
-      `
-      : ""
+  let testEnvironment: string | undefined
+
+  if (presets.includes("vitest") && presets.includes("react")) {
+    testEnvironment = "jsdom"
+  }
+
+  const setupFiles = []
+
+  if (presets.includes("dotenv")) {
+    setupFiles.push("dotenv/config")
+  }
 
   if (presets.includes("macros") || presets.includes("sql")) {
     plugins.push(["macros", "vite-plugin-babel-macros"])
@@ -394,6 +397,15 @@ const getViteConfig = async (
   if (presets.includes("react")) {
     plugins.push(["react", "@vitejs/plugin-react"])
   }
+
+  const testStuff =
+    testEnvironment || setupFiles.length > 0
+      ? `
+        test: {
+          environment: "jsdom",
+        },
+      `
+      : undefined
 
   const source = `
     import path from "path"
@@ -404,7 +416,7 @@ const getViteConfig = async (
 
     export default defineConfig({
       ${serverStuff}
-      ${jsdomStuff}
+      ${testStuff}
       resolve: {
         alias: {
           "~": path.resolve(__dirname, "./${runtimes[0]}"),
