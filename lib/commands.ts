@@ -278,16 +278,16 @@ const syncFile = async ({
 
   if (Array.isArray(changes)) {
     ensureLines(path, changes, system)
+    return
   }
 
   if (typeof changes === "string") {
     system.write(path, changes)
+    return
   }
 
-  const content = assertJsonObject(changes)
-
   const format = /[.]ya?ml$/.test(path) ? "yaml" : "json"
-
+  const content = assertJsonObject(changes, format)
   const originalObject =
     format === "yaml" ? readYaml(path, system) : readJson(path, system)
   const newObject = cloneDeep(originalObject)
@@ -321,6 +321,7 @@ const syncFile = async ({
         getNewContent({
           existing: assertJsonObject(
             get(originalObject, base),
+            format,
             `${path} at accessor ${base}`
           ),
           content,
@@ -464,16 +465,20 @@ export const readJson = <Format extends JsonObject = JsonObject>(
     )
   }
 
-  return assertJsonObject(json, filename) as Format
+  return assertJsonObject(json, "json", filename) as Format
 }
 
 export function readYaml(filename: string, system: System) {
   const obj = system.exists(filename) ? YAML.parse(system.read(filename)) : {}
 
-  return assertJsonObject(obj, filename)
+  return assertJsonObject(obj, "yaml", filename)
 }
 
-function assertJsonObject(obj: unknown, filename?: string) {
+function assertJsonObject(
+  obj: unknown,
+  format: "json" | "yaml",
+  filename?: string
+) {
   const nonObjectType =
     typeof obj !== "object"
       ? typeof obj
@@ -487,7 +492,7 @@ function assertJsonObject(obj: unknown, filename?: string) {
       : `Contents ${JSON.stringify(obj)}`
 
     throw new Error(
-      `${description} contained a ${nonObjectType} but we expect YAML files to have an object at the root`
+      `${description} contained a ${nonObjectType} but we expect ${format} files to have an object at the root`
     )
   }
 

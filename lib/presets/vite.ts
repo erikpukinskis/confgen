@@ -405,7 +405,7 @@ const getViteConfig = async (
           environment: "jsdom",
         },
       `
-      : undefined
+      : ""
 
   const source = `
     import path from "path"
