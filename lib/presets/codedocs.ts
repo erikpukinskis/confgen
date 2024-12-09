@@ -10,10 +10,7 @@ import {
 import { formatHtml, formatTypescript } from "~/format"
 
 export const generator: CommandGenerator = async ({ system, presets }) => {
-  const packageJson = readJson<{ name: string | undefined }>(
-    "package.json",
-    system
-  )
+  const packageJson = readJson<{ name?: string }>("package.json", system)
 
   const commands: CommandWithArgs[] = [
     {

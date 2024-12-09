@@ -78,7 +78,7 @@ export const generator: CommandGenerator = ({ presets, runtimes }) => {
       merge: "prefer-preset",
     })
     commands.push({
-      command: "json",
+      command: "file",
       path: ".vscode/tasks.json",
       accessor: "tasks[label=TypeScript Watch]",
       contents: {

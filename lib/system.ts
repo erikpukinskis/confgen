@@ -2,6 +2,7 @@ import { execSync } from "child_process"
 import { existsSync, readFileSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
 import { outputFileSync } from "fs-extra"
+import { JsonObject } from "./helpers/json"
 
 export type System = {
   silent: boolean
@@ -81,7 +82,33 @@ export class MockSystem implements System {
   read(path: string) {
     return this.contentsByPath[path]
   }
+  json(path: string) {
+    const contents = this.read(path)
+    let json: unknown
+    try {
+      json = JSON.parse(contents)
+    } catch (e) {
+      throw new Error(`Contents of ${path} were not valid JSON:\n\n${contents}`)
+    }
+
+    if (typeof json !== "object") {
+      throw new Error(
+        `Expected contents of ${path} to be an object, but it was a ${typeof json}:\n\n${contents}`
+      )
+    }
+
+    if (Array.isArray(json)) {
+      throw new Error(
+        `Expected contents of ${path} to be an object, but it was an array:\n\n${contents}`
+      )
+    }
+
+    return json as JsonObject
+  }
   write(path: string, contents: string) {
+    if (typeof contents !== "string") {
+      throw new Error("Cannot write non-string to system")
+    }
     this.contentsByPath[path] = contents
   }
   addPackage(pkgStrings: string, isDevOnly: boolean) {

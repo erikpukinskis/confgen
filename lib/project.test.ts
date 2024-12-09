@@ -5,7 +5,7 @@ import { describe, it } from "vitest"
 // import { MockSystem } from "~/system"
 
 describe("project", () => {
-  it.skip("should not move a dev dependency into dist dependencies")
+  it.todo("should not move a dev dependency into dist dependencies")
 
   it.todo(
     "should upgrade a supposedly dist dependency even if it's a dev dependency"
