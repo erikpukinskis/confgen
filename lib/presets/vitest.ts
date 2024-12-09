@@ -41,30 +41,36 @@ export const generator: CommandGenerator = async ({
   }
 
   if (presets.includes("codespaces")) {
-    commands.push({
-      command: "file",
-      path: ".vscode/launch.json",
-      contents: {
-        version: "0.2.0",
-        configurations: [
-          {
-            type: "node",
-            request: "launch",
-            name: "Debug Current Test File",
-            skipFiles: ["<node_internals>/**", "**/node_modules/**"],
-            program: "${workspaceRoot}/node_modules/vitest/vitest.mjs",
-            args: [
-              "related",
-              "--config",
-              "vite.test.config.js",
-              "${relativeFile}",
-            ],
-            smartStep: true,
-            console: "integratedTerminal",
-          },
-        ],
+    commands.push(
+      {
+        command: "file",
+        path: ".vscode/launch.json",
+        contents: {
+          version: "0.2.0",
+        },
       },
-    })
+      {
+        command: "file",
+        path: ".vscode/launch.json",
+        accessor: "configurations[name=Debug Current Test File]",
+        merge: "replace",
+        contents: {
+          "type": "node",
+          "request": "launch",
+          "name": "Debug Current Test File",
+          "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+          "program": "${workspaceRoot}/node_modules/vitest/vitest.mjs",
+          "args": [
+            "related",
+            "--config",
+            "vite.test.config.js",
+            "${relativeFile}",
+          ],
+          "smartStep": true,
+          "console": "integratedTerminal",
+        },
+      }
+    )
   }
 
   if (!hasTestFiles(system)) {

@@ -81,7 +81,7 @@ vendor
         path: ".vscode/settings.json",
         contents: {
           "editor.codeActionsOnSave": {
-            "source.fixAll.eslint": true,
+            "source.fixAll.eslint": "explicit",
           },
         },
       }
@@ -162,7 +162,7 @@ const getEslintrc = (presets: Presets) => ({
   rules: {
     ...(presets.includes("typescript")
       ? {
-          "@typescript-eslint/no-explicit-any": ["error"],
+          "@typescript-eslint/no-explicit-any": "error",
           "@typescript-eslint/consistent-type-imports": [
             "error",
             { prefer: "type-imports" },
