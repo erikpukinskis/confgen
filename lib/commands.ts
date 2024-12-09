@@ -198,11 +198,19 @@ const tick = () => new Promise<void>((resolve) => setTimeout(resolve))
  */
 const logAndRun = async (log: string, func: () => void | Promise<void>) => {
   await tick()
-  return new Promise<void>((resolve) => {
+
+  return new Promise<void>((resolve, reject) => {
     process.stdout.write(log, () => {
-      const promise = func()
+      let promise: void | Promise<void> | undefined
+
+      try {
+        promise = func()
+      } catch (e) {
+        reject(e)
+      }
+
       if (promise) {
-        void promise.then(resolve)
+        void promise.then(resolve).catch(reject)
       } else {
         resolve()
       }

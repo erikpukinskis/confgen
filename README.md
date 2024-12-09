@@ -332,9 +332,9 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 Higher priority:
 
-- [ ] Add dotenv preset
+- [x] Add dotenv preset
 - [ ] Add GraphQL Codegen Watch task
-- [ ] Add TypeScript Watch task
+- [x] Add TypeScript Watch task
 - [ ] Use .ts for GraphQL codegen
 - [ ] Update args on Debug Current Test File
 - [ ] node-version: "18"?
