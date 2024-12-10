@@ -1,5 +1,6 @@
 import type { CommandGenerator, CommandWithArgs, Precheck } from "~/commands"
 import { formatTypescript } from "~/format"
+import { JsonObject } from "~/helpers/json"
 import { type Runtime, isRuntime } from "~/runtimes"
 
 const GENERATORS = ["resolvers", "schema", "operations"] as const
@@ -197,7 +198,7 @@ const getSchemaCodegen = (runtime: Runtime) => ({
   },
 })
 
-const getHooksCodegen = (generators: Generator[]) => {
+const getHooksCodegen = (generators: Generator[]): JsonObject => {
   let command = ""
   if (generators.includes("schema")) {
     command += '\\nexport { default as schema } from \\"./schema\\"'

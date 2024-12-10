@@ -6,7 +6,16 @@ import { type PresetName } from "~/presets"
 import type { Runtime } from "~/runtimes"
 import { type System } from "~/system"
 import { JsonObject } from "./helpers/json"
-import { cloneDeep, get, mergeWith, set, uniq } from "lodash"
+import {
+  cloneDeep,
+  get,
+  isEqual,
+  mergeWith,
+  set,
+  uniq,
+  uniqBy,
+  uniqWith,
+} from "lodash"
 
 export type Runtimes = Runtime[]
 
@@ -26,7 +35,7 @@ export type FileCommand = {
   command: "file"
   path: string
   accessor?: string
-  contents: string | string[] | Record<string, unknown>
+  contents: string | string[] | JsonObject
   merge?: ResolutionStrategy
 }
 
@@ -136,7 +145,7 @@ export type Precheck = (input: {
   system: System
 }) => void
 
-type FileChanges = string | string[] | Record<string, unknown>
+type FileChanges = string | string[] | JsonObject
 
 const descriptions: Record<string, string> = {
   file: "Updating file",
@@ -423,10 +432,11 @@ function getNewContent({
  * unique values from the two arrays. Lodash's default merge function would just
  * take the second array, and try to merge the items by index.
  */
-function merge(base: unknown, overrides: unknown) {
-  return mergeWith(base, overrides, (x, y) =>
-    Array.isArray(x) && Array.isArray(y) ? uniq([...x, ...y]) : undefined
-  )
+function merge(base: JsonObject, overrides: JsonObject): JsonObject {
+  return mergeWith(base, overrides, (x, y) => {
+    if (!Array.isArray(x) || !Array.isArray(y)) return undefined
+    return uniqWith([...x, ...y], isEqual)
+  })
 }
 
 const writeFile = async (
@@ -512,7 +522,7 @@ function assertJsonObject(
 
 const amendJson = async (
   filename: string,
-  json: Record<string, unknown>,
+  json: JsonObject,
   preferExisting: boolean,
   system: System
 ) => {
@@ -537,7 +547,7 @@ const amendYaml = (
   }
 
   const originalYaml = system.exists(filename)
-    ? (YAML.parse(system.read(filename)) as Record<string, unknown>)
+    ? (YAML.parse(system.read(filename)) as JsonObject)
     : {}
 
   if (Array.isArray(originalYaml)) {

@@ -33,6 +33,48 @@ describe("file command", () => {
     expect(system.json(".eslintrc").plugins).toHaveLength(1)
   })
 
+  it("doesn't add equal objects to an array twice", async () => {
+    const system = new MockSystem()
+
+    await runCommand(
+      {
+        command: "file",
+        path: ".eslintrc",
+        contents: {
+          "rule": [
+            "error",
+            {
+              "args": "after-used",
+              "varsIgnorePattern": "^_+$",
+            },
+          ],
+        },
+      },
+      system
+    )
+
+    expect(system.json(".eslintrc").rule).toHaveLength(2)
+
+    await runCommand(
+      {
+        command: "file",
+        path: ".eslintrc",
+        contents: {
+          "rule": [
+            "error",
+            {
+              "args": "after-used",
+              "varsIgnorePattern": "^_+$",
+            },
+          ],
+        },
+      },
+      system
+    )
+
+    expect(system.json(".eslintrc").rule).toHaveLength(2)
+  })
+
   it("parses the query out of an accessor", () => {
     expect(parseAccessor("tasks[label=TypeScript Watch]")).toMatchObject({
       base: "tasks",

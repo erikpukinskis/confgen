@@ -1,6 +1,7 @@
 import { getGithubWorkflow } from "./githubActions"
 import type { CommandWithArgs } from "~/commands"
 import { type CommandGenerator } from "~/commands"
+import { JsonObject } from "~/helpers/json"
 import { type Presets } from "~/presets"
 
 export const generator: CommandGenerator = ({ presets }) => {
@@ -116,7 +117,7 @@ const getCheckLintWorkfow = () =>
     ],
   })
 
-const getEslintrc = (presets: Presets) => ({
+const getEslintrc = (presets: Presets): JsonObject => ({
   root: true,
   plugins: [
     "import",

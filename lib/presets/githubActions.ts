@@ -1,33 +1,52 @@
 import kebabCase from "lodash/kebabCase"
 import type { CommandGenerator } from "~/commands"
+import { JsonObject } from "~/helpers/json"
 
 export const generator: CommandGenerator = () => []
 
 type GithubJob = {
   "runs-on": string
-  steps: unknown[]
+  steps: JsonObject[]
 }
 
 type GithubWorkflow = {
   name?: string
-  on?: unknown
-  concurrency?: unknown
+  on?: string | Record<string, Record<string, string[]>>
+  concurrency?: {
+    "group": string
+    "cancel-in-progress": boolean
+  }
   jobs: Record<string, GithubJob>
 }
 
-type GithubStep = Record<string, unknown>
+type GithubStep = {
+  name?: string
+  id?: string
+  uses?: string
+  run?: string
+  with?: {
+    path?: string
+  }
+}
 
-type GithubJobConfig = {
+export type GithubJobConfig = {
   jobName: string
   steps: GithubStep[]
-  jobOptions?: Record<string, unknown>
+  jobOptions?: {
+    environment?: {
+      name: string
+      url: string
+    }
+  }
 }
 
 type GetGithubWorkflowOptions = {
   needsPackages: boolean
   workflowName: string
   jobs: GithubJobConfig[]
-  workflowOptions?: Record<string, unknown>
+  workflowOptions?: {
+    permissions?: Record<string, "read" | "write">
+  }
   includeBranch?: string
   excludeBranch?: string
 }
@@ -39,7 +58,7 @@ export const getGithubWorkflow = ({
   jobs: jobOptions,
   includeBranch,
   excludeBranch,
-}: GetGithubWorkflowOptions) => {
+}: GetGithubWorkflowOptions): JsonObject => {
   const githubJobs = jobOptions.reduce(
     (jobs, { jobName, jobOptions, steps }) => {
       const job: GithubJob = {
