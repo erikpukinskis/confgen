@@ -4,6 +4,36 @@ import { MockSystem } from "~/system"
 import { parseAccessor, runCommand } from "./commands"
 
 describe("file command", () => {
+  it.only("doesn't add the same string to an array twice", async () => {
+    const system = new MockSystem()
+
+    await runCommand(
+      {
+        command: "file",
+        path: ".eslintrc",
+        contents: {
+          plugins: ["import"],
+        },
+      },
+      system
+    )
+
+    expect(system.json(".eslintrc").plugins).toHaveLength(1)
+
+    await runCommand(
+      {
+        command: "file",
+        path: ".eslintrc",
+        contents: {
+          plugins: ["import"],
+        },
+      },
+      system
+    )
+
+    expect(system.json(".eslintrc").plugins).toHaveLength(1)
+  })
+
   it("parses the query out of an accessor", () => {
     expect(parseAccessor("tasks[label=TypeScript Watch]")).toMatchObject({
       base: "tasks",

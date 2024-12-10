@@ -80,11 +80,16 @@ export class MockSystem implements System {
     return Boolean(this.contentsByPath[path])
   }
   read(path: string) {
+    if (this.contentsByPath[path] === undefined) {
+      throw new Error(`MockSystem never wrote to path ${path}`)
+    }
     return this.contentsByPath[path]
   }
   json(path: string) {
     const contents = this.read(path)
+
     let json: unknown
+
     try {
       json = JSON.parse(contents)
     } catch (e) {
