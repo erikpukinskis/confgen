@@ -194,7 +194,9 @@ const getOperationsCodegen = (runtime: Runtime) => ({
 const getSchemaCodegen = (runtime: Runtime) => ({
   schema: "schema.graphql",
   generates: {
-    [`./${runtime}/gql/schema.ts`]: ["graphql-codegen-schema-script"],
+    [`./${runtime}/gql/schema.ts`]: {
+      plugins: ["graphql-codegen-schema-script"],
+    },
   },
 })
 

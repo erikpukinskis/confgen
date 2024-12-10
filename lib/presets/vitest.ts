@@ -64,6 +64,8 @@ export const generator: CommandGenerator = async ({
             "related",
             "--config",
             "vite.test.config.js",
+            // Not sure why we had this in multiplayer-db-schema-service? Might want it again at some point:
+            // "--test-timeout=0",
             "${relativeFile}",
           ],
           smartStep: true,

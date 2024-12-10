@@ -330,7 +330,43 @@ const getViteTestConfig = async (
   presets: Presets,
   args: Args
 ) => {
-  return getViteBaseConfig(runtimes, presets, args)
+  let testEnvironment: string | undefined
+
+  if (presets.includes("vitest") && presets.includes("react")) {
+    testEnvironment = "jsdom"
+  }
+
+  const setupFiles = []
+
+  if (presets.includes("dotenv")) {
+    setupFiles.push("dotenv/config")
+  }
+
+  const testStuff = (() => {
+    console.log({ setupFiles })
+    if (!testEnvironment && setupFiles.length < 1) {
+      return ""
+    }
+
+    return `
+        test: {
+          ${
+            testEnvironment
+              ? `environment: ${JSON.stringify(testEnvironment)},`
+              : ""
+          }
+          ${
+            setupFiles.length > 0
+              ? `setupFiles: ${JSON.stringify(setupFiles)},`
+              : ""
+          }
+        },
+      `
+  })()
+
+  return getViteBaseConfig(runtimes, presets, args, {
+    testStuff,
+  })
 }
 
 const getViteBaseConfig = async (
@@ -363,6 +399,7 @@ type Scripts = {
   serverStuff: string
   buildStuff: string
   rollupStuff: string
+  testStuff: string
 }
 
 const getViteConfig = async (
@@ -376,19 +413,8 @@ const getViteConfig = async (
     serverStuff = "",
     buildStuff = "",
     rollupStuff = "",
+    testStuff = "",
   } = scripts
-
-  let testEnvironment: string | undefined
-
-  if (presets.includes("vitest") && presets.includes("react")) {
-    testEnvironment = "jsdom"
-  }
-
-  const setupFiles = []
-
-  if (presets.includes("dotenv")) {
-    setupFiles.push("dotenv/config")
-  }
 
   if (presets.includes("macros") || presets.includes("sql")) {
     plugins.push(["macros", "vite-plugin-babel-macros"])
@@ -397,15 +423,6 @@ const getViteConfig = async (
   if (presets.includes("react")) {
     plugins.push(["react", "@vitejs/plugin-react"])
   }
-
-  const testStuff =
-    testEnvironment || setupFiles.length > 0
-      ? `
-        test: {
-          environment: "jsdom",
-        },
-      `
-      : ""
 
   const source = `
     import path from "path"
