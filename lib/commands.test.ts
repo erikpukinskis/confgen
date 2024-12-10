@@ -1,10 +1,9 @@
 import { describe, it, expect } from "vitest"
-import { Project } from "~/project"
 import { MockSystem } from "~/system"
 import { parseAccessor, runCommand } from "./commands"
 
 describe("file command", () => {
-  it.only("doesn't add the same string to an array twice", async () => {
+  it("doesn't add the same string to an array twice", async () => {
     const system = new MockSystem()
 
     await runCommand(
@@ -52,7 +51,7 @@ describe("file command", () => {
         path: ".vscode/tasks.json",
         accessor: "tasks[label=TypeScript Watch]",
         contents: {
-          "type": "typescript",
+          type: "typescript",
           label: "TypeScript Watch",
         },
       },

@@ -1,4 +1,3 @@
-import merge from "merge-objects"
 import YAML from "yaml"
 import { type Args } from "~/args"
 import { dedupe } from "~/dedupe"
@@ -7,7 +6,7 @@ import { type PresetName } from "~/presets"
 import type { Runtime } from "~/runtimes"
 import { type System } from "~/system"
 import { JsonObject } from "./helpers/json"
-import { cloneDeep, get, set } from "lodash"
+import { cloneDeep, get, mergeWith, set, uniq } from "lodash"
 
 export type Runtimes = Runtime[]
 
@@ -416,6 +415,18 @@ function getNewContent({
     case "prefer-preset":
       return merge(existing, content)
   }
+}
+
+/**
+ * Deep merge of two objects (second argument takes precedence). One small
+ * change is that if there are arrays anywhere on the objects, it will combine
+ * unique values from the two arrays. Lodash's default merge function would just
+ * take the second array, and try to merge the items by index.
+ */
+function merge(base: unknown, overrides: unknown) {
+  return mergeWith(base, overrides, (x, y) =>
+    Array.isArray(x) && Array.isArray(y) ? uniq([...x, ...y]) : undefined
+  )
 }
 
 const writeFile = async (
