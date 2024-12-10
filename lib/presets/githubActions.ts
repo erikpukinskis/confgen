@@ -101,7 +101,7 @@ export const getGithubWorkflow = ({
           name: "Set up Yarn cache",
           uses: "actions/setup-node@v3",
           with: {
-            "node-version": "16",
+            "node-version": "18",
             "cache": "yarn",
           },
         },
