@@ -343,7 +343,6 @@ const getViteTestConfig = async (
   }
 
   const testStuff = (() => {
-    console.log({ setupFiles })
     if (!testEnvironment && setupFiles.length < 1) {
       return ""
     }
