@@ -1,6 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { get } from "lodash"
 import { describe, it, expect } from "vitest"
-import { MockSystem } from "~/system"
 import { parseAccessor, runCommand } from "./commands"
+import { MockSystem } from "~/system"
 
 describe("file command", () => {
   it("doesn't add the same string to an array twice", async () => {
@@ -41,11 +44,11 @@ describe("file command", () => {
         command: "file",
         path: ".eslintrc",
         contents: {
-          "rule": [
+          rule: [
             "error",
             {
-              "args": "after-used",
-              "varsIgnorePattern": "^_+$",
+              args: "after-used",
+              varsIgnorePattern: "^_+$",
             },
           ],
         },
@@ -60,11 +63,11 @@ describe("file command", () => {
         command: "file",
         path: ".eslintrc",
         contents: {
-          "rule": [
+          rule: [
             "error",
             {
-              "args": "after-used",
-              "varsIgnorePattern": "^_+$",
+              args: "after-used",
+              varsIgnorePattern: "^_+$",
             },
           ],
         },
@@ -119,15 +122,15 @@ describe("file command", () => {
           command: "file",
           path: ".vscode/tasks.json",
           contents: {
-            "version": "2.0.0",
+            version: "2.0.0",
             tasks: [
               {
                 type: "placeholder",
               },
               {
                 label: "TypeScript Watch",
-                "type": "command",
-                "args": [1, 2, 3],
+                type: "command",
+                args: [1, 2, 3],
               },
             ],
           },
@@ -141,7 +144,7 @@ describe("file command", () => {
           path: ".vscode/tasks.json",
           accessor: "tasks[label=TypeScript Watch]",
           contents: {
-            "type": "typescript",
+            type: "typescript",
             label: "TypeScript Watch",
           },
           merge: "prefer-preset",
@@ -149,12 +152,12 @@ describe("file command", () => {
         system
       )
 
-      const result = JSON.parse(system.read(".vscode/tasks.json"))
+      const result = system.json(".vscode/tasks.json")
 
       expect(result.tasks).toHaveLength(2)
 
       expect(result).toMatchObject({
-        "version": "2.0.0",
+        version: "2.0.0",
         tasks: expect.arrayContaining([
           {
             type: "placeholder",
@@ -163,12 +166,12 @@ describe("file command", () => {
       })
 
       expect(result).toMatchObject({
-        "version": "2.0.0",
+        version: "2.0.0",
         tasks: expect.arrayContaining([
           {
-            "type": "typescript",
+            type: "typescript",
             label: "TypeScript Watch",
-            "args": [1, 2, 3],
+            args: [1, 2, 3],
           },
         ]),
       })
@@ -187,7 +190,7 @@ describe("file command", () => {
           tasks: [
             {
               label: "TypeScript Watch",
-              "args": [1, 2, 3],
+              args: [1, 2, 3],
             },
           ],
         },
@@ -195,17 +198,15 @@ describe("file command", () => {
       system
     )
 
-    const initial = JSON.parse(system.read(".vscode/tasks.json"))
+    const initial = system.json(".vscode/tasks.json")
 
     expect(initial).toMatchObject({
-      tasks: expect.any(Array),
+      tasks: [
+        {
+          args: [1, 2, 3],
+        },
+      ],
     })
-
-    const {
-      tasks: [initialTask],
-    } = initial
-
-    expect(initialTask.args).toEqual([1, 2, 3])
 
     await runCommand(
       {
@@ -213,7 +214,7 @@ describe("file command", () => {
         path: ".vscode/tasks.json",
         accessor: "tasks[label=TypeScript Watch]",
         contents: {
-          "type": "typescript",
+          type: "typescript",
           label: "TypeScript Watch",
         },
         merge: "replace",
@@ -221,16 +222,12 @@ describe("file command", () => {
       system
     )
 
-    const result = JSON.parse(system.read(".vscode/tasks.json"))
+    const result = system.json(".vscode/tasks.json")
 
     expect(result).toMatchObject({
       tasks: expect.any(Array),
     })
 
-    const {
-      tasks: [resultingTask],
-    } = result
-
-    expect(resultingTask.args).toBeUndefined()
+    expect(get(result, "tasks.0.args")).toBeUndefined()
   })
 })

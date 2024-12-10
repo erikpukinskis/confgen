@@ -1,6 +1,6 @@
 import type { CommandGenerator, CommandWithArgs, Precheck } from "~/commands"
 import { formatTypescript } from "~/format"
-import { JsonObject } from "~/helpers/json"
+import type { JsonObject } from "~/helpers/json"
 import { type Runtime, isRuntime } from "~/runtimes"
 
 const GENERATORS = ["resolvers", "schema", "operations"] as const
@@ -88,12 +88,12 @@ export const generator: CommandGenerator = async ({
       path: ".vscode/tasks.json",
       accessor: "tasks[label=GraphQL Codegen Watch]",
       contents: {
-        "label": "GraphQL Codegen Watch",
-        "type": "npm",
-        "script": "build:generate:watch",
-        "group": "build",
-        "runOptions": {
-          "runOn": "folderOpen",
+        label: "GraphQL Codegen Watch",
+        type: "npm",
+        script: "build:generate:watch",
+        group: "build",
+        runOptions: {
+          runOn: "folderOpen",
         },
       },
     })

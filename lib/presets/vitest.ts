@@ -55,19 +55,19 @@ export const generator: CommandGenerator = async ({
         accessor: "configurations[name=Debug Current Test File]",
         merge: "replace",
         contents: {
-          "type": "node",
-          "request": "launch",
-          "name": "Debug Current Test File",
-          "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
-          "program": "${workspaceRoot}/node_modules/vitest/vitest.mjs",
-          "args": [
+          type: "node",
+          request: "launch",
+          name: "Debug Current Test File",
+          skipFiles: ["<node_internals>/**", "**/node_modules/**"],
+          program: "${workspaceRoot}/node_modules/vitest/vitest.mjs",
+          args: [
             "related",
             "--config",
             "vite.test.config.js",
             "${relativeFile}",
           ],
-          "smartStep": true,
-          "console": "integratedTerminal",
+          smartStep: true,
+          console: "integratedTerminal",
         },
       }
     )

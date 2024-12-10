@@ -1,21 +1,11 @@
+import { cloneDeep, get, isEqual, mergeWith, set, uniqWith } from "lodash"
 import YAML from "yaml"
+import type { JsonObject } from "./helpers/json"
 import { type Args } from "~/args"
-import { dedupe } from "~/dedupe"
 import { formatJson } from "~/format"
 import { type PresetName } from "~/presets"
 import type { Runtime } from "~/runtimes"
 import { type System } from "~/system"
-import { JsonObject } from "./helpers/json"
-import {
-  cloneDeep,
-  get,
-  isEqual,
-  mergeWith,
-  set,
-  uniq,
-  uniqBy,
-  uniqWith,
-} from "lodash"
 
 export type Runtimes = Runtime[]
 
@@ -246,16 +236,15 @@ const COMMANDS = {
     }
   },
   script: async ({ name, script }: ScriptCommand, system: System) => {
-    await amendJson(
-      "package.json",
-      {
+    await syncFile({
+      system,
+      path: "package.json",
+      changes: {
         scripts: {
           [name]: script,
         },
       },
-      false,
-      system
-    )
+    })
   },
   yarn: (command: PackageCommand, system: System) => {
     system.addPackage(command.pkg, isDevPackageCommand(system)(command))
@@ -370,7 +359,7 @@ const syncFile = async ({
  * write content to a specific query. So we are rolling my own for now.
  */
 export function parseAccessor(accessor: string) {
-  const match = accessor.match(/^([^\[]*)(.*)?$/)
+  const match = accessor.match(/^([^[]*)(.*)?$/)
 
   if (!match) {
     throw new Error(
@@ -435,7 +424,8 @@ function getNewContent({
 function merge(base: JsonObject, overrides: JsonObject): JsonObject {
   return mergeWith(base, overrides, (x, y) => {
     if (!Array.isArray(x) || !Array.isArray(y)) return undefined
-    return uniqWith([...x, ...y], isEqual)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    return uniqWith([...x, ...y], isEqual) as unknown
   })
 }
 
@@ -490,7 +480,9 @@ export const readJson = <Format extends JsonObject = JsonObject>(
 }
 
 export function readYaml(filename: string, system: System) {
-  const obj = system.exists(filename) ? YAML.parse(system.read(filename)) : {}
+  const obj = system.exists(filename)
+    ? (YAML.parse(system.read(filename)) as JsonObject)
+    : {}
 
   return assertJsonObject(obj, "yaml", filename)
 }
@@ -518,47 +510,4 @@ function assertJsonObject(
   }
 
   return obj as JsonObject
-}
-
-const amendJson = async (
-  filename: string,
-  json: JsonObject,
-  preferExisting: boolean,
-  system: System
-) => {
-  const originalJson = readJson(filename, system)
-
-  const newJson = dedupe(
-    preferExisting ? merge(json, originalJson) : merge(originalJson, json)
-  )
-  system.write(filename, await formatJson(newJson))
-}
-
-const amendYaml = (
-  filename: string,
-  changes: FileChanges,
-  preferExisting: boolean,
-  system: System
-) => {
-  if (typeof changes === "string" || Array.isArray(changes)) {
-    throw new Error(
-      `Cannot amend YAML file ${filename} with a string or array. Contents must be an object.`
-    )
-  }
-
-  const originalYaml = system.exists(filename)
-    ? (YAML.parse(system.read(filename)) as JsonObject)
-    : {}
-
-  if (Array.isArray(originalYaml)) {
-    throw new Error(
-      `YAML file ${filename} is an array, but we only know how to sync objects`
-    )
-  }
-
-  const newYaml = dedupe(
-    preferExisting ? merge(changes, originalYaml) : merge(originalYaml, changes)
-  )
-
-  system.write(filename, YAML.stringify(newYaml))
 }

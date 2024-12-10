@@ -1,7 +1,6 @@
 import { getGithubWorkflow } from "./githubActions"
-import type { CommandWithArgs } from "~/commands"
-import { type CommandGenerator } from "~/commands"
-import { JsonObject } from "~/helpers/json"
+import type { CommandWithArgs, CommandGenerator } from "~/commands"
+import type { JsonObject } from "~/helpers/json"
 import { type Presets } from "~/presets"
 
 export const generator: CommandGenerator = ({ presets }) => {

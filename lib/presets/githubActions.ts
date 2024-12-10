@@ -1,6 +1,6 @@
 import kebabCase from "lodash/kebabCase"
 import type { CommandGenerator } from "~/commands"
-import { JsonObject } from "~/helpers/json"
+import type { JsonObject } from "~/helpers/json"
 
 export const generator: CommandGenerator = () => []
 

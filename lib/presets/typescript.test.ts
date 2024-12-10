@@ -14,10 +14,10 @@ describe("presets/typescript", () => {
     await project.confgen()
 
     expect(system.exists(".vscode/tasks.json")).toBe(true)
-    const tasksJson = JSON.parse(system.read(".vscode/tasks.json"))
+    const tasksJson = system.json(".vscode/tasks.json")
     expect(tasksJson.tasks).toHaveLength(1)
-    expect(tasksJson.tasks[0]).toMatchObject({
-      "label": "TypeScript Watch",
+    expect(tasksJson).toMatchObject({
+      tasks: [{ label: "TypeScript Watch" }],
     })
   })
 })

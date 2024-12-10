@@ -2,7 +2,7 @@ import { execSync } from "child_process"
 import { existsSync, readFileSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
 import { outputFileSync } from "fs-extra"
-import { JsonObject } from "./helpers/json"
+import type { JsonObject } from "./helpers/json"
 
 export type System = {
   silent: boolean

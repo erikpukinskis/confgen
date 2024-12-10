@@ -1,14 +1,15 @@
 import startCase from "lodash/startCase"
-import { getGithubWorkflow, GithubJobConfig } from "./githubActions"
-import type { Presets } from "~/commands"
-import {
-  readJson,
-  type CommandGenerator,
-  type CommandWithArgs,
-  type System,
+import type { GithubJobConfig } from "./githubActions"
+import { getGithubWorkflow } from "./githubActions"
+import type {
+  Presets,
+  CommandWithArgs,
+  System,
+  CommandGenerator,
 } from "~/commands"
+import { readJson } from "~/commands"
 import { formatHtml, formatTypescript } from "~/format"
-import { JsonObject } from "~/helpers/json"
+import type { JsonObject } from "~/helpers/json"
 
 export const generator: CommandGenerator = async ({ system, presets }) => {
   const packageJson = readJson<{ name?: string }>("package.json", system)

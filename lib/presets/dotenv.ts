@@ -1,3 +1,3 @@
-import { CommandGenerator } from "~/commands"
+import type { CommandGenerator } from "~/commands"
 
-export const generator: CommandGenerator = ({ presets, runtimes, args }) => []
+export const generator: CommandGenerator = () => []
