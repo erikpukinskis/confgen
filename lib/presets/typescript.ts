@@ -136,6 +136,7 @@ const getTypeCheckWorkflow = (presets: Presets) => {
  */
 const getPathAliases = (runtimes: Runtimes) => ({
   "~/*": [`${runtimes[0]}/*`],
+  "*": [`${runtimes[0]}/*`],
 })
 
 /**

@@ -336,7 +336,7 @@ Higher priority:
 - [x] Add GraphQL Codegen Watch task
 - [x] Add TypeScript Watch task
 - [x] Update args on Debug Current Test File
-- [ ] node-version: "18"?
+- [x] node-version: "18"?
 - [x] "@typescript-eslint/no-explicit-any": should not have an array around ["error"]
 - [x] source.fixAll.eslint and source.formatDocument should be "explicit" not true
 - [ ] Support dist:server for building servers to be put into Docker images
@@ -363,10 +363,10 @@ Higher priority:
 - [ ] Consider switching to "After Dark No Italics" by default.
 - [ ] Add wildcard externals like /firebase\/.+/
 - [ ] Remove output.globals? When is it needed?
-- [ ] Figure out how to throw a file path on the end of `yarn test`
+- [x] Figure out how to throw a file path on the end of `yarn test`
 - [ ] Don't use any groups when on main
 - [ ] Figure out why index.test.ts got semicolons on initial confgen
-- [ ] Add "Watch for TypeScript problems" task
+- [x] Add "Watch for TypeScript problems" task
 - [ ] No bad peer dependencies!!!
 - [ ] Add Codedocs preset to this repo
 - [ ] Add pnpm preset
