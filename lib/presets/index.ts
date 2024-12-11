@@ -4,6 +4,7 @@ import * as codedocs from "./codedocs"
 import * as codegen from "./codegen"
 import * as codespaces from "./codespaces"
 import * as dist from "./dist"
+import * as dotenv from "./dotenv"
 import * as eslint from "./eslint"
 import * as git from "./git"
 import * as githubActions from "./githubActions"
@@ -31,6 +32,7 @@ const PRESETS = {
   codedocs,
   codegen,
   codespaces,
+  dotenv,
   dist,
   eslint,
   git,
