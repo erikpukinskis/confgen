@@ -183,7 +183,7 @@ type Mutation {
 `
 
 const getOperationsCodegen = (runtime: Runtime) => ({
-  documents: [`${runtime}/**/*.{ts,tsx}`],
+  documents: [`${runtime}/**/*.{ts,tsx}`, `!${runtime}/gql/**/*`],
   generates: {
     [`./${runtime}/gql/`]: {
       preset: "client",
