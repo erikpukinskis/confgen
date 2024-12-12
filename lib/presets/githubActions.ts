@@ -19,7 +19,7 @@ type GithubWorkflow = {
   jobs: Record<string, GithubJob>
 }
 
-type GithubStep = {
+export type GithubStep = {
   name?: string
   id?: string
   uses?: string

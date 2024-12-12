@@ -100,8 +100,8 @@ vendor
   return commands
 }
 
-const getCheckLintWorkfow = () =>
-  getGithubWorkflow({
+const getCheckLintWorkfow = () => {
+  return getGithubWorkflow({
     needsPackages: true,
     workflowName: "lint",
     jobs: [
@@ -109,12 +109,16 @@ const getCheckLintWorkfow = () =>
         jobName: "check",
         steps: [
           {
+            run: "yarn build",
+          },
+          {
             run: "yarn check:lint",
           },
         ],
       },
     ],
   })
+}
 
 const getEslintrc = (presets: Presets): JsonObject => ({
   root: true,
