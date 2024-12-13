@@ -1,7 +1,7 @@
-import merge from "merge-objects"
+import { cloneDeep, get, isEqual, mergeWith, set, uniqWith } from "lodash"
 import YAML from "yaml"
+import type { JsonObject } from "./helpers/json"
 import { type Args } from "~/args"
-import { dedupe } from "~/dedupe"
 import { formatJson } from "~/format"
 import { type PresetName } from "~/presets"
 import type { Runtime } from "~/runtimes"
@@ -15,11 +15,18 @@ export type { Args } from "~/args"
 
 export type Command = "file" | "run" | "script" | "yarn"
 
+type ResolutionStrategy =
+  | "if-not-exists"
+  | "prefer-existing"
+  | "prefer-preset"
+  | "replace"
+
 export type FileCommand = {
   command: "file"
   path: string
-  contents: string | string[] | Record<string, unknown>
-  merge?: "if-not-exists" | "prefer-existing" | "prefer-preset" | "replace"
+  accessor?: string
+  contents: string | string[] | JsonObject
+  merge?: ResolutionStrategy
 }
 
 export type RunCommand = {
@@ -128,7 +135,7 @@ export type Precheck = (input: {
   system: System
 }) => void
 
-type FileChanges = string | string[] | Record<string, unknown>
+type FileChanges = string | string[] | JsonObject
 
 const descriptions: Record<string, string> = {
   file: "Updating file",
@@ -167,7 +174,7 @@ export const runCommand = async (command: CommandWithArgs, system: System) => {
 
   await logAndRun(log, async () => {
     // @ts-expect-error Typescript doesn't know that command.command narrows the type sufficiently here
-    await commands[command.command](command, system)
+    await COMMANDS[command.command](command, system)
   })
 }
 
@@ -189,11 +196,19 @@ const tick = () => new Promise<void>((resolve) => setTimeout(resolve))
  */
 const logAndRun = async (log: string, func: () => void | Promise<void>) => {
   await tick()
-  return new Promise<void>((resolve) => {
+
+  return new Promise<void>((resolve, reject) => {
     process.stdout.write(log, () => {
-      const promise = func()
+      let promise: void | Promise<void> | undefined
+
+      try {
+        promise = func()
+      } catch (e) {
+        reject(e)
+      }
+
       if (promise) {
-        void promise.then(resolve)
+        void promise.then(resolve).catch(reject)
       } else {
         resolve()
       }
@@ -201,15 +216,18 @@ const logAndRun = async (log: string, func: () => void | Promise<void>) => {
   })
 }
 
-const commands = {
-  file: async ({ path, contents, merge }: FileCommand, system: System) => {
-    if (merge === "if-not-exists" && system.exists(path)) {
-      return
-    } else if (merge === "replace") {
-      writeFile(path, contents, system)
-    } else {
-      await syncFile(path, contents, merge === "prefer-existing", system)
-    }
+const COMMANDS = {
+  file: async (
+    { path, contents, accessor, merge }: FileCommand,
+    system: System
+  ) => {
+    await syncFile({
+      path,
+      changes: contents,
+      accessor,
+      resolution: merge,
+      system,
+    })
   },
   run: ({ script }: RunCommand, system: System) => {
     const { status } = system.run(script)
@@ -218,52 +236,222 @@ const commands = {
     }
   },
   script: async ({ name, script }: ScriptCommand, system: System) => {
-    await amendJson(
-      "package.json",
-      {
+    await syncFile({
+      system,
+      path: "package.json",
+      changes: {
         scripts: {
           [name]: script,
         },
       },
-      false,
-      system
-    )
+    })
   },
   yarn: (command: PackageCommand, system: System) => {
     system.addPackage(command.pkg, isDevPackageCommand(system)(command))
   },
 } as const
 
-const syncFile = async (
-  filename: string,
-  changes: FileChanges,
-  preferExisting: boolean,
+type SyncFileArgs = {
+  path: string
+  accessor?: string
+  changes: FileChanges
+  resolution?: ResolutionStrategy
   system: System
-) => {
-  if (/[.]ya?ml$/.test(filename)) {
-    amendYaml(filename, changes, preferExisting, system)
-  } else if (Array.isArray(changes)) {
-    ensureLines(filename, changes, system)
-  } else if (typeof changes === "string") {
-    system.write(filename, changes)
+}
+
+const syncFile = async ({
+  changes,
+  resolution = "prefer-preset",
+  path,
+  system,
+  accessor,
+}: SyncFileArgs) => {
+  if (resolution === "if-not-exists") {
+    if (system.exists(path)) {
+      return
+    }
+    resolution = "replace"
+  }
+
+  if (Array.isArray(changes)) {
+    ensureLines(path, changes, system)
+    return
+  }
+
+  if (typeof changes === "string") {
+    system.write(path, changes)
+    return
+  }
+
+  const format = /[.]ya?ml$/.test(path) ? "yaml" : "json"
+  const content = assertJsonObject(changes, format)
+  const originalObject =
+    format === "yaml" ? readYaml(path, system) : readJson(path, system)
+  const newObject = cloneDeep(originalObject)
+
+  if (accessor) {
+    const { base, query, memberKey, targetValue } = parseAccessor(accessor)
+
+    if (query) {
+      const originalArray =
+        (get(originalObject, base) as Array<JsonObject>) ?? []
+      const newArray = [...originalArray]
+      const index = originalArray.findIndex(
+        (item) => item[memberKey] === targetValue
+      )
+
+      if (index < 0) {
+        newArray.push(content)
+      } else {
+        newArray[index] = getNewContent({
+          existing: originalArray[index],
+          content,
+          resolution,
+        })
+      }
+
+      set(newObject, base, newArray)
+    } else {
+      set(
+        newObject,
+        path,
+        getNewContent({
+          existing: assertJsonObject(
+            get(originalObject, base),
+            format,
+            `${path} at accessor ${base}`
+          ),
+          content,
+          resolution,
+        })
+      )
+    }
+
+    await writeFile(path, newObject, format, system)
   } else {
-    await amendJson(filename, changes, preferExisting, system)
+    await writeFile(
+      path,
+      getNewContent({
+        existing: originalObject,
+        content,
+        resolution,
+      }),
+      format,
+      system
+    )
   }
 }
 
-const writeFile = (filename: string, contents: FileChanges, system: System) => {
-  if (/[.]ya?ml$/.test(filename)) {
-    system.write(filename, YAML.stringify(contents))
-  } else if (Array.isArray(contents)) {
-    system.write(filename, contents.join("\n") + "\n")
-  } else if (typeof contents === "string") {
-    system.write(filename, contents)
-  } else {
-    system.write(filename, formatJson(contents))
+/**
+ * Parses an "accessor" which describes where data is to be merged into an
+ * existing JSON/YAML file.
+ *
+ * Ex:
+ *       parseAccessor("a.b.c") // returns { base: "a.b.c", query: undefined }
+ *       parseAccessor("x[y=z]") // return { base: "x", query: "y=z" }
+ *
+ * Note: We considered using something like jmespath or other
+ * suggestions here:
+ *
+ * https://stackoverflow.com/questions/8481380/is-there-a-json-equivalent-of-xquery-xpath.
+ *
+ * But after a quick scan, they mostly seemed to be read-only. No ability to
+ * write content to a specific query. So we are rolling my own for now.
+ */
+export function parseAccessor(accessor: string) {
+  const match = accessor.match(/^([^[]*)(.*)?$/)
+
+  if (!match) {
+    throw new Error(
+      `Invalid accessor: ${JSON.stringify(
+        accessor
+      )}. Try something like "foo.bar" or "foo.items[name=bar]".`
+    )
+  }
+
+  const base = match[1]
+  const query = match[2]?.slice(1, -1)
+
+  if (!query) return { base }
+
+  const [memberKey, targetValue] = query.split("=")
+
+  if (!memberKey || !targetValue) {
+    throw new Error(
+      `Invalid query ${query} in accessor ${JSON.stringify(accessor)}`
+    )
+  }
+
+  return { base, query, memberKey, targetValue }
+}
+
+type GetNewContentArgs = {
+  existing: JsonObject
+  content: JsonObject
+  resolution: "prefer-existing" | "prefer-preset" | "replace"
+}
+
+/**
+ * Returns a new JSON object with some new content merged in. Does it differently depending on the resolution strategy.
+ *
+ * For example, if the existing content is { "a": 1, "b": 2 } and the new content is { "b": 6, "c": 7 }...
+ *
+ *  - "replace" would return the new content ({ "b": 6, "c": 7 })
+ *  - "prefer-existing" would return { "a": 1, "b": 2, "c": 7}
+ *  - "prefer-preset" would return { "a": 1, "b": 6, "c": 7 }
+ */
+function getNewContent({
+  existing,
+  content,
+  resolution = "prefer-preset",
+}: GetNewContentArgs) {
+  switch (resolution) {
+    case "replace":
+      return content
+    case "prefer-existing":
+      return merge(content, existing)
+    case "prefer-preset":
+      return merge(existing, content)
+  }
+}
+
+/**
+ * Deep merge of two objects (second argument takes precedence). One small
+ * change is that if there are arrays anywhere on the objects, it will combine
+ * unique values from the two arrays. Lodash's default merge function would just
+ * take the second array, and try to merge the items by index.
+ */
+function merge(base: JsonObject, overrides: JsonObject): JsonObject {
+  return mergeWith(base, overrides, (x, y) => {
+    if (!Array.isArray(x) || !Array.isArray(y)) return undefined
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    return uniqWith([...x, ...y], isEqual) as unknown
+  })
+}
+
+const writeFile = async (
+  filename: string,
+  contents: JsonObject,
+  format: "yaml" | "json",
+  system: System
+) => {
+  switch (format) {
+    case "yaml":
+      system.write(filename, YAML.stringify(contents))
+
+      break
+    case "json":
+      system.write(filename, await formatJson(contents))
+      break
   }
 }
 
 const ensureLines = (filename: string, newLines: string[], system: System) => {
+  if (/\.json$/i.test(filename)) {
+    throw new Error(
+      "Provided array contents (lines to ensure) for JSON file, which you probably don't want to do. Contents should be a JSON object."
+    )
+  }
   const originalContents = system.exists(filename) ? system.read(filename) : ""
   const lines = originalContents.split("\n")
   for (const line of newLines) {
@@ -273,7 +461,7 @@ const ensureLines = (filename: string, newLines: string[], system: System) => {
   system.write(filename, lines.join("\n"))
 }
 
-export const readJson = <Format extends Record<string, unknown>>(
+export const readJson = <Format extends JsonObject = JsonObject>(
   filename: string,
   system: System
 ): Format => {
@@ -288,48 +476,38 @@ export const readJson = <Format extends Record<string, unknown>>(
     )
   }
 
-  return json
+  return assertJsonObject(json, "json", filename) as Format
 }
 
-const amendJson = async (
-  filename: string,
-  json: Record<string, unknown>,
-  preferExisting: boolean,
-  system: System
-) => {
-  const originalJson = readJson(filename, system)
-
-  const newJson = dedupe(
-    preferExisting ? merge(json, originalJson) : merge(originalJson, json)
-  )
-  system.write(filename, await formatJson(newJson))
-}
-
-const amendYaml = (
-  filename: string,
-  changes: FileChanges,
-  preferExisting: boolean,
-  system: System
-) => {
-  if (typeof changes === "string" || Array.isArray(changes)) {
-    throw new Error(
-      `Cannot amend YAML file ${filename} with a string or array. Contents must be an object.`
-    )
-  }
-
-  const originalYaml = system.exists(filename)
-    ? (YAML.parse(system.read(filename)) as Record<string, unknown>)
+export function readYaml(filename: string, system: System) {
+  const obj = system.exists(filename)
+    ? (YAML.parse(system.read(filename)) as JsonObject)
     : {}
 
-  if (Array.isArray(originalYaml)) {
+  return assertJsonObject(obj, "yaml", filename)
+}
+
+function assertJsonObject(
+  obj: unknown,
+  format: "json" | "yaml",
+  filename?: string
+) {
+  const nonObjectType =
+    typeof obj !== "object"
+      ? typeof obj
+      : Array.isArray(obj)
+      ? "array"
+      : undefined
+
+  if (nonObjectType) {
+    const description = filename
+      ? `File ${filename}`
+      : `Contents ${JSON.stringify(obj)}`
+
     throw new Error(
-      `YAML file ${filename} is an array, but we only know how to sync objects`
+      `${description} contained a ${nonObjectType} but we expect ${format} files to have an object at the root`
     )
   }
 
-  const newYaml = dedupe(
-    preferExisting ? merge(changes, originalYaml) : merge(originalYaml, changes)
-  )
-
-  system.write(filename, YAML.stringify(newYaml))
+  return obj as JsonObject
 }

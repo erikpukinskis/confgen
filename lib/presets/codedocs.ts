@@ -1,19 +1,18 @@
 import startCase from "lodash/startCase"
+import type { GithubJobConfig } from "./githubActions"
 import { getGithubWorkflow } from "./githubActions"
-import type { Presets } from "~/commands"
-import {
-  readJson,
-  type CommandGenerator,
-  type CommandWithArgs,
-  type System,
+import type {
+  Presets,
+  CommandWithArgs,
+  System,
+  CommandGenerator,
 } from "~/commands"
+import { readJson } from "~/commands"
 import { formatHtml, formatTypescript } from "~/format"
+import type { JsonObject } from "~/helpers/json"
 
 export const generator: CommandGenerator = async ({ system, presets }) => {
-  const packageJson = readJson<{ name: string | undefined }>(
-    "package.json",
-    system
-  )
+  const packageJson = readJson<{ name?: string }>("package.json", system)
 
   const commands: CommandWithArgs[] = [
     {
@@ -152,8 +151,8 @@ const getIndexHtml = async (title: string) =>
     </html>
   `)
 
-const getDeployWorkflow = (packageName: string | undefined) => {
-  const deployJob = {
+const getDeployWorkflow = (packageName: string | undefined): JsonObject => {
+  const deployJob: GithubJobConfig = {
     jobName: "deploy",
     jobOptions: {
       environment: {

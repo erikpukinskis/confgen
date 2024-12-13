@@ -1,6 +1,6 @@
 import { getGithubWorkflow } from "./githubActions"
-import type { CommandWithArgs } from "~/commands"
-import { type CommandGenerator } from "~/commands"
+import type { CommandWithArgs, CommandGenerator } from "~/commands"
+import type { JsonObject } from "~/helpers/json"
 import { type Presets } from "~/presets"
 
 export const generator: CommandGenerator = ({ presets }) => {
@@ -81,7 +81,7 @@ vendor
         path: ".vscode/settings.json",
         contents: {
           "editor.codeActionsOnSave": {
-            "source.fixAll.eslint": true,
+            "source.fixAll.eslint": "explicit",
           },
         },
       }
@@ -100,8 +100,8 @@ vendor
   return commands
 }
 
-const getCheckLintWorkfow = () =>
-  getGithubWorkflow({
+const getCheckLintWorkfow = () => {
+  return getGithubWorkflow({
     needsPackages: true,
     workflowName: "lint",
     jobs: [
@@ -109,14 +109,18 @@ const getCheckLintWorkfow = () =>
         jobName: "check",
         steps: [
           {
+            run: "yarn build",
+          },
+          {
             run: "yarn check:lint",
           },
         ],
       },
     ],
   })
+}
 
-const getEslintrc = (presets: Presets) => ({
+const getEslintrc = (presets: Presets): JsonObject => ({
   root: true,
   plugins: [
     "import",
@@ -162,7 +166,7 @@ const getEslintrc = (presets: Presets) => ({
   rules: {
     ...(presets.includes("typescript")
       ? {
-          "@typescript-eslint/no-explicit-any": ["error"],
+          "@typescript-eslint/no-explicit-any": "error",
           "@typescript-eslint/consistent-type-imports": [
             "error",
             { prefer: "type-imports" },

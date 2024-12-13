@@ -1,6 +1,6 @@
 {
   "name": "confgen",
-  "version": "0.93.0",
+  "version": "0.95.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -22,7 +22,6 @@
     "deep-equal": "^2.0.5",
     "fs-extra": "^10.0.0",
     "lodash": "^4.17.21",
-    "merge-objects": "^1.0.5",
     "prettier": "2.8.1",
     "semver": "^7.3.8",
     "yaml": "^1.10.2"
@@ -66,7 +65,6 @@
     "gen": "npx ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
     "start:bin": "ts-node -r tsconfig-paths/register --transpile-only ./lib/index.ts",
     "test": "vitest run --config vite.test.config.js",
-    "test:dist": "yarn build && yarn test -t @dist",
     "watch:build": "chokidar \"lib/**/*\" -c \"yarn build\"",
     "watch:test": "vitest watch --config vite.test.config.js"
   }

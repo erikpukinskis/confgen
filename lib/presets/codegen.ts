@@ -1,5 +1,6 @@
 import type { CommandGenerator, CommandWithArgs, Precheck } from "~/commands"
 import { formatTypescript } from "~/format"
+import type { JsonObject } from "~/helpers/json"
 import { type Runtime, isRuntime } from "~/runtimes"
 
 const GENERATORS = ["resolvers", "schema", "operations"] as const
@@ -39,7 +40,11 @@ export const precheck: Precheck = ({ presets, args }) => {
   }
 }
 
-export const generator: CommandGenerator = async ({ args, system }) => {
+export const generator: CommandGenerator = async ({
+  args,
+  system,
+  presets,
+}) => {
   const [runtime, ...generators] = args.codegen as [Runtime, ...Generator[]]
 
   const commands: CommandWithArgs[] = [
@@ -77,48 +82,62 @@ export const generator: CommandGenerator = async ({ args, system }) => {
     },
   ]
 
+  if (presets.includes("codespaces")) {
+    commands.push({
+      command: "file",
+      path: ".vscode/tasks.json",
+      accessor: "tasks[label=GraphQL Codegen Watch]",
+      contents: {
+        label: "GraphQL Codegen Watch",
+        type: "npm",
+        script: "build:generate:watch",
+        group: "build",
+        runOptions: {
+          runOn: "folderOpen",
+        },
+      },
+    })
+  }
+
   if (generators.includes("resolvers")) {
     commands.push(
-      ...([
-        {
-          command: "yarn",
-          dev: true,
-          pkg: "@graphql-codegen/typescript-resolvers",
-        },
-        {
-          command: "yarn",
-          dev: true,
-          pkg: "@graphql-codegen/add",
-        },
-        {
-          command: "file",
-          path: `${runtime}/context.ts`,
-          merge: "if-not-exists",
-          contents: await formatTypescript(`
+      {
+        command: "yarn",
+        dev: true,
+        pkg: "@graphql-codegen/typescript-resolvers",
+      },
+      {
+        command: "yarn",
+        dev: true,
+        pkg: "@graphql-codegen/add",
+      },
+      {
+        command: "file",
+        path: `${runtime}/context.ts`,
+        merge: "if-not-exists",
+        contents: await formatTypescript(`
             export type ResolverContext = {
               db: "..." // replace with your resolver context
             }`),
-        },
-        {
-          command: "file",
-          path: "codegen.yml",
-          contents: getResolverCodegen(runtime),
-        },
-      ] as const)
+      },
+      {
+        command: "file",
+        path: "codegen.yml",
+        contents: getResolverCodegen(runtime),
+      }
     )
+  }
+
+  if (generators.includes("schema") && !system.exists("schema.graphql")) {
+    commands.push({
+      command: "file",
+      path: "schema.graphql",
+      contents: getSampleSchema(),
+    })
   }
 
   if (generators.includes("schema")) {
     commands.push(
-      ...(system.exists("schema.graphql")
-        ? []
-        : ([
-            {
-              command: "file",
-              path: "schema.graphql",
-              contents: getSampleSchema(),
-            },
-          ] as const)),
       {
         command: "yarn",
         pkg: "graphql-codegen-schema-script",
@@ -134,18 +153,16 @@ export const generator: CommandGenerator = async ({ args, system }) => {
 
   if (generators.includes("operations")) {
     commands.push(
-      ...([
-        {
-          command: "yarn",
-          pkg: "@graphql-codegen/client-preset",
-          dev: true,
-        },
-        {
-          command: "file",
-          path: "codegen.yml",
-          contents: getOperationsCodegen(runtime),
-        },
-      ] as const)
+      {
+        command: "yarn",
+        pkg: "@graphql-codegen/client-preset",
+        dev: true,
+      },
+      {
+        command: "file",
+        path: "codegen.yml",
+        contents: getOperationsCodegen(runtime),
+      }
     )
   }
 
@@ -166,9 +183,9 @@ type Mutation {
 `
 
 const getOperationsCodegen = (runtime: Runtime) => ({
-  documents: [`${runtime}/**/*.{ts,tsx}`],
+  documents: [`${runtime}/**/*.{ts,tsx}`, `!${runtime}/gql/**/*`],
   generates: {
-    [`./${runtime}/gql`]: {
+    [`./${runtime}/gql/`]: {
       preset: "client",
     },
   },
@@ -177,11 +194,13 @@ const getOperationsCodegen = (runtime: Runtime) => ({
 const getSchemaCodegen = (runtime: Runtime) => ({
   schema: "schema.graphql",
   generates: {
-    [`./${runtime}/gql/schema.ts`]: ["graphql-codegen-schema-script"],
+    [`./${runtime}/gql/schema.ts`]: {
+      plugins: ["graphql-codegen-schema-script"],
+    },
   },
 })
 
-const getHooksCodegen = (generators: Generator[]) => {
+const getHooksCodegen = (generators: Generator[]): JsonObject => {
   let command = ""
   if (generators.includes("schema")) {
     command += '\\nexport { default as schema } from \\"./schema\\"'

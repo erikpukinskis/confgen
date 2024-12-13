@@ -332,14 +332,13 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 
 Higher priority:
 
-- [ ] Add dotenv preset
-- [ ] Add GraphQL Codegen Watch task
-- [ ] Add TypeScript Watch task
-- [ ] Use .ts for GraphQL codegen
-- [ ] Update args on Debug Current Test File
-- [ ] node-version: "18"?
-- [ ] "@typescript-eslint/no-explicit-any": should not have an array around ["error"]
-- [ ] source.fixAll.eslint and source.formatDocument should be "explicit" not true
+- [x] Add dotenv preset
+- [x] Add GraphQL Codegen Watch task
+- [x] Add TypeScript Watch task
+- [x] Update args on Debug Current Test File
+- [x] node-version: "18"?
+- [x] "@typescript-eslint/no-explicit-any": should not have an array around ["error"]
+- [x] source.fixAll.eslint and source.formatDocument should be "explicit" not true
 - [ ] Support dist:server for building servers to be put into Docker images
 - [ ] Generate an entrypoint when you add the @server runtime
 - [ ] Before build:generate do `mkdir -p lib/gql`
@@ -364,10 +363,10 @@ Higher priority:
 - [ ] Consider switching to "After Dark No Italics" by default.
 - [ ] Add wildcard externals like /firebase\/.+/
 - [ ] Remove output.globals? When is it needed?
-- [ ] Figure out how to throw a file path on the end of `yarn test`
+- [x] Figure out how to throw a file path on the end of `yarn test`
 - [ ] Don't use any groups when on main
 - [ ] Figure out why index.test.ts got semicolons on initial confgen
-- [ ] Add "Watch for TypeScript problems" task
+- [x] Add "Watch for TypeScript problems" task
 - [ ] No bad peer dependencies!!!
 - [ ] Add Codedocs preset to this repo
 - [ ] Add pnpm preset

@@ -6,6 +6,7 @@ export const PRESET_NAMES = [
   "codegen",
   "codespaces",
   "dist",
+  "dotenv",
   "eslint",
   "git",
   "githubActions",
