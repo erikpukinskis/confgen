@@ -36,7 +36,6 @@ export const generator: CommandGenerator = async ({
       command: "file",
       path: ".github/workflows/unit-tests.yml",
       contents: getUnitTestsWorkflow(presets),
-      merge: "replace",
     })
   }
 
