@@ -8,20 +8,21 @@ export const generator: CommandGenerator = ({ presets, runtimes }) => {
         .join(" ")} without the vite preset`
     )
   }
+
+  if (!runtimes.includes("server")) {
+    return []
+  }
+
   return [
-    ...(runtimes.includes("server")
-      ? ([
-          {
-            command: "yarn",
-            dev: true,
-            pkg: "vite-node",
-          },
-          {
-            command: "script",
-            name: "start:server",
-            script: `vite-node server/`,
-          },
-        ] as const)
-      : []),
+    {
+      command: "yarn",
+      dev: true,
+      pkg: "vite-node",
+    },
+    {
+      command: "script",
+      name: "start:server",
+      script: `vite-node server/`,
+    },
   ]
 }
