@@ -11,6 +11,7 @@ jobs:
           node-version: "18"
           cache: yarn
       - run: yarn install --frozen-lockfile
+      - run: yarn build
       - run: yarn check:lint
 concurrency:
   group: check-lint

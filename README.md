@@ -283,6 +283,18 @@ I'm still not sure whether confgen is a good idea or a horrible idea.
 },
 ```
 
+### Immediate next steps:
+
+- [ ] Remove start preset. All kinds of stuff is starting things
+- [ ] gql should be its own folder, rather than living in lib/ or server/ or app/? Since it could potentially be used by all three?
+- [ ] rename @package to @integration
+- [ ] add docker preset that adds docker + compose files for @server + @integration, with shell:[runtime] commands and start:containers
+- [ ] export documents from dist/gql
+- [ ] .nvmrc generation
+- [ ] Typescript path aliases should be `@app/**/*`, `@lib/**/*`, `@gql/**/*`, etc.
+- [ ] Require a port for services to run on? E.g. @app:7002?
+
+
 ### Probably will happen
 
 - [x] Collect up the NPM packages to install them all at once (will be a bit faster)
@@ -339,6 +351,7 @@ Higher priority:
 - [x] node-version: "18"?
 - [x] "@typescript-eslint/no-explicit-any": should not have an array around ["error"]
 - [x] source.fixAll.eslint and source.formatDocument should be "explicit" not true
+- [ ] Don't put yarn build in the linting CI job if there's no build preset
 - [ ] Support dist:server for building servers to be put into Docker images
 - [ ] Generate an entrypoint when you add the @server runtime
 - [ ] Before build:generate do `mkdir -p lib/gql`
