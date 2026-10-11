@@ -1,19 +1,40 @@
-import { describe, it, expect } from "vitest"
-import { RealSystem } from "~/system"
+import { mkdtemp, readdir } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { createSystem } from "./system.js"
+import { expect, test } from "vitest"
 
-describe("system", () => {
-  it("run method should return status codes > 0 on failure", () => {
-    const system = new RealSystem({ silent: true })
-    const unusualString = "borrow isthmus instep".replace(" ", ", ") // have to change the string otherwise this line will match!
-    const failure = system.run(`grep -rnw . -e '${unusualString}'`)
-    expect(failure).toHaveProperty("status", 1)
-  })
+test("reads and writes files in the project directory", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "confgen-system-"))
+  const system = createSystem(cwd)
 
-  it("run method should return status code 0 on success", () => {
-    const system = new RealSystem({ silent: true })
-    const success = system.run(
-      "grep -rnw . -e 'should return status code 0 on success'"
-    )
-    expect(success).toHaveProperty("status", 0)
-  })
+  await system.writeFile("nested/note.txt", "hello")
+  expect(await system.readFile("nested/note.txt")).toBe("hello")
+  await system.removeFile("nested/note.txt")
+  expect(await readdir(join(cwd, "nested"))).toEqual([])
+})
+
+test("runs an executable with arguments and does not invoke a shell", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "confgen-system-"))
+  const system = createSystem(cwd)
+  const argument = "ok && $(not-a-command)"
+
+  const result = await system.run(process.execPath, [
+    "-e",
+    "process.stdout.write(process.argv[1])",
+    argument,
+  ])
+
+  expect(result.status).toBe(0)
+  expect(result.stdout).toBe(argument)
+  expect(result.stderr).toBe("")
+})
+
+test("returns a non-zero status when the executable fails", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "confgen-system-"))
+  const system = createSystem(cwd)
+
+  const result = await system.run(process.execPath, ["-e", "process.exit(3)"])
+
+  expect(result.status).toBe(3)
 })

@@ -1,17 +1,15 @@
 {
   "compilerOptions": {
-    "noImplicitAny": true,
-    "esModuleInterop": true,
-    "baseUrl": ".",
-    "paths": {
-      "~/*": ["lib/*"]
-    },
-    "forceConsistentCasingInFileNames": true,
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "lib": ["es2017"],
-    "downlevelIteration": true,
-    "outDir": "dist"
+    "types": ["node"],
+    "noEmit": true
   },
-  "include": ["lib"]
+  "include": ["lib/**/*.ts", "test/**/*.ts"]
 }

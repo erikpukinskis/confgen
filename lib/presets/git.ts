@@ -1,23 +1,4 @@
-import type { Presets, CommandGenerator } from "~/commands"
+import type { ProduceContributions } from "../contributions.js"
 
-export const generator: CommandGenerator = ({ presets }) => [
-  {
-    command: "file",
-    path: ".gitignore",
-    contents: getIgnoreList(presets),
-  },
-]
-
-const getIgnoreList = (presets: Presets) => {
-  const ignore = ["node_modules", ".DS_Store", "dist", "vendor"]
-
-  if (presets.includes("yarn")) {
-    ignore.push("yarn-error.log")
-  }
-
-  if (presets.includes("codedocs")) {
-    ignore.push("site")
-  }
-
-  return ignore
-}
+/** Git owns repository exclusions. */
+export const contributions: ProduceContributions = () => []

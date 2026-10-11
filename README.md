@@ -77,15 +77,15 @@ selection.
 A runtime is an execution or packaging boundary within the repository. Runtime
 names also establish standard source locations:
 
-| Runtime | Location | Purpose |
-| --- | --- | --- |
-| `#lib` | `lib/` | Publishable or internally consumed library code |
-| `#app` | `app/` | Browser application code |
-| `#server` | `server/` | Node service code |
-| `#client` | `client/` | Separately published client workspace |
-| `#integration` | `integration/` | Container-backed integration tests |
-| `#gateway` | `gateway/` | Independently built edge process |
-| `#docs` | `docs/` | Documentation application |
+| Runtime        | Location       | Purpose                                         |
+| -------------- | -------------- | ----------------------------------------------- |
+| `#lib`         | `lib/`         | Publishable or internally consumed library code |
+| `#app`         | `app/`         | Browser application code                        |
+| `#server`      | `server/`      | Node service code                               |
+| `#client`      | `client/`      | Separately published client workspace           |
+| `#integration` | `integration/` | Container-backed integration tests              |
+| `#gateway`     | `gateway/`     | Independently built edge process                |
+| `#docs`        | `docs/`        | Documentation application                       |
 
 These locations are Understory conventions and cannot be redirected through
 Confgen options.

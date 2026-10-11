@@ -1,9 +1,4 @@
-import type { CommandGenerator } from "~/commands"
+import type { ProduceContributions } from "../contributions.js"
 
-export const generator: CommandGenerator = () => [
-  {
-    command: "yarn",
-    pkg: "vite-plugin-babel-macros",
-    dev: true,
-  },
-]
+/** SQL owns SQL import and database tooling. */
+export const contributions: ProduceContributions = () => []

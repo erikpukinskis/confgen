@@ -1,3 +1,6 @@
 node_modules
 dist
 vendor
+.yarn
+coverage
+README.old.md

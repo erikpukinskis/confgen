@@ -1,17 +1,4 @@
-import type { CommandGenerator } from "~/commands"
+import type { ProduceContributions } from "../contributions.js"
 
-export const generator: CommandGenerator = ({ presets }) => [
-  {
-    command: "yarn",
-    pkg: "react",
-  },
-  ...(presets.includes("typescript")
-    ? ([
-        {
-          command: "yarn",
-          pkg: "@types/react",
-          dev: true,
-        },
-      ] as const)
-    : []),
-]
+/** React owns React toolchain settings for the selected runtimes. */
+export const contributions: ProduceContributions = () => []

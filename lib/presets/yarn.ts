@@ -1,20 +1,4 @@
-import type { CommandGenerator } from "~/commands"
+import type { ProduceContributions } from "../contributions.js"
 
-export const generator: CommandGenerator = () => [
-  {
-    command: "file",
-    merge: "prefer-existing",
-    path: "package.json",
-    contents: {
-      license: "UNLICENSED",
-    },
-  },
-  {
-    command: "run",
-    script: "rm -f package-lock.json",
-  },
-  {
-    command: "run",
-    script: "yarn",
-  },
-]
+/** Yarn owns package-manager configuration. */
+export const contributions: ProduceContributions = () => []
