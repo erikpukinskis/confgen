@@ -30,6 +30,17 @@ test("runs an executable with arguments and does not invoke a shell", async () =
   expect(result.stderr).toBe("")
 })
 
+test("renames a file into place", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "confgen-system-"))
+  const system = createSystem(cwd)
+
+  await system.writeFile("confgen.lock.tmp", "next\n")
+  await system.rename("confgen.lock.tmp", "confgen.lock")
+
+  expect(await system.readFile("confgen.lock")).toBe("next\n")
+  await expect(system.readFile("confgen.lock.tmp")).rejects.toThrow()
+})
+
 test("returns a non-zero status when the executable fails", async () => {
   const cwd = await mkdtemp(join(tmpdir(), "confgen-system-"))
   const system = createSystem(cwd)

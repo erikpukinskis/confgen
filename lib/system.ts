@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process"
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join } from "node:path"
 
 export type RunResult = {
@@ -16,6 +16,7 @@ export type System = {
   readFile(path: string): Promise<string>
   writeFile(path: string, contents: string): Promise<void>
   removeFile(path: string): Promise<void>
+  rename(from: string, to: string): Promise<void>
   run(executable: string, args: readonly string[]): Promise<RunResult>
 }
 
@@ -34,6 +35,9 @@ export function createSystem(cwd: string): System {
     },
     removeFile(path) {
       return rm(resolvePath(path), { force: true })
+    },
+    rename(from, to) {
+      return renameFile(resolvePath(from), resolvePath(to))
     },
     run(executable, args) {
       return new Promise((resolveResult, reject) => {
@@ -66,6 +70,19 @@ export function createSystem(cwd: string): System {
       })
     },
   }
+}
+
+function renameFile(from: string, to: string): Promise<void> {
+  return rename(from, to)
+}
+
+export function isMissingFile(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "ENOENT"
+  )
 }
 
 function textChunk(chunk: unknown): string {
