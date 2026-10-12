@@ -49,13 +49,80 @@ export function runtimePath(runtime: RuntimeName): string {
  * Toolchain output that spans runtimes belongs to the owning preset.
  */
 const runtimeProducers: Record<RuntimeName, ProduceContributions> = {
-  lib: () => [],
+  lib: libContributions,
   app: () => [],
-  server: () => [],
+  server: serverContributions,
   client: () => [],
   integration: () => [],
   gateway: () => [],
   docs: () => [],
+}
+
+const LIB_INDEX = `export function greeting(name: string): string {
+  return \`Hello, \${name}\`
+}
+`
+
+const SERVER_INDEX = `import { createServer } from "node:http"
+import { greeting } from "#lib/index"
+
+const server = createServer((request, response) => {
+  if (request.url !== "/") {
+    response.writeHead(404)
+    response.end()
+    return
+  }
+  response.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
+  response.end(\`\${greeting("baseline")}\\n\`)
+})
+
+server.listen(listenPort(process.env.PORT), "127.0.0.1", () => {
+  const address = server.address()
+  if (address === null || typeof address === "string") {
+    console.error("server did not bind to a port")
+    process.exit(1)
+  }
+  console.log("ready http://127.0.0.1:" + String(address.port))
+})
+
+function listenPort(value: string | undefined): number {
+  if (value === undefined || value.length === 0) return 3000
+  const port = Number(value)
+  if (!Number.isInteger(port) || port < 0 || port > 65535) return 3000
+  return port
+}
+`
+
+function libContributions(): readonly Contribution[] {
+  return [
+    {
+      id: "runtime:lib:index",
+      source: "runtime:lib",
+      kind: "starter-file",
+      path: "lib/index.ts",
+      contents: LIB_INDEX,
+    },
+  ]
+}
+
+function serverContributions(): readonly Contribution[] {
+  return [
+    {
+      id: "runtime:server:index",
+      source: "runtime:server",
+      kind: "starter-file",
+      path: "server/index.ts",
+      contents: SERVER_INDEX,
+    },
+    {
+      id: "runtime:server:start",
+      source: "runtime:server",
+      kind: "package-script",
+      manifest: "package.json",
+      name: "start",
+      command: "node dist/server/index.js",
+    },
+  ]
 }
 
 export function runtimeContributions(

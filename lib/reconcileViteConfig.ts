@@ -593,15 +593,77 @@ function generateConfig(items: readonly ViteConfigItem[]): string {
     return pluginCall(local, plugin.arguments)
   })
   const fields: string[] = []
-  if (plugins.length > 0) fields.push(`plugins: [${plugins.join(", ")}]`)
-  for (const property of items.filter(isPropertyItem)) {
-    fields.push(nestedProperty(property.path, property.value))
+  if (plugins.length > 0) {
+    fields.push(`  plugins: [${plugins.join(", ")}],`)
   }
-  const body =
-    fields.length === 0
-      ? ""
-      : `\n${fields.map((field) => `  ${field},`).join("\n")}\n`
+  const properties = printPropertyTree(
+    propertyTree(items.filter(isPropertyItem)),
+    1
+  )
+  if (properties.length > 0) fields.push(properties)
+  const body = fields.length === 0 ? "" : `\n${fields.join("\n")}\n`
   return `${importText}\n\nexport default defineConfig({${body}})\n`
+}
+
+type PropertyNode = {
+  value?: string
+  children: Map<string, PropertyNode>
+}
+
+function propertyTree(
+  properties: readonly PropertyItem[]
+): Map<string, PropertyNode> {
+  const root = new Map<string, PropertyNode>()
+  for (const property of properties) {
+    let level = root
+    for (let index = 0; index < property.path.length; index += 1) {
+      const name = property.path[index]
+      if (name === undefined) continue
+      const existing = level.get(name)
+      const node = existing ?? { children: new Map<string, PropertyNode>() }
+      if (index === property.path.length - 1) node.value = property.value
+      level.set(name, node)
+      level = node.children
+    }
+  }
+  return root
+}
+
+function printPropertyTree(
+  tree: Map<string, PropertyNode>,
+  indent: number
+): string {
+  const pad = "  ".repeat(indent)
+  const lines: string[] = []
+  for (const [name, node] of tree) {
+    if (node.children.size === 0) {
+      const flat = `${pad}${name}: ${node.value ?? ""},`
+      lines.push(flat)
+      continue
+    }
+    const flatChild = flatPropertyNode(node)
+    const flatLine = `${pad}${name}: ${flatChild},`
+    if (flatLine.length <= 80) {
+      lines.push(flatLine)
+      continue
+    }
+    lines.push(
+      `${pad}${name}: {\n${printPropertyTree(
+        node.children,
+        indent + 1
+      )}\n${pad}},`
+    )
+  }
+  return lines.join("\n")
+}
+
+function flatPropertyNode(node: PropertyNode): string {
+  if (node.children.size === 0) return node.value ?? ""
+  const fields: string[] = []
+  for (const [name, child] of node.children) {
+    fields.push(`${name}: ${flatPropertyNode(child)}`)
+  }
+  return `{ ${fields.join(", ")} }`
 }
 
 function defineConfigImport(): ImportItem {

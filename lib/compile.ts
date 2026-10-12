@@ -156,7 +156,15 @@ function packageJsonDrift(expected: string, actual: string): string[] {
     return ["package.json: dependencies changed during yarn install"]
   }
   if (!sameSection(expectedValue, actualValue, "devDependencies")) {
-    return ["package.json: devDependencies changed during yarn install"]
+    return [
+      "package.json: devDependencies changed during yarn install",
+      `expected ${JSON.stringify(
+        canonical(expectedValue.devDependencies ?? null)
+      )}`,
+      `actual ${JSON.stringify(
+        canonical(actualValue.devDependencies ?? null)
+      )}`,
+    ]
   }
   if (!sameSection(expectedValue, actualValue, "peerDependencies")) {
     return ["package.json: peerDependencies changed during yarn install"]
@@ -173,9 +181,25 @@ function sameSection(
   section: string
 ): boolean {
   return (
-    JSON.stringify(expected[section] ?? null) ===
-    JSON.stringify(actual[section] ?? null)
+    JSON.stringify(canonical(expected[section] ?? null)) ===
+    JSON.stringify(canonical(actual[section] ?? null))
   )
+}
+
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((entry) => canonical(entry))
+  if (!isRecord(value)) return value
+  const sorted: Record<string, unknown> = {}
+  for (const key of Object.keys(value).sort(compareText)) {
+    sorted[key] = canonical(value[key])
+  }
+  return sorted
+}
+
+function compareText(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
 }
 
 function parseObject(text: string): Record<string, unknown> | undefined {

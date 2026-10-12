@@ -530,7 +530,7 @@ function writeJsonIfChanged(
     }
   }
   return {
-    changes: [{ type: "write", path, contents: formatJson(value) }],
+    changes: [{ type: "write", path, contents: formatJson(value, path) }],
     problems: [],
   }
 }
@@ -960,8 +960,63 @@ function jsonPlain(value: JsonValue): unknown {
   return jsonUnknown(JSON.parse(JSON.stringify(value)))
 }
 
-function formatJson(value: JsonValue): string {
-  return `${JSON.stringify(value, null, 2)}\n`
+const JSON_PRINT_WIDTH = 80
+
+function formatJson(value: JsonValue, path = ""): string {
+  if (path.endsWith("package.json"))
+    return `${JSON.stringify(value, null, 2)}\n`
+  return `${printJson(value, 0, 0)}\n`
+}
+
+function printJson(value: JsonValue, column: number, indent: number): string {
+  const flat = flatJson(value)
+  if (column + flat.length <= JSON_PRINT_WIDTH) return flat
+  if (isJsonArray(value)) return brokenArray(value, indent)
+  if (isJsonObject(value)) return brokenObject(value, indent)
+  return flat
+}
+
+function flatJson(value: JsonValue): string {
+  if (isJsonArray(value)) {
+    if (value.length === 0) return "[]"
+    return `[${value.map((entry) => flatJson(entry)).join(", ")}]`
+  }
+  if (isJsonObject(value)) {
+    const fields = Object.keys(value).flatMap((key) => {
+      const entry = value[key]
+      if (entry === undefined) return []
+      return [`${JSON.stringify(key)}: ${flatJson(entry)}`]
+    })
+    if (fields.length === 0) return "{}"
+    return `{ ${fields.join(", ")} }`
+  }
+  return JSON.stringify(value)
+}
+
+function brokenArray(value: readonly JsonValue[], indent: number): string {
+  const pad = "  ".repeat(indent + 1)
+  const closing = "  ".repeat(indent)
+  const inner = value
+    .map((entry) => `${pad}${printJson(entry, pad.length, indent + 1)}`)
+    .join(",\n")
+  return `[\n${inner}\n${closing}]`
+}
+
+function brokenObject(
+  value: { readonly [key: string]: JsonValue },
+  indent: number
+): string {
+  const pad = "  ".repeat(indent + 1)
+  const closing = "  ".repeat(indent)
+  const lines: string[] = []
+  for (const key of Object.keys(value)) {
+    const entry = value[key]
+    if (entry === undefined) continue
+    const prefix = `${pad}${JSON.stringify(key)}: `
+    lines.push(`${prefix}${printJson(entry, prefix.length, indent + 1)}`)
+  }
+  if (lines.length === 0) return "{}"
+  return `{\n${lines.join(",\n")}\n${closing}}`
 }
 
 function withKey(

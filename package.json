@@ -26,7 +26,8 @@
     "fix:format": "prettier --write .",
     "fix:lint": "eslint --no-error-on-unmatched-pattern . --fix",
     "prepack": "yarn build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config integration-tests/vitest.config.ts"
   },
   "dependencies": {
     "commander": "^15.0.0",

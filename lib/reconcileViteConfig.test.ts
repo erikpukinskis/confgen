@@ -44,6 +44,42 @@ test("creates a config when the file is absent", () => {
   expect(contents).toContain("export default defineConfig(")
 })
 
+test("creates one object when properties share a parent", () => {
+  const outDir: ViteConfigItem = {
+    id: "property:out",
+    source: "preset:vite",
+    kind: "property",
+    path: ["build", "outDir"],
+    value: '"dist"',
+  }
+  const emptyOutDir: ViteConfigItem = {
+    id: "property:empty",
+    source: "preset:vite",
+    kind: "property",
+    path: ["build", "emptyOutDir"],
+    value: "true",
+  }
+  const created = reconcileViteConfig({
+    path: "vite.config.ts",
+    current: undefined,
+    items: [outDir, emptyOutDir],
+    priorItems: [],
+  })
+
+  expect(created.problems).toEqual([])
+  const contents = created.contents ?? ""
+  const matches = contents.match(/build:/g)
+  expect(matches === null ? 0 : matches.length).toBe(1)
+  const again = reconcileViteConfig({
+    path: "vite.config.ts",
+    current: created.contents,
+    items: [outDir, emptyOutDir],
+    priorItems: [outDir, emptyOutDir],
+  })
+  expect(again.problems).toEqual([])
+  expect(again.contents).toBe(created.contents)
+})
+
 test("keeps a second reconciliation unchanged", () => {
   const created = reconcileViteConfig({
     path: "vite.config.ts",

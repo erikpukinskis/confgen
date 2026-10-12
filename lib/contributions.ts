@@ -1,5 +1,6 @@
 import { ConfgenError } from "./errors.js"
 import type { ProjectFacts } from "./facts.js"
+import { packageManifestContributions } from "./packageManifest.js"
 import { presetContributions } from "./presets/index.js"
 import {
   isPresetName,
@@ -105,7 +106,7 @@ export type ProduceContributions = (
 
 /**
  * Collects runtime producers in registry order, then preset producers in
- * registry order, and normalizes the combined list.
+ * registry order, then package-manifest scripts, and normalizes the list.
  */
 export function collectContributions(
   selection: Selection,
@@ -118,6 +119,7 @@ export function collectContributions(
   for (const preset of selection.presets) {
     collected.push(...presetContributions(preset, selection, facts))
   }
+  collected.push(...packageManifestContributions(selection))
   return normalizeContributions(collected)
 }
 

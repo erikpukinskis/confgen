@@ -3,12 +3,18 @@ import { mkdtemp, stat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { compile, compileCollected } from "./compile.js"
-import type { Contribution } from "./contributions.js"
+import { collectContributions, type Contribution } from "./contributions.js"
 import { ConfgenError } from "./errors.js"
 import { readProjectFacts } from "./facts.js"
-import { LOCK_PATH, serializeLock, textHash } from "./lock.js"
+import {
+  LOCK_PATH,
+  lockFromContributions,
+  serializeLock,
+  textHash,
+} from "./lock.js"
 import { PRESET_NAMES } from "./presets/registry.js"
 import { RUNTIME_NAMES } from "./runtimes.js"
+import { parseSelection } from "./selection.js"
 import { createSystem, type RunResult, type System } from "./system.js"
 import { expect, test } from "vitest"
 
@@ -21,25 +27,25 @@ const documented = [
 ]
 
 test("collects the documented selection in registry order", async () => {
-  const system = await project()
-  const forward = await compile({ selection: documented, system })
-  const reversed = await compile({
-    selection: [
+  const facts = await readProjectFacts(await project())
+  const forward = collectContributions(parseSelection(documented), facts)
+  const reversed = collectContributions(
+    parseSelection([
       "runtimes=#client,#server,#lib",
       "vitest",
       "vite",
       "typescript",
       "yarn",
-    ],
-    system,
-  })
+    ]),
+    facts
+  )
 
   expect(reversed).toEqual(forward)
-  expect(forward.selection).toEqual({
+  expect(parseSelection(documented)).toEqual({
     runtimes: ["lib", "server", "client"],
     presets: ["yarn", "typescript", "vite", "vitest"],
   })
-  expect(forward.contributions).toEqual([])
+  expect(forward.length).toBeGreaterThan(0)
 })
 
 test("collection order stays canonical for every runtime and preset", async () => {
@@ -56,13 +62,14 @@ test("collection order stays canonical for every runtime and preset", async () =
     ...[...PRESET_NAMES].reverse(),
   ]
 
-  const forward = await compile({ selection: canonical, system })
-  const backward = await compile({ selection: reversed, system })
+  const facts = await readProjectFacts(system)
+  const forward = collectContributions(parseSelection(canonical), facts)
+  const backward = collectContributions(parseSelection(reversed), facts)
 
   expect(backward).toEqual(forward)
-  expect(forward.selection.runtimes).toEqual([...RUNTIME_NAMES])
-  expect(forward.selection.presets).toEqual([...PRESET_NAMES])
-  expect(forward.contributions).toEqual([])
+  expect(parseSelection(canonical).runtimes).toEqual([...RUNTIME_NAMES])
+  expect(parseSelection(canonical).presets).toEqual([...PRESET_NAMES])
+  expect(forward.length).toBeGreaterThan(0)
 })
 
 test("rejects an invalid selection before reading manifests", async () => {
@@ -210,33 +217,32 @@ test("a yarn failure leaves the previous lock untouched", async () => {
 })
 
 test("lock text does not depend on CLI order", async () => {
-  const forwardDir = await mkdtemp(join(tmpdir(), "confgen-compile-"))
-  const reverseDir = await mkdtemp(join(tmpdir(), "confgen-compile-"))
-  const forward = createSystem(forwardDir)
-  const reverse = createSystem(reverseDir)
-  await forward.writeFile("package.json", JSON.stringify({ name: "example" }))
-  await reverse.writeFile("package.json", JSON.stringify({ name: "example" }))
+  const facts = await readProjectFacts(await project())
+  const forwardSelection = parseSelection([
+    "runtimes=#lib,#server",
+    "typescript",
+    "vite",
+  ])
+  const reverseSelection = parseSelection([
+    "runtimes=#server,#lib",
+    "vite",
+    "typescript",
+  ])
 
-  await compile({
-    selection: ["runtimes=#lib,#server", "typescript", "vite"],
-    system: forward,
-  })
-  await compile({
-    selection: ["runtimes=#server,#lib", "vite", "typescript"],
-    system: reverse,
-  })
-
-  expect(await reverse.readFile(LOCK_PATH)).toBe(
-    await forward.readFile(LOCK_PATH)
-  )
-  expect(await forward.readFile(LOCK_PATH)).toBe(
-    serializeLock({
-      lockVersion: 1,
-      confgenVersion: "0.95.0",
-      runtimes: ["lib", "server"],
-      presets: ["typescript", "vite"],
-      contributions: [],
-    })
+  expect(
+    serializeLock(
+      lockFromContributions({
+        selection: reverseSelection,
+        contributions: collectContributions(reverseSelection, facts),
+      })
+    )
+  ).toBe(
+    serializeLock(
+      lockFromContributions({
+        selection: forwardSelection,
+        contributions: collectContributions(forwardSelection, facts),
+      })
+    )
   )
 })
 

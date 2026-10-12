@@ -5,23 +5,12 @@ import { createSystem } from "./system.js"
 import { main } from "./index.js"
 import { expect, test } from "vitest"
 
-test("the documented command exits successfully", async () => {
+test("a file-writing selection exits successfully", async () => {
   const cwd = await project()
   const stderr = capture()
   const stdout = capture()
 
-  const status = await main(
-    cli(
-      "runtimes=#lib,#server,#client",
-      "yarn",
-      "typescript",
-      "vite",
-      "vitest"
-    ),
-    cwd,
-    stderr,
-    stdout
-  )
+  const status = await main(cli("runtimes=#lib", "git"), cwd, stderr, stdout)
 
   expect(status).toBe(0)
   expect(stderr.text).toBe("")
