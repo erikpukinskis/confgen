@@ -1,5 +1,6 @@
 import type { Contribution, JsonValue } from "./contributions.js"
 import type { ProjectFacts } from "./facts.js"
+import { containerIdentity } from "./presets/docker.js"
 import type { RuntimeName } from "./runtimes.js"
 import type { Selection } from "./selection.js"
 
@@ -46,6 +47,7 @@ export function packageManifestContributions(
       script("yalc:publish", yalcPublishCommand(selection))
     )
   }
+  produced.push(...integrationScripts(selection, facts))
   return produced
 }
 
@@ -181,6 +183,42 @@ function yalcPublishCommand(selection: Selection): string {
     commands.push("yalc publish --store-folder .yalc-store client")
   }
   return commands.join(" && ")
+}
+
+function integrationScripts(
+  selection: Selection,
+  facts: ProjectFacts
+): Contribution[] {
+  if (!selection.runtimes.includes("integration")) return []
+  const produced: Contribution[] = []
+  if (selection.presets.includes("vitest")) {
+    produced.push(
+      script(
+        "test:integration:run",
+        "vitest run --config vite.integration.config.ts"
+      )
+    )
+  }
+  if (
+    selection.presets.includes("docker") &&
+    selection.runtimes.includes("server")
+  ) {
+    const identity = containerIdentity(facts.root.name)
+    const state =
+      '"${DEV_CLUSTER_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/dev-cluster}/certs"'
+    produced.push(
+      script(
+        "test:integration:local",
+        `dev-cluster up ${identity.integrationServiceName}`
+      ),
+      script("test:integration:ci", "sh scripts/test-integration-ci.sh"),
+      script(
+        "shell:integration",
+        `SSL_PATH=${state} docker compose -f compose.base.yaml -f compose.local.yaml run --rm -it --entrypoint /bin/bash ${identity.integrationServiceName}`
+      )
+    )
+  }
+  return produced
 }
 
 function publishable(selection: Selection): boolean {

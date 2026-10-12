@@ -37,7 +37,7 @@ afterAll(async () => {
 
 test(
   "the packed package service builds, publishes, and reruns cleanly",
-  { timeout: 900_000 },
+  { timeout: 1_500_000 },
   async () => {
     const bundle = packed
     if (bundle === undefined) throw new Error("Confgen was not packed")
@@ -53,13 +53,20 @@ test(
     const composeEnv = {
       COMPOSE_PROJECT_NAME: composeProject,
       IMAGE_TAG: "test",
-      SSL_PATH: sslDirectory,
+      DEV_CLUSTER_STATE_DIR: sslDirectory,
+      SSL_PATH: join(sslDirectory, "certs"),
+      PACKAGE_SERVICE_URL: "https://package-service.local.multiplayerdb.dev",
+      DEV_CLUSTER_HTTP_PORT: "18080",
+      DEV_CLUSTER_HTTPS_PORT: "18443",
     }
     try {
       await pinDevCluster(project, devCluster.tarball)
       await project.run("yarn", ["confgen", ...args], 180_000)
       await project.run("yarn", ["install"], 180_000)
+      await expectRuntimeScopes(project)
       await proveContainer(project, composeEnv)
+      await proveLocalIntegration(project, composeEnv)
+      await project.run("yarn", ["install"], 180_000)
       await project.run("yarn", ["build:generate"], 180_000)
       await project.run("yarn", ["build:lib"], 180_000)
       await project.run("yarn", ["build:test-kit"], 180_000)
@@ -129,15 +136,13 @@ async function proveContainer(
   project: SyntheticProject,
   env: Readonly<Record<string, string>>
 ): Promise<void> {
-  const stateDirectory = env.SSL_PATH
-  if (stateDirectory === undefined) throw new Error("missing SSL_PATH")
+  const stateDirectory = env.DEV_CLUSTER_STATE_DIR
+  if (stateDirectory === undefined) {
+    throw new Error("missing DEV_CLUSTER_STATE_DIR")
+  }
   await project.run("yarn", ["dev-cluster", "certs"], 60_000, {
     DEV_CLUSTER_STATE_DIR: stateDirectory,
   })
-  const composeEnv = {
-    ...env,
-    SSL_PATH: join(stateDirectory, "certs"),
-  }
   const configured = await project.run(
     "docker",
     [
@@ -149,27 +154,45 @@ async function proveContainer(
       "config",
     ],
     60_000,
-    composeEnv
+    env
   )
   expect(configured.stdout).toContain("package-api-server")
   expect(configured.stdout).toContain("target: dev")
   expect(configured.stdout).toContain("/healthcheck")
-  expect(configured.stdout).not.toContain("integration-test")
+  expect(configured.stdout).toContain("package-service-integration-test-host")
+  expect(configured.stdout).toContain("target: integration-test-host")
+  expect(configured.stdout).toContain("dockerfile: ./gateway/Dockerfile")
   const base = await project.run(
     "docker",
     ["compose", "-f", "compose.base.yaml", "config"],
     60_000,
-    composeEnv
+    env
   )
   expect(base.stdout).toContain("package-api-server:test")
+  expect(base.stdout).toContain("package-service:test")
   expect(base.stdout).not.toContain("target: dev")
+  expect(base.stdout).not.toContain("integration-test-host")
   expect(base.stdout).not.toContain("/mnt/package-service")
+  const ci = await readFile(
+    join(project.directory, "scripts/test-integration-ci.sh"),
+    "utf8"
+  )
+  expect(ci).toContain("docker compose -f compose.base.yaml")
+  expect(ci).toContain("up -d --wait --wait-timeout 120")
+  expect(ci).not.toContain("compose.local.yaml")
+  expect(ci).toContain("package-service-integration-test-host:")
 
   await project.run(
     "docker",
     ["build", "--target", "prod", "-t", "package-api-server:test", "."],
     600_000,
-    composeEnv
+    env
+  )
+  await project.run(
+    "docker",
+    ["build", "-f", "gateway/Dockerfile", "-t", "package-service:test", "."],
+    600_000,
+    env
   )
   try {
     await project.run(
@@ -187,20 +210,20 @@ async function proveContainer(
         "never",
       ],
       180_000,
-      composeEnv
+      env
     )
     const listed = await project.run(
       "docker",
       ["compose", "-f", "compose.base.yaml", "ps", "-q", "package-api-server"],
       30_000,
-      composeEnv
+      env
     )
     const containerId = listed.stdout.trim()
     const health = await project.run(
       "docker",
       ["inspect", "--format", "{{.State.Health.Status}}", containerId],
       30_000,
-      composeEnv
+      env
     )
     expect(health.stdout.trim()).toBe("healthy")
     const response = await project.run(
@@ -218,7 +241,7 @@ async function proveContainer(
         "http://127.0.0.1:7001/",
       ],
       30_000,
-      composeEnv
+      env
     )
     expect(response.stdout).toContain("Hello, baseline")
     const check = await project.run(
@@ -236,11 +259,58 @@ async function proveContainer(
         "http://127.0.0.1:7001/healthcheck",
       ],
       30_000,
-      composeEnv
+      env
     )
     expect(check.stdout).toContain("ok")
+    const gatewayHealth = await project.run(
+      "docker",
+      [
+        "compose",
+        "-f",
+        "compose.base.yaml",
+        "exec",
+        "-T",
+        "package-service",
+        "curl",
+        "--fail",
+        "--silent",
+        "https://package-service.local.multiplayerdb.dev/healthcheck",
+      ],
+      30_000,
+      env
+    )
+    expect(gatewayHealth.stdout).toContain("ok")
+    const proxied = await project.run(
+      "docker",
+      [
+        "compose",
+        "-f",
+        "compose.base.yaml",
+        "exec",
+        "-T",
+        "package-service",
+        "curl",
+        "--fail",
+        "--silent",
+        "https://package-service.local.multiplayerdb.dev/api",
+      ],
+      30_000,
+      env
+    )
+    expect(proxied.stdout).toContain("Hello, baseline")
   } finally {
-    await stopContainers(project, composeEnv)
+    await stopContainers(project, env)
+  }
+}
+
+async function proveLocalIntegration(
+  project: SyntheticProject,
+  env: Readonly<Record<string, string>>
+): Promise<void> {
+  try {
+    await project.run("yarn", ["test:integration:local"], 900_000, env)
+  } finally {
+    await stopContainers(project, env)
   }
 }
 
@@ -248,6 +318,11 @@ async function stopContainers(
   project: SyntheticProject,
   env: Readonly<Record<string, string>>
 ): Promise<void> {
+  try {
+    await project.run("yarn", ["stop:containers:local"], 120_000, env)
+  } catch {
+    // The local project may not be up.
+  }
   try {
     await project.run(
       "docker",
@@ -258,6 +333,63 @@ async function stopContainers(
   } catch {
     // The service may not have started.
   }
+}
+
+async function expectRuntimeScopes(project: SyntheticProject): Promise<void> {
+  await expectFile(project.directory, "integration/setup.ts")
+  await expectFile(project.directory, "integration/service.test.ts")
+  await expectFile(project.directory, "gateway/httpd.conf")
+  await expectFile(project.directory, "gateway/public/index.html")
+  await expectFile(project.directory, "gateway/Dockerfile")
+  const tsconfig = parseObject(
+    JSON.parse(await readFile(join(project.directory, "tsconfig.json"), "utf8"))
+  )
+  expect(stringList(tsconfig.include)).toEqual(
+    expect.arrayContaining(["integration/**/*.ts", "gateway/**/*.ts"])
+  )
+  const unit = await readFile(
+    join(project.directory, "vite.test.config.ts"),
+    "utf8"
+  )
+  expect(unit).not.toContain("integration/**/*.test.ts")
+  const focused = await readFile(
+    join(project.directory, "vite.integration.config.ts"),
+    "utf8"
+  )
+  expect(focused).toContain("integration/**/*.test.ts")
+  const manifest = await readManifest(project.directory, "package.json")
+  expect(scriptCommand(manifest, "check:types")).toContain("tsconfig.json")
+  expect(scriptCommand(manifest, "build")).toContain("yarn build:server")
+  expect(scriptCommand(manifest, "test:integration:run")).toBe(
+    "vitest run --config vite.integration.config.ts"
+  )
+  expect(scriptCommand(manifest, "test:integration:local")).toBe(
+    "dev-cluster up package-service-integration-test-host"
+  )
+  expect(scriptCommand(manifest, "test:integration:ci")).toBe(
+    "sh scripts/test-integration-ci.sh"
+  )
+}
+
+function scriptCommand(
+  manifest: Record<string, unknown>,
+  name: string
+): string {
+  const scripts = manifest.scripts
+  if (!isRecord(scripts)) throw new Error("missing scripts")
+  const command = scripts[name]
+  if (typeof command !== "string") throw new Error(`missing script ${name}`)
+  return command
+}
+
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) throw new Error("expected a list")
+  const result: string[] = []
+  for (const entry of value) {
+    if (typeof entry !== "string") throw new Error("expected a string list")
+    result.push(entry)
+  }
+  return result
 }
 
 async function expectPublishedPackages(

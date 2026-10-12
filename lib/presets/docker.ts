@@ -21,18 +21,42 @@ export const contributions: ProduceContributions = (selection, facts) => {
   if (!selection.runtimes.includes("server")) return []
   const identity = containerIdentity(facts.root.name)
   assertHttpsOrigin("SERVICE_URL", `https://${identity.alias}`)
-  return [
+  const corner = gatewaySelected(selection)
+    ? identity.gatewayServiceName
+    : identity.serviceName
+  const produced: Contribution[] = [
     dependency("dev-cluster", DEV_CLUSTER_VERSION),
     script("dev-cluster", "dev-cluster"),
-    script("start:containers:local", `dev-cluster up ${identity.serviceName}`),
+    script("start:containers:local", `dev-cluster up ${corner}`),
     script("stop:containers:local", "dev-cluster down"),
     script("start:server", "node --watch server/index.ts"),
     wholeFile("Dockerfile", dockerfile(selection, identity)),
     wholeFile("scripts/docker-entrypoint-node.sh", ENTRYPOINT),
     wholeFile(".dockerignore", DOCKERIGNORE),
-    ...baseCompose(identity),
-    ...localCompose(identity),
+    ...baseCompose(selection, identity),
+    ...localCompose(selection, identity),
   ]
+  if (selection.runtimes.includes("integration")) {
+    assertHttpsOrigin(identity.serviceUrlName, identity.serviceUrl)
+    produced.push(
+      wholeFile("scripts/test-integration-ci.sh", ciScript(identity)),
+      wholeFile("scripts/integration-local.sh", INTEGRATION_LOCAL_SCRIPT)
+    )
+  }
+  if (gatewaySelected(selection)) {
+    produced.push(
+      wholeFile("gateway/Dockerfile", GATEWAY_DOCKERFILE),
+      wholeFile("scripts/docker-entrypoint-httpd.sh", HTTPD_ENTRYPOINT)
+    )
+  }
+  return produced
+}
+
+function gatewaySelected(selection: Selection): boolean {
+  return (
+    selection.runtimes.includes("gateway") &&
+    selection.presets.includes("httpd")
+  )
 }
 
 export type ContainerIdentity = {
@@ -42,6 +66,14 @@ export type ContainerIdentity = {
   workdir: string
   yarnVolume: string
   image: string
+  gatewayServiceName: string
+  gatewayAlias: string
+  gatewayImage: string
+  integrationServiceName: string
+  integrationImage: string
+  integrationYarnVolume: string
+  serviceUrlName: string
+  serviceUrl: string
 }
 
 /** Globally distinctive service names derived from the root package name. */
@@ -52,6 +84,11 @@ export function containerIdentity(packageName: string): ContainerIdentity {
     ? directoryName.slice(0, -"-service".length)
     : directoryName
   const serviceName = `${stem}-api-server`
+  const gatewayServiceName = directoryName
+  const integrationServiceName = `${directoryName}-integration-test-host`
+  const serviceUrlName = `${directoryName
+    .toUpperCase()
+    .replaceAll("-", "_")}_URL`
   return {
     directoryName,
     serviceName,
@@ -59,6 +96,16 @@ export function containerIdentity(packageName: string): ContainerIdentity {
     workdir: `/mnt/${directoryName}`,
     yarnVolume: `${serviceName}-yarn`,
     image: `${serviceName}:${requiredReference("IMAGE_TAG")}`,
+    gatewayServiceName,
+    gatewayAlias: `${gatewayServiceName}.local.multiplayerdb.dev`,
+    gatewayImage: `${gatewayServiceName}:${requiredReference("IMAGE_TAG")}`,
+    integrationServiceName,
+    integrationImage: `${integrationServiceName}:${requiredReference(
+      "IMAGE_TAG"
+    )}`,
+    integrationYarnVolume: `${integrationServiceName}-yarn`,
+    serviceUrlName,
+    serviceUrl: `https://${gatewayServiceName}.local.multiplayerdb.dev`,
   }
 }
 
@@ -179,7 +226,7 @@ COPY . .
 ######################
 FROM source AS builder
 RUN yarn build
-
+${integrationStage(selection)}
 #################
 FROM base AS prod
 COPY package.json yarn.lock .yarnrc.yml ./
@@ -190,7 +237,19 @@ CMD ["yarn", "node", "dist/server/index.js"]
 `
 }
 
-function baseCompose(identity: ContainerIdentity): Contribution[] {
+function integrationStage(selection: Selection): string {
+  if (!selection.runtimes.includes("integration")) return ""
+  return `
+####################################
+FROM source AS integration-test-host
+CMD ["yarn", "test:integration:run"]
+`
+}
+
+function baseCompose(
+  selection: Selection,
+  identity: ContainerIdentity
+): Contribution[] {
   const service: JsonValue = {
     image: identity.image,
     environment: {
@@ -205,7 +264,7 @@ function baseCompose(identity: ContainerIdentity): Contribution[] {
     healthcheck: {
       test: `curl --fail http://localhost:${SERVICE_PORT}/healthcheck`,
       interval: "1s",
-      retries: 100,
+      retries: 240,
       start_period: "0s",
       timeout: "1s",
     },
@@ -225,10 +284,14 @@ function baseCompose(identity: ContainerIdentity): Contribution[] {
       service,
       "merge"
     ),
+    ...gatewayBase(selection, identity),
   ]
 }
 
-function localCompose(identity: ContainerIdentity): Contribution[] {
+function localCompose(
+  selection: Selection,
+  identity: ContainerIdentity
+): Contribution[] {
   const service: JsonValue = {
     build: {
       context: ".",
@@ -255,8 +318,207 @@ function localCompose(identity: ContainerIdentity): Contribution[] {
       {},
       "replace"
     ),
+    ...gatewayLocal(selection, identity),
+    ...integrationLocal(selection, identity),
   ]
 }
+
+function gatewayBase(
+  selection: Selection,
+  identity: ContainerIdentity
+): Contribution[] {
+  if (!gatewaySelected(selection)) return []
+  const service: JsonValue = {
+    image: identity.gatewayImage,
+    depends_on: {
+      [identity.serviceName]: {
+        condition: "service_healthy",
+      },
+    },
+    volumes: [
+      `${requiredReference("SSL_PATH")}:/etc/apache2/ssl:ro`,
+      `${requiredReference("SSL_PATH")}:/ssl:ro`,
+    ],
+    networks: {
+      default: {
+        aliases: [identity.gatewayAlias],
+      },
+    },
+    healthcheck: {
+      test: `curl --fail https://${identity.gatewayAlias}/healthcheck`,
+      interval: "1s",
+      retries: 240,
+      start_period: "0s",
+      timeout: "1s",
+    },
+  }
+  return [
+    yaml(
+      "base-gateway",
+      "compose.base.yaml",
+      ["services", identity.gatewayServiceName],
+      service,
+      "merge"
+    ),
+  ]
+}
+
+function gatewayLocal(
+  selection: Selection,
+  identity: ContainerIdentity
+): Contribution[] {
+  if (!gatewaySelected(selection)) return []
+  const service: JsonValue = {
+    build: {
+      context: ".",
+      dockerfile: "./gateway/Dockerfile",
+    },
+  }
+  return [
+    yaml(
+      "local-gateway",
+      "compose.local.yaml",
+      ["services", identity.gatewayServiceName],
+      service,
+      "merge"
+    ),
+  ]
+}
+
+function integrationLocal(
+  selection: Selection,
+  identity: ContainerIdentity
+): Contribution[] {
+  if (!selection.runtimes.includes("integration")) return []
+  const upstream = gatewaySelected(selection)
+    ? identity.gatewayServiceName
+    : identity.serviceName
+  const service: JsonValue = {
+    build: {
+      context: ".",
+      dockerfile: "./Dockerfile",
+      target: "integration-test-host",
+    },
+    environment: {
+      [identity.serviceUrlName]: requiredReference(identity.serviceUrlName),
+    },
+    depends_on: {
+      [upstream]: {
+        condition: "service_healthy",
+      },
+    },
+    volumes: [
+      `${requiredReference("SSL_PATH")}:/ssl:ro`,
+      `.:${identity.workdir}`,
+      `${identity.integrationYarnVolume}:${identity.workdir}/.yarn`,
+    ],
+    entrypoint: ["sh"],
+    user: "root",
+    command: ["scripts/integration-local.sh"],
+  }
+  return [
+    yaml(
+      "local-integration",
+      "compose.local.yaml",
+      ["services", identity.integrationServiceName],
+      service,
+      "merge"
+    ),
+    yaml(
+      "local-integration-volume",
+      "compose.local.yaml",
+      ["volumes", identity.integrationYarnVolume],
+      {},
+      "replace"
+    ),
+  ]
+}
+
+function ciScript(identity: ContainerIdentity): string {
+  return `#!/bin/sh
+set -eu
+
+compose() {
+  docker compose -f compose.base.yaml "$@"
+}
+
+cleanup() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    compose logs || true
+  fi
+  compose down -v --remove-orphans || true
+  exit "$status"
+}
+trap cleanup EXIT
+
+compose up -d --wait --wait-timeout 120
+
+ssl_abs=$(CDPATH= cd -- "\${SSL_PATH:?}" && pwd)
+server_id=$(compose ps -q ${identity.serviceName})
+network=$(docker inspect --format '{{range $name, $net := .NetworkSettings.Networks}}{{$name}}{{end}}' "$server_id")
+
+docker run --rm \\
+  --network "$network" \\
+  -e ${identity.serviceUrlName}="\${${identity.serviceUrlName}:?}" \\
+  -v "\${ssl_abs}:/ssl:ro" \\
+  "${identity.integrationImage}" \\
+  yarn test:integration:run
+`
+}
+
+const INTEGRATION_LOCAL_SCRIPT = `#!/bin/sh
+set -eu
+
+if [ -d /ssl ]; then
+  cp /ssl/*.crt /usr/local/share/ca-certificates/ || true
+  update-ca-certificates
+fi
+
+yarn install --immutable
+yarn test:integration:run
+`
+
+const HTTPD_ENTRYPOINT = `#!/bin/sh
+set -e
+
+if [ -d /ssl ]; then
+  found=
+  for cert in /ssl/*.crt; do
+    if [ -f "$cert" ]; then
+      cp "$cert" /usr/local/share/ca-certificates/
+      found=1
+    fi
+  done
+  if [ -n "$found" ]; then
+    update-ca-certificates
+  fi
+fi
+
+exec "$@"
+`
+
+const GATEWAY_DOCKERFILE = `FROM httpd:2.4
+
+RUN apt-get update \\
+  && apt-get install -y ca-certificates curl \\
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --chown=root:www-data gateway/public/ /srv/homepage/
+RUN find /srv/homepage -type d -print0 | xargs -0 chmod 750 \\
+  && find /srv/homepage -type f -print0 | xargs -0 chmod 640
+
+COPY gateway/httpd.conf /usr/local/apache2/conf/httpd.conf
+RUN mkdir -p /var/log/httpd/ /etc/apache2/ssl
+ENV APACHE_LOG_DIR=/var/log/httpd/
+
+COPY scripts/docker-entrypoint-httpd.sh /usr/local/bin/docker-entrypoint-httpd.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-httpd.sh
+
+WORKDIR /srv
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-httpd.sh"]
+CMD ["httpd-foreground"]
+`
 
 function yaml(
   id: string,

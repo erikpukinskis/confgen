@@ -14,6 +14,9 @@ export const contributions: ProduceContributions = (selection) => {
     testConfig(selection),
   ]
   if (selection.runtimes.includes("lib")) produced.push(libTest())
+  if (selection.runtimes.includes("integration")) {
+    produced.push(integrationConfig())
+  }
   return produced
 }
 
@@ -35,10 +38,29 @@ function libTest(): Contribution {
   }
 }
 
+function integrationConfig(): Contribution {
+  return {
+    id: "vitest:config:vite.integration.config.ts",
+    source: "preset:vitest",
+    kind: "vite-config",
+    path: "vite.integration.config.ts",
+    items: [
+      {
+        id: "property:test-include",
+        source: "preset:vitest",
+        kind: "property",
+        path: ["test", "include"],
+        value: '["integration/**/*.test.ts"]',
+      },
+    ],
+  }
+}
+
 function testConfig(selection: Selection): Contribution {
-  const patterns = selection.runtimes.map(
-    (runtime) => `${runtimePath(runtime)}/**/*.test.ts`
-  )
+  const patterns = selection.runtimes.flatMap((runtime) => {
+    if (runtime === "integration") return []
+    return [`${runtimePath(runtime)}/**/*.test.ts`]
+  })
   if (selection.presets.includes("graphql")) patterns.push("gql/**/*.test.ts")
   const items: ViteConfigItem[] = [
     {

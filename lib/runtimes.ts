@@ -1,5 +1,6 @@
 import type { Contribution, ProduceContributions } from "./contributions.js"
 import type { ProjectFacts } from "./facts.js"
+import { containerIdentity } from "./presets/docker.js"
 import type { Selection } from "./selection.js"
 
 export type RuntimeName =
@@ -53,7 +54,7 @@ const runtimeProducers: Record<RuntimeName, ProduceContributions> = {
   app: () => [],
   server: serverContributions,
   client: clientContributions,
-  integration: () => [],
+  integration: integrationContributions,
   gateway: () => [],
   docs: () => [],
 }
@@ -103,6 +104,11 @@ const server = createServer((request, response) => {
     response.end("ok\\n")
     return
   }
+  if (path === "/api") {
+    response.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
+    response.end(\`\${greeting("baseline")}\\n\`)
+    return
+  }
   if (path !== "/") {
     response.writeHead(404)
     response.end()
@@ -112,7 +118,7 @@ const server = createServer((request, response) => {
   response.end(\`\${greeting("baseline")}\\n\`)
 })
 
-server.listen(listenPort(process.env.PORT), "127.0.0.1", () => {
+server.listen(listenPort(process.env.PORT), "0.0.0.0", () => {
   const address = server.address()
   if (address === null || typeof address === "string") {
     console.error("server did not bind to a port")
@@ -149,6 +155,50 @@ function libContributions(): readonly Contribution[] {
 }
 
 const CLIENT_INDEX = `export {}\n`
+
+function integrationContributions(
+  _selection: Selection,
+  facts: ProjectFacts
+): readonly Contribution[] {
+  const urlName = containerIdentity(facts.root.name).serviceUrlName
+  return [
+    {
+      id: "runtime:integration:setup",
+      source: "runtime:integration",
+      kind: "starter-file",
+      path: "integration/setup.ts",
+      contents: integrationSetup(urlName),
+    },
+    {
+      id: "runtime:integration:service-test",
+      source: "runtime:integration",
+      kind: "starter-file",
+      path: "integration/service.test.ts",
+      contents: INTEGRATION_TEST,
+    },
+  ]
+}
+
+function integrationSetup(urlName: string): string {
+  return `export function serviceOrigin(): string {
+  const value = process.env.${urlName}
+  if (value === undefined || value.length === 0) {
+    throw new Error("${urlName} is not set")
+  }
+  return value
+}
+`
+}
+
+const INTEGRATION_TEST = `import { expect, test } from "vitest"
+import { serviceOrigin } from "#integration/setup"
+
+test("reaches the service", async () => {
+  const response = await fetch(\`\${serviceOrigin()}/api\`)
+  expect(response.status).toBe(200)
+  expect(await response.text()).toContain("Hello, baseline")
+})
+`
 
 function clientContributions(selection: Selection): readonly Contribution[] {
   if (selection.presets.includes("graphql")) return []

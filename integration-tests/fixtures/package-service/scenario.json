@@ -1,6 +1,6 @@
 {
   "args": [
-    "runtimes=#lib,#server,#client",
+    "runtimes=#lib,#server,#client,#integration,#gateway",
     "yarn",
     "typescript",
     "vite",
@@ -9,6 +9,7 @@
     "prettier",
     "git",
     "graphql",
-    "docker"
+    "docker",
+    "httpd"
   ]
 }
