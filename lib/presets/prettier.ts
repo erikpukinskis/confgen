@@ -38,6 +38,8 @@ const IGNORE_LINES: readonly (readonly [string, string])[] = [
   ["coverage", "coverage"],
   ["yarn-lock", "yarn.lock"],
   ["nvmrc", ".nvmrc"],
+  ["yalc", ".yalc"],
+  ["yalc-lock", "yalc.lock"],
 ]
 
 function setting(

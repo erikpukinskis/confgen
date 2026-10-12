@@ -93,6 +93,49 @@ function listenPort(value: string | undefined): number {
 }
 `
 
+const SERVER_CONTAINER_INDEX = `import { createServer } from "node:http"
+import { greeting } from "#lib/index"
+
+const server = createServer((request, response) => {
+  const path = requestPath(request.url)
+  if (path === "/healthcheck") {
+    response.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
+    response.end("ok\\n")
+    return
+  }
+  if (path !== "/") {
+    response.writeHead(404)
+    response.end()
+    return
+  }
+  response.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
+  response.end(\`\${greeting("baseline")}\\n\`)
+})
+
+server.listen(listenPort(process.env.PORT), "127.0.0.1", () => {
+  const address = server.address()
+  if (address === null || typeof address === "string") {
+    console.error("server did not bind to a port")
+    process.exit(1)
+  }
+  console.log("ready http://127.0.0.1:" + String(address.port))
+})
+
+function requestPath(url: string | undefined): string {
+  if (url === undefined || url.length === 0) return "/"
+  const path = url.split("?")[0]
+  if (path === undefined || path.length === 0) return "/"
+  return path
+}
+
+function listenPort(value: string | undefined): number {
+  if (value === undefined || value.length === 0) return 3000
+  const port = Number(value)
+  if (!Number.isInteger(port) || port < 0 || port > 65535) return 3000
+  return port
+}
+`
+
 function libContributions(): readonly Contribution[] {
   return [
     {
@@ -120,14 +163,16 @@ function clientContributions(selection: Selection): readonly Contribution[] {
   ]
 }
 
-function serverContributions(): readonly Contribution[] {
+function serverContributions(selection: Selection): readonly Contribution[] {
   return [
     {
       id: "runtime:server:index",
       source: "runtime:server",
       kind: "starter-file",
       path: "server/index.ts",
-      contents: SERVER_INDEX,
+      contents: selection.presets.includes("docker")
+        ? SERVER_CONTAINER_INDEX
+        : SERVER_INDEX,
     },
     {
       id: "runtime:server:start",

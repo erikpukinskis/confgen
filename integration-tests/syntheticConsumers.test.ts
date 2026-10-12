@@ -1,10 +1,18 @@
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
+import {
+  mkdtemp,
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   createSyntheticProject,
   packConfgen,
+  packDevCluster,
   readScenario,
   type PackedConfgen,
   type SyntheticProject,
@@ -27,51 +35,230 @@ afterAll(async () => {
   await packed?.cleanup()
 })
 
-test("the packed package service builds, publishes, and reruns cleanly", async () => {
-  const bundle = packed
-  if (bundle === undefined) throw new Error("Confgen was not packed")
-  const args = await readScenario(fixture)
-  const project = await createSyntheticProject({
-    tarball: bundle.tarball,
-    fixture,
-  })
-  const consumerDirectory = await mkdtemp(join(tmpdir(), "confgen-consumer-"))
-  try {
-    await project.run("yarn", ["confgen", ...args], 180_000)
-    await project.run("yarn", ["install"], 180_000)
-    await project.run("yarn", ["build:generate"], 180_000)
-    await project.run("yarn", ["build:lib"], 180_000)
-    await project.run("yarn", ["build:test-kit"], 180_000)
-    await project.run("yarn", ["build:server"], 180_000)
-    await project.run("yarn", ["build:client"], 180_000)
-    await project.run("yarn", ["check:types"], 180_000)
-    await project.run("yarn", ["check:lint"], 180_000)
-    await project.run("yarn", ["check:format"], 180_000)
-    await project.run("yarn", ["test"], 180_000)
-    await expectPublishedPackages(project)
-    await project.run("yarn", ["yalc:publish"], 180_000)
-    await consumePublishedPackages(project, consumerDirectory)
-    await project.run("git", ["init"])
-    await project.run("git", ["add", "--all"])
-    await project.run("git", [
-      "-c",
-      "user.email=confgen@example.com",
-      "-c",
-      "user.name=Confgen",
-      "-c",
-      "commit.gpgsign=false",
-      "commit",
-      "-m",
-      "package service",
-    ])
-    await project.run("yarn", ["confgen"], 180_000)
-    const status = await project.run("git", ["status", "--porcelain"])
-    expect(status.stdout).toBe("")
-  } finally {
-    await rm(consumerDirectory, { recursive: true, force: true })
-    await project.cleanup()
+test(
+  "the packed package service builds, publishes, and reruns cleanly",
+  { timeout: 900_000 },
+  async () => {
+    const bundle = packed
+    if (bundle === undefined) throw new Error("Confgen was not packed")
+    const args = await readScenario(fixture)
+    const devCluster = await packDevCluster()
+    const project = await createSyntheticProject({
+      tarball: bundle.tarball,
+      fixture,
+    })
+    const consumerDirectory = await mkdtemp(join(tmpdir(), "confgen-consumer-"))
+    const sslDirectory = await mkdtemp(join(tmpdir(), "confgen-ssl-"))
+    const composeProject = `confgen-package-${process.pid}`
+    const composeEnv = {
+      COMPOSE_PROJECT_NAME: composeProject,
+      IMAGE_TAG: "test",
+      SSL_PATH: sslDirectory,
+    }
+    try {
+      await pinDevCluster(project, devCluster.tarball)
+      await project.run("yarn", ["confgen", ...args], 180_000)
+      await project.run("yarn", ["install"], 180_000)
+      await proveContainer(project, composeEnv)
+      await project.run("yarn", ["build:generate"], 180_000)
+      await project.run("yarn", ["build:lib"], 180_000)
+      await project.run("yarn", ["build:test-kit"], 180_000)
+      await project.run("yarn", ["build:server"], 180_000)
+      await project.run("yarn", ["build:client"], 180_000)
+      await project.run("yarn", ["check:types"], 180_000)
+      await project.run("yarn", ["check:lint"], 180_000)
+      await project.run("yarn", ["check:format"], 180_000)
+      await project.run("yarn", ["test"], 180_000)
+      await expectPublishedPackages(project)
+      await project.run("yarn", ["yalc:publish"], 180_000)
+      await consumePublishedPackages(project, consumerDirectory)
+      await project.run("git", ["init"])
+      await project.run("git", ["add", "--all"])
+      await project.run("git", [
+        "-c",
+        "user.email=confgen@example.com",
+        "-c",
+        "user.name=Confgen",
+        "-c",
+        "commit.gpgsign=false",
+        "commit",
+        "-m",
+        "package service",
+      ])
+      await project.run("yarn", ["confgen"], 180_000)
+      const status = await project.run("git", ["status", "--porcelain"])
+      expect(status.stdout).toBe("")
+    } finally {
+      await stopContainers(project, composeEnv)
+      await rm(consumerDirectory, { recursive: true, force: true })
+      await rm(sslDirectory, { recursive: true, force: true })
+      await devCluster.cleanup()
+      await project.cleanup()
+    }
   }
-})
+)
+
+async function pinDevCluster(
+  project: SyntheticProject,
+  tarball: string
+): Promise<void> {
+  const destination = join(project.directory, ".yalc", "dev-cluster")
+  await mkdir(destination, { recursive: true })
+  await project.run("tar", [
+    "-xzf",
+    tarball,
+    "-C",
+    destination,
+    "--strip-components=1",
+  ])
+  const path = join(project.directory, "package.json")
+  const value: unknown = JSON.parse(await readFile(path, "utf8"))
+  if (!isRecord(value)) throw new Error("package.json must be an object")
+  const current = isRecord(value.resolutions) ? value.resolutions : {}
+  const next = {
+    ...value,
+    resolutions: {
+      ...current,
+      "dev-cluster": "file:.yalc/dev-cluster",
+    },
+  }
+  await writeFile(path, `${JSON.stringify(next, null, 2)}\n`)
+}
+
+async function proveContainer(
+  project: SyntheticProject,
+  env: Readonly<Record<string, string>>
+): Promise<void> {
+  const stateDirectory = env.SSL_PATH
+  if (stateDirectory === undefined) throw new Error("missing SSL_PATH")
+  await project.run("yarn", ["dev-cluster", "certs"], 60_000, {
+    DEV_CLUSTER_STATE_DIR: stateDirectory,
+  })
+  const composeEnv = {
+    ...env,
+    SSL_PATH: join(stateDirectory, "certs"),
+  }
+  const configured = await project.run(
+    "docker",
+    [
+      "compose",
+      "-f",
+      "compose.base.yaml",
+      "-f",
+      "compose.local.yaml",
+      "config",
+    ],
+    60_000,
+    composeEnv
+  )
+  expect(configured.stdout).toContain("package-api-server")
+  expect(configured.stdout).toContain("target: dev")
+  expect(configured.stdout).toContain("/healthcheck")
+  expect(configured.stdout).not.toContain("integration-test")
+  const base = await project.run(
+    "docker",
+    ["compose", "-f", "compose.base.yaml", "config"],
+    60_000,
+    composeEnv
+  )
+  expect(base.stdout).toContain("package-api-server:test")
+  expect(base.stdout).not.toContain("target: dev")
+  expect(base.stdout).not.toContain("/mnt/package-service")
+
+  await project.run(
+    "docker",
+    ["build", "--target", "prod", "-t", "package-api-server:test", "."],
+    600_000,
+    composeEnv
+  )
+  try {
+    await project.run(
+      "docker",
+      [
+        "compose",
+        "-f",
+        "compose.base.yaml",
+        "up",
+        "-d",
+        "--wait",
+        "--wait-timeout",
+        "120",
+        "--pull",
+        "never",
+      ],
+      180_000,
+      composeEnv
+    )
+    const listed = await project.run(
+      "docker",
+      ["compose", "-f", "compose.base.yaml", "ps", "-q", "package-api-server"],
+      30_000,
+      composeEnv
+    )
+    const containerId = listed.stdout.trim()
+    const health = await project.run(
+      "docker",
+      ["inspect", "--format", "{{.State.Health.Status}}", containerId],
+      30_000,
+      composeEnv
+    )
+    expect(health.stdout.trim()).toBe("healthy")
+    const response = await project.run(
+      "docker",
+      [
+        "compose",
+        "-f",
+        "compose.base.yaml",
+        "exec",
+        "-T",
+        "package-api-server",
+        "curl",
+        "--fail",
+        "--silent",
+        "http://127.0.0.1:7001/",
+      ],
+      30_000,
+      composeEnv
+    )
+    expect(response.stdout).toContain("Hello, baseline")
+    const check = await project.run(
+      "docker",
+      [
+        "compose",
+        "-f",
+        "compose.base.yaml",
+        "exec",
+        "-T",
+        "package-api-server",
+        "curl",
+        "--fail",
+        "--silent",
+        "http://127.0.0.1:7001/healthcheck",
+      ],
+      30_000,
+      composeEnv
+    )
+    expect(check.stdout).toContain("ok")
+  } finally {
+    await stopContainers(project, composeEnv)
+  }
+}
+
+async function stopContainers(
+  project: SyntheticProject,
+  env: Readonly<Record<string, string>>
+): Promise<void> {
+  try {
+    await project.run(
+      "docker",
+      ["compose", "-f", "compose.base.yaml", "down", "-v", "--remove-orphans"],
+      120_000,
+      env
+    )
+  } catch {
+    // The service may not have started.
+  }
+}
 
 async function expectPublishedPackages(
   project: SyntheticProject

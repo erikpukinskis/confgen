@@ -1,11 +1,14 @@
 import { spawn, type ChildProcess } from "node:child_process"
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { z } from "zod"
 
 const confgenRoot = fileURLToPath(new URL("..", import.meta.url))
+const devClusterRoot = fileURLToPath(
+  new URL("../../dev-cluster/", import.meta.url)
+)
 
 const scenarioSchema = z.object({
   args: z.array(z.string().min(1)).min(1),
@@ -61,7 +64,8 @@ export type SyntheticProject = {
   run(
     executable: string,
     args: readonly string[],
-    timeoutMs?: number
+    timeoutMs?: number,
+    env?: Readonly<Record<string, string>>
   ): Promise<CommandResult>
   runAt(
     directory: string,
@@ -79,6 +83,26 @@ export type SyntheticProject = {
     }
   ): Promise<RunningProcess>
   cleanup(): Promise<void>
+}
+
+/** Builds and packs the local dev-cluster revision for the harness only. */
+export async function packDevCluster(): Promise<PackedConfgen> {
+  const directory = await mkdtemp(join(tmpdir(), "dev-cluster-pack-"))
+  const tarball = join(directory, "dev-cluster.tgz")
+  await runCollected({
+    cwd: devClusterRoot,
+    executable: "yarn",
+    args: ["pack", "--out", tarball],
+    timeoutMs: 180_000,
+    children: [],
+    extraEnv: { DEV_CLUSTER_PACKING: "1" },
+  })
+  return {
+    tarball,
+    async cleanup() {
+      await rm(directory, { recursive: true, force: true })
+    },
+  }
 }
 
 /** Builds and packs Confgen once for the integration suite. */
@@ -121,7 +145,13 @@ export async function createSyntheticProject(input: {
   try {
     await cp(input.fixture, directory, { recursive: true })
     await ensurePackageManager(directory)
-    await project.run("yarn", ["add", "--dev", input.tarball], 180_000)
+    await mkdir(join(directory, ".yalc"), { recursive: true })
+    await cp(input.tarball, join(directory, ".yalc", "confgen.tgz"))
+    await project.run(
+      "yarn",
+      ["add", "--dev", "confgen@file:./.yalc/confgen.tgz"],
+      180_000
+    )
     return project
   } catch (error) {
     await project.cleanup()
@@ -143,13 +173,14 @@ function openProject(directory: string): SyntheticProject {
   const children: ChildProcess[] = []
   return {
     directory,
-    run(executable, args, timeoutMs = 120_000) {
+    run(executable, args, timeoutMs = 120_000, env) {
       return runCollected({
         cwd: directory,
         executable,
         args,
         timeoutMs,
         children,
+        ...(env === undefined ? {} : { extraEnv: env }),
       })
     },
     runAt(directoryOverride, executable, args, timeoutMs = 120_000) {
@@ -198,6 +229,7 @@ async function runCollected(input: {
   args: readonly string[]
   timeoutMs: number
   children: ChildProcess[]
+  extraEnv?: Readonly<Record<string, string>>
 }): Promise<CommandResult> {
   const command = formatCommand(input.executable, input.args)
   const { child, done } = spawnCommand({
@@ -205,7 +237,7 @@ async function runCollected(input: {
     executable: input.executable,
     args: input.args,
     timeoutMs: input.timeoutMs,
-    extraEnv: undefined,
+    extraEnv: input.extraEnv,
   })
   input.children.push(child)
   const result = await done
