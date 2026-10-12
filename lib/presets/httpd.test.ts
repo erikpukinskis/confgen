@@ -9,6 +9,10 @@ const root = {
   path: "package.json",
   name: "@example/package-service",
   version: "0.1.0",
+  repository: {
+    type: "git",
+    url: "https://github.com/example/package-service.git",
+  },
   workspaces: [],
 }
 const facts: ProjectFacts = { root, packages: [root] }
@@ -60,7 +64,7 @@ test("the gateway proxies health and API and the integration host stays local", 
   const services = objectField(base, "services")
   expect(services["package-service-integration-test-host"]).toBeUndefined()
   const gateway = objectField(services, "package-service")
-  expect(gateway.image).toBe("package-service:${IMAGE_TAG:?}")
+  expect(gateway.image).toBe("ghcr.io/example/package-service:${IMAGE_TAG:?}")
   expect(JSON.stringify(gateway.healthcheck)).toContain("/healthcheck")
   const local = yamlObject(written(created.files, "compose.local.yaml"))
   const localServices = objectField(local, "services")
@@ -75,7 +79,9 @@ test("the gateway proxies health and API and the integration host stays local", 
   expect(ci).toContain("docker compose -f compose.base.yaml")
   expect(ci).toContain("up -d --wait --wait-timeout 120")
   expect(ci).not.toContain("compose.local.yaml")
-  expect(ci).toContain("package-service-integration-test-host:${IMAGE_TAG:?}")
+  expect(ci).toContain(
+    "ghcr.io/example/package-service-integration-test-host:${IMAGE_TAG:?}"
+  )
   const manifest = jsonObject(written(created.files, "package.json"))
   const scripts = objectField(manifest, "scripts")
   expect(scripts["test:integration:run"]).toBe(

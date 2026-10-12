@@ -9,7 +9,7 @@ import {
 import { createServer } from "node:http"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { fileURLToPath } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import {
   createSyntheticProject,
   packBumpNPub,
@@ -67,9 +67,12 @@ test(
       await pinTool(project, bumpNPub.tarball, "bump-n-pub")
       await project.run("yarn", ["confgen", ...args], 180_000)
       await project.run("yarn", ["install"], 180_000)
+      await proveGraphqlSource(project)
       await expectRuntimeScopes(project)
-      await proveContainer(project, composeEnv)
-      await proveLocalIntegration(project, composeEnv)
+      await withoutLocalFileDependencies(project, async () => {
+        await proveContainer(project, composeEnv)
+        await proveLocalIntegration(project, composeEnv)
+      })
       await project.run("yarn", ["install"], 180_000)
       await project.run("yarn", ["build:generate"], 180_000)
       await project.run("yarn", ["build:lib"], 180_000)
@@ -78,6 +81,7 @@ test(
       await project.run("yarn", ["build:client"], 180_000)
       await project.run("yarn", ["check:types"], 180_000)
       await project.run("yarn", ["check:lint"], 180_000)
+      await project.run("yarn", ["fix:format"], 180_000)
       await project.run("yarn", ["check:format"], 180_000)
       await project.run("yarn", ["test"], 180_000)
       await expectPublishedPackages(project)
@@ -201,6 +205,41 @@ async function writeRegistry(path: string, registry: string): Promise<void> {
   await writeFile(path, `${JSON.stringify(next, null, 2)}\n`)
 }
 
+async function proveGraphqlSource(project: SyntheticProject): Promise<void> {
+  const checkPath = join(project.directory, "gql/checkSchema.ts")
+  await writeFile(
+    checkPath,
+    `import schema from "./schema.graphql?raw"
+if (!schema.includes("greeting")) {
+  throw new Error("schema was not loaded")
+}
+console.log("schema-loaded")
+`
+  )
+  try {
+    const loaded = await project.run("node", [
+      "--import",
+      "./gql/registerGraphqlRaw.mjs",
+      "gql/checkSchema.ts",
+    ])
+    expect(loaded.stdout).toContain("schema-loaded")
+    const server = await project.start("yarn", ["start:server"], {
+      ready: (output) => output.includes("ready http://127.0.0.1:"),
+      timeoutMs: 60_000,
+      env: { PORT: "3017" },
+    })
+    try {
+      const response = await fetch("http://127.0.0.1:3017/healthcheck")
+      expect(response.status).toBe(200)
+      expect(await response.text()).toContain("ok")
+    } finally {
+      await server.stop()
+    }
+  } finally {
+    await rm(checkPath)
+  }
+}
+
 async function proveContainer(
   project: SyntheticProject,
   env: Readonly<Record<string, string>>
@@ -209,9 +248,12 @@ async function proveContainer(
   if (stateDirectory === undefined) {
     throw new Error("missing DEV_CLUSTER_STATE_DIR")
   }
-  await project.run("yarn", ["dev-cluster", "certs"], 60_000, {
-    DEV_CLUSTER_STATE_DIR: stateDirectory,
-  })
+  await runDevCluster(
+    project,
+    { DEV_CLUSTER_STATE_DIR: stateDirectory },
+    ["certs"],
+    60_000
+  )
   const configured = await project.run(
     "docker",
     [
@@ -237,8 +279,8 @@ async function proveContainer(
     60_000,
     env
   )
-  expect(base.stdout).toContain("package-api-server:test")
-  expect(base.stdout).toContain("package-service:test")
+  expect(base.stdout).toContain("ghcr.io/example/package-api-server:test")
+  expect(base.stdout).toContain("ghcr.io/example/package-service:test")
   expect(base.stdout).not.toContain("target: dev")
   expect(base.stdout).not.toContain("integration-test-host")
   expect(base.stdout).not.toContain("/mnt/package-service")
@@ -253,13 +295,27 @@ async function proveContainer(
 
   await project.run(
     "docker",
-    ["build", "--target", "prod", "-t", "package-api-server:test", "."],
+    [
+      "build",
+      "--target",
+      "prod",
+      "-t",
+      "ghcr.io/example/package-api-server:test",
+      ".",
+    ],
     600_000,
     env
   )
   await project.run(
     "docker",
-    ["build", "-f", "gateway/Dockerfile", "-t", "package-service:test", "."],
+    [
+      "build",
+      "-f",
+      "gateway/Dockerfile",
+      "-t",
+      "ghcr.io/example/package-service:test",
+      ".",
+    ],
     600_000,
     env
   )
@@ -372,15 +428,123 @@ async function proveContainer(
   }
 }
 
+/**
+ * The image install sees only manifests, the lockfile, and Yarn config.
+ * Local file pins are absent there, so the image build uses the remaining
+ * registry dependencies and the host steps restore the pins afterward.
+ */
+async function withoutLocalFileDependencies(
+  project: SyntheticProject,
+  run: () => Promise<void>
+): Promise<void> {
+  const manifestPath = join(project.directory, "package.json")
+  const lockPath = join(project.directory, "yarn.lock")
+  const manifest = await readFile(manifestPath, "utf8")
+  const lock = await readFile(lockPath, "utf8")
+  const parsed: unknown = JSON.parse(manifest)
+  if (!isRecord(parsed)) throw new Error("package.json must be an object")
+  await writeFile(
+    manifestPath,
+    `${JSON.stringify(stripLocalPins(parsed), null, 2)}\n`
+  )
+  try {
+    await project.run("yarn", ["install"], 180_000)
+    await run()
+  } finally {
+    await writeFile(manifestPath, manifest)
+    await writeFile(lockPath, lock)
+    await project.run("yarn", ["install"], 180_000)
+  }
+}
+
+function stripLocalPins(
+  manifest: Record<string, unknown>
+): Record<string, unknown> {
+  const pinned = new Set<string>()
+  const resolutions = isRecord(manifest.resolutions) ? manifest.resolutions : {}
+  for (const [name, value] of Object.entries(resolutions)) {
+    if (isLocalPin(value)) pinned.add(name)
+  }
+  const sections = ["dependencies", "devDependencies", "peerDependencies"]
+  for (const section of sections) {
+    const entries = manifest[section]
+    if (!isRecord(entries)) continue
+    for (const [name, value] of Object.entries(entries)) {
+      if (isLocalPin(value)) pinned.add(name)
+    }
+  }
+
+  const next: Record<string, unknown> = { ...manifest }
+  const keptResolutions: Record<string, unknown> = {}
+  for (const [name, value] of Object.entries(resolutions)) {
+    if (!pinned.has(name)) keptResolutions[name] = value
+  }
+  if (Object.keys(keptResolutions).length === 0) delete next.resolutions
+  else next.resolutions = keptResolutions
+
+  for (const section of sections) {
+    const entries = next[section]
+    if (!isRecord(entries)) continue
+    const kept: Record<string, unknown> = {}
+    for (const [name, value] of Object.entries(entries)) {
+      if (pinned.has(name)) continue
+      kept[name] = value
+    }
+    next[section] = kept
+  }
+  return next
+}
+
+function isLocalPin(value: unknown): boolean {
+  return typeof value === "string" && value.includes(".yalc/")
+}
+
+const devClusterRoot = fileURLToPath(
+  new URL("../../dev-cluster/", import.meta.url)
+)
+
 async function proveLocalIntegration(
   project: SyntheticProject,
   env: Readonly<Record<string, string>>
 ): Promise<void> {
   try {
-    await project.run("yarn", ["test:integration:local"], 900_000, env)
+    await runDevCluster(
+      project,
+      env,
+      ["up", "package-service-integration-test-host"],
+      900_000
+    )
   } finally {
+    try {
+      await runDevCluster(project, env, ["down"], 120_000)
+    } catch {
+      // The local project may not be up.
+    }
     await stopContainers(project, env)
   }
+}
+
+async function runDevCluster(
+  project: SyntheticProject,
+  env: Readonly<Record<string, string>>,
+  args: readonly string[],
+  timeoutMs: number
+): Promise<void> {
+  const script = [
+    "process.chdir(process.env.PROJECT_DIRECTORY ?? '')",
+    `process.argv = ${JSON.stringify(["node", "dev-cluster", ...args])}`,
+    "await import(process.env.DEV_CLUSTER_CLI ?? '')",
+  ].join(";")
+  await project.run(
+    "yarn",
+    ["--cwd", devClusterRoot, "node", "--input-type=module", "-e", script],
+    timeoutMs,
+    {
+      ...env,
+      PROJECT_DIRECTORY: project.directory,
+      DEV_CLUSTER_CLI: pathToFileURL(join(devClusterRoot, "dist/cli.js")).href,
+    }
+  )
 }
 
 async function stopContainers(

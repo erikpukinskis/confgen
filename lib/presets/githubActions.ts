@@ -6,7 +6,7 @@ import type {
 } from "../contributions.js"
 import type { ProjectFacts } from "../facts.js"
 import type { Selection } from "../selection.js"
-import { containerIdentity, type ContainerIdentity } from "./docker.js"
+import { requireContainerIdentity, type ContainerIdentity } from "./docker.js"
 import { stringify } from "yaml"
 
 /**
@@ -25,6 +25,12 @@ const CHECKS_WORKFLOW = ".github/workflows/checks.yml"
 const INTEGRATION_WORKFLOW = ".github/workflows/integration.yml"
 const CI_WORKFLOW = ".github/workflows/ci.yml"
 const SHOULD_PUBLISH = "needs.prepare.outputs.should_publish == 'true'"
+/**
+ * `success()` keeps npm publication behind a successful image job. A failed
+ * image job skips these jobs, so a failed-job rerun can publish the images
+ * and then the packages.
+ */
+const PUBLISH_AFTER_IMAGES = `success() && ${SHOULD_PUBLISH}`
 const PUBLISH_COMMAND =
   "yarn npm publish ${{ contains(needs.prepare.outputs.package_version, '-') && '--tag preview' || '' }}\n"
 const RELEASE_IF =
@@ -79,7 +85,7 @@ function integrationDocument(
 ): JsonValue | undefined {
   if (!publishesContainers(selection)) return undefined
   if (!selection.runtimes.includes("integration")) return undefined
-  const identity = containerIdentity(facts.root.name)
+  const identity = requireContainerIdentity(facts)
   return {
     name: "integration",
     on: { workflow_call: {} },
@@ -111,9 +117,13 @@ function ciJobs(
     registries,
     prepare,
   }
-  if (root) jobs["publish-root"] = publishRootJob(needsBeforePublish(flags))
+  const packageNeeds = needsBeforePublish(flags)
+  if (images) packageNeeds.push("publish-images")
+  if (root) {
+    jobs["publish-root"] = publishRootJob(packageNeeds, images)
+  }
   if (client) {
-    jobs["publish-client"] = publishClientJob(needsBeforePublish(flags))
+    jobs["publish-client"] = publishClientJob(packageNeeds, images)
   }
   if (images) {
     jobs["publish-images"] = publishImagesJob(
@@ -215,7 +225,7 @@ function integrationJob(
       name: `Build ${identity.serviceName}`,
       file: "Dockerfile",
       target: "prod",
-      tags: `${identity.serviceName}:\${{ env.IMAGE_TAG }}`,
+      tags: ghcrBuildTag(identity, identity.serviceName),
       push: false,
       cacheScope: `${identity.directoryName}-node`,
       cacheMode: "max",
@@ -226,7 +236,7 @@ function integrationJob(
       imageBuild({
         name: `Build ${identity.gatewayServiceName}`,
         file: "gateway/Dockerfile",
-        tags: `${identity.gatewayServiceName}:\${{ env.IMAGE_TAG }}`,
+        tags: ghcrBuildTag(identity, identity.gatewayServiceName),
         push: false,
         cacheScope: `${identity.directoryName}-gateway`,
         cacheMode: "min",
@@ -238,7 +248,7 @@ function integrationJob(
       name: `Build ${identity.integrationServiceName}`,
       file: "Dockerfile",
       target: "integration-test-host",
-      tags: `${identity.integrationServiceName}:\${{ env.IMAGE_TAG }}`,
+      tags: ghcrBuildTag(identity, identity.integrationServiceName),
       push: false,
       cacheScope: `${identity.directoryName}-node`,
       cacheMode: "max",
@@ -286,25 +296,61 @@ function prepareJob(): JsonValue {
   }
 }
 
-function publishRootJob(needs: readonly string[]): JsonValue {
+function publishRootJob(needs: readonly string[], images: boolean): JsonValue {
+  const steps: JsonValue[] = [
+    ...setupSteps(),
+    { name: "Build packages", run: "yarn build" },
+  ]
+  if (images) {
+    steps.push({
+      name: "Stamp published Compose image tags",
+      env: {
+        PACKAGE_VERSION: "${{ needs.prepare.outputs.package_version }}",
+      },
+      run: STAMP_COMPOSE,
+    })
+  }
+  steps.push({ name: "Publish root package", run: PUBLISH_COMMAND })
   return {
     "needs": [...needs],
-    "if": SHOULD_PUBLISH,
+    "if": images ? PUBLISH_AFTER_IMAGES : SHOULD_PUBLISH,
     "runs-on": STANDARD_RUNNER,
     "permissions": { contents: "read", packages: "write" },
     "env": { NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
-    "steps": [
-      ...setupSteps(),
-      { name: "Build packages", run: "yarn build" },
-      { name: "Publish root package", run: PUBLISH_COMMAND },
-    ],
+    "steps": steps,
   }
 }
 
-function publishClientJob(needs: readonly string[]): JsonValue {
+/**
+ * Rewrites the committed Compose placeholder in the publish checkout.
+ * Exits 1 when the placeholder is missing so the package cannot be published
+ * with an unstamped image tag.
+ */
+const STAMP_COMPOSE = `node --input-type=module <<'EOF'
+import { readFileSync, writeFileSync } from "node:fs"
+const token = "\${IMAGE_TAG:?}"
+const path = "compose.base.yaml"
+const source = readFileSync(path, "utf8")
+if (!source.includes(token)) {
+  console.error("compose.base.yaml does not contain \${IMAGE_TAG:?}")
+  process.exit(1)
+}
+const version = process.env.PACKAGE_VERSION
+if (version === undefined || version.length === 0) {
+  console.error("package_version is missing")
+  process.exit(1)
+}
+writeFileSync(path, source.replaceAll(token, version))
+EOF
+`
+
+function publishClientJob(
+  needs: readonly string[],
+  images: boolean
+): JsonValue {
   return {
     "needs": [...needs],
-    "if": SHOULD_PUBLISH,
+    "if": images ? PUBLISH_AFTER_IMAGES : SHOULD_PUBLISH,
     "runs-on": STANDARD_RUNNER,
     "permissions": { contents: "read", packages: "write" },
     "env": { NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
@@ -325,7 +371,7 @@ function publishImagesJob(
   facts: ProjectFacts,
   needs: readonly string[]
 ): JsonValue {
-  const identity = containerIdentity(facts.root.name)
+  const identity = requireContainerIdentity(facts)
   const version = "${{ needs.prepare.outputs.package_version }}"
   const steps: JsonValue[] = [
     ...setupSteps(),
@@ -343,7 +389,7 @@ function publishImagesJob(
       name: `Push ${identity.serviceName}`,
       file: "Dockerfile",
       target: "prod",
-      tags: publishedTag(identity.serviceName, version),
+      tags: publishedTag(identity, identity.serviceName, version),
       push: true,
       cacheScope: `${identity.directoryName}-node`,
     }),
@@ -353,7 +399,7 @@ function publishImagesJob(
       imageBuild({
         name: `Push ${identity.gatewayServiceName}`,
         file: "gateway/Dockerfile",
-        tags: publishedTag(identity.gatewayServiceName, version),
+        tags: publishedTag(identity, identity.gatewayServiceName, version),
         push: true,
         cacheScope: `${identity.directoryName}-gateway`,
       })
@@ -485,8 +531,19 @@ function releaseNeeds(flags: {
   return needs
 }
 
-function publishedTag(serviceName: string, version: string): string {
-  return `ghcr.io/\${{ github.repository_owner }}/${serviceName}:${version}`
+function ghcrBuildTag(
+  identity: ContainerIdentity,
+  serviceName: string
+): string {
+  return `ghcr.io/${identity.owner}/${serviceName}:\${{ env.IMAGE_TAG }}`
+}
+
+function publishedTag(
+  identity: ContainerIdentity,
+  serviceName: string,
+  version: string
+): string {
+  return `ghcr.io/${identity.owner}/${serviceName}:${version}`
 }
 
 function publishesPackages(selection: Selection): boolean {

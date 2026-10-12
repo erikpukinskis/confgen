@@ -108,6 +108,13 @@ test("the package selection publishes a root and client workspace", () => {
   expect(testKitVite).not.toContain('["graphql"]')
   expect(files.has("gql/schema.graphql")).toBe(true)
   expect(files.has("gql/_generated/resolvers.ts")).toBe(false)
+  const loader = files.get("gql/graphqlRawLoader.mjs")
+  expect(loader).toContain('.endsWith(".graphql?raw")')
+  expect(loader).toContain('parsed.search === "?raw"')
+  expect(loader).not.toContain(".ts?raw")
+  expect(files.get("gql/registerGraphqlRaw.mjs")).toContain(
+    "./graphqlRawLoader.mjs"
+  )
 
   files.set("yarn.lock", "# lock\n")
   files.set(".pnp.cjs", "// pnp\n")

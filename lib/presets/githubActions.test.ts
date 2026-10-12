@@ -150,11 +150,12 @@ test("publication waits on checks and explicit prepare outputs", () => {
   )
 
   const expectedNeeds = ["checks", "integration", "registries", "prepare"]
+  const packageNeeds = [...expectedNeeds, "publish-images"]
   expect(stringList(requiredJob(ci, "publish-root"), "needs")).toEqual(
-    expectedNeeds
+    packageNeeds
   )
   expect(stringList(requiredJob(ci, "publish-client"), "needs")).toEqual(
-    expectedNeeds
+    packageNeeds
   )
   expect(stringList(requiredJob(ci, "publish-images"), "needs")).toEqual(
     expectedNeeds
@@ -188,10 +189,10 @@ test("publishes through each manifest registry without another registry source",
     publish
   )
   expect(requiredJob(ci, "publish-root").if).toBe(
-    "needs.prepare.outputs.should_publish == 'true'"
+    "success() && needs.prepare.outputs.should_publish == 'true'"
   )
   expect(requiredJob(ci, "publish-client").if).toBe(
-    "needs.prepare.outputs.should_publish == 'true'"
+    "success() && needs.prepare.outputs.should_publish == 'true'"
   )
   const clientStep = steps(requiredJob(ci, "publish-client")).find(
     (step) => step["working-directory"] === "client"
@@ -215,14 +216,33 @@ test("stamps published images with the prepare package version", () => {
   const images = requiredJob(ciJobsFor(selection), "publish-images")
   const tags = imageTags(images)
   expect(tags).toEqual([
-    "ghcr.io/${{ github.repository_owner }}/package-api-server:${{ needs.prepare.outputs.package_version }}",
-    "ghcr.io/${{ github.repository_owner }}/package-service:${{ needs.prepare.outputs.package_version }}",
+    "ghcr.io/example/package-api-server:${{ needs.prepare.outputs.package_version }}",
+    "ghcr.io/example/package-service:${{ needs.prepare.outputs.package_version }}",
   ])
   expect(imageTags(integrationJob())).toEqual([
-    "package-api-server:${{ env.IMAGE_TAG }}",
-    "package-service:${{ env.IMAGE_TAG }}",
-    "package-service-integration-test-host:${{ env.IMAGE_TAG }}",
+    "ghcr.io/example/package-api-server:${{ env.IMAGE_TAG }}",
+    "ghcr.io/example/package-service:${{ env.IMAGE_TAG }}",
+    "ghcr.io/example/package-service-integration-test-host:${{ env.IMAGE_TAG }}",
   ])
+  const publish = requiredJob(ciJobsFor(selection), "publish-root")
+  const publishSteps = steps(publish)
+  const stampIndex = publishSteps.findIndex(
+    (step) => step.name === "Stamp published Compose image tags"
+  )
+  const publishIndex = publishSteps.findIndex(
+    (step) => step.name === "Publish root package"
+  )
+  expect(stampIndex).toBeGreaterThan(-1)
+  expect(publishIndex).toBeGreaterThan(stampIndex)
+  const stamp = publishSteps[stampIndex]
+  if (stamp === undefined || typeof stamp.run !== "string") {
+    throw new Error("missing Compose stamp step")
+  }
+  expect(stamp.run).toContain("${IMAGE_TAG:?}")
+  expect(stamp.run).toContain(
+    "compose.base.yaml does not contain ${IMAGE_TAG:?}"
+  )
+  expect(stamp.run).toContain("process.exit(1)")
 })
 
 test("root and client publication follow the selected packages", () => {
@@ -254,6 +274,12 @@ test("root and client publication follow the selected packages", () => {
   expect(clientOnly["publish-root"]).toBeUndefined()
   expect(clientOnly["publish-client"]).toBeDefined()
   expect(clientOnly["publish-images"]).toBeUndefined()
+  expect(
+    stringList(requiredJob(clientOnly, "publish-client"), "needs")
+  ).toEqual(["checks", "registries", "prepare"])
+  expect(requiredJob(clientOnly, "publish-client").if).toBe(
+    "needs.prepare.outputs.should_publish == 'true'"
+  )
   expect(stringList(requiredJob(clientOnly, "release"), "needs")).toEqual([
     "prepare",
     "publish-client",

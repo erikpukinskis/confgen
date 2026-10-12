@@ -249,7 +249,13 @@ test("lock text does not depend on CLI order", async () => {
 async function project(): Promise<System> {
   const cwd = await mkdtemp(join(tmpdir(), "confgen-compile-"))
   const system = createSystem(cwd)
-  await system.writeFile("package.json", JSON.stringify({ name: "example" }))
+  await system.writeFile(
+    "package.json",
+    JSON.stringify({
+      name: "example",
+      repository: "https://github.com/example/example.git",
+    })
+  )
   return system
 }
 

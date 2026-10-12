@@ -6,6 +6,7 @@ import { parseSelection } from "../selection.js"
 import {
   assertHttpsOrigin,
   containerIdentity,
+  githubRepositoryOwner,
   requiredReference,
   SERVICE_PORT,
 } from "./docker.js"
@@ -16,6 +17,10 @@ const root = {
   path: "package.json",
   name: "@example/package-service",
   version: "0.1.0",
+  repository: {
+    type: "git",
+    url: "https://github.com/example/package-service.git",
+  },
   workspaces: [],
 }
 const facts: ProjectFacts = { root, packages: [root] }
@@ -40,8 +45,13 @@ test("container contributions describe the ordinary service image", () => {
   expect(dockerfile).toContain("yarn workspaces focus --production")
   expect(dockerfile).toContain('CMD ["yarn", "node", "dist/server/index.js"]')
   expect(dockerfile).toContain("EXPOSE 7001")
-  expect(dockerfile).toContain("COPY client/package.json ./client/package.json")
+  expect(dockerfile).toContain("COPY client/package.json client/package.json")
   expect(dockerfile).not.toContain(".yalc")
+  const dependencies = dockerfile
+    .split("FROM base AS dependencies")[1]
+    ?.split("FROM dependencies AS source")[0]
+  expect(dependencies).toContain("COPY package.json yarn.lock .yarnrc.yml ./")
+  expect(dependencies).not.toContain("COPY . .")
   expect(dockerfile).not.toContain("integration-test-host")
   expect(text(contributions, "scripts/docker-entrypoint-node.sh")).toContain(
     "update-ca-certificates"
@@ -125,7 +135,9 @@ test("compose layers merge and keep unrelated services", () => {
     extra: true,
   })
   const service = objectField(services, "package-api-server")
-  expect(service.image).toBe("package-api-server:${IMAGE_TAG:?}")
+  expect(service.image).toBe(
+    "ghcr.io/example/package-api-server:${IMAGE_TAG:?}"
+  )
   expect(service.environment).toEqual({ PORT: String(SERVICE_PORT) })
   expect(service.volumes).toEqual(["${SSL_PATH:?}:/ssl:ro"])
   expect(JSON.stringify(service)).not.toContain(":/mnt/")
@@ -197,7 +209,9 @@ test("dockerignore keeps application lines", () => {
   const ignore = written(created.files, ".dockerignore")
   expect(ignore).toContain("repos")
   expect(ignore).toContain(".yarn")
-  expect(ignore).not.toContain(".yalc")
+  expect(ignore).toContain(".yalc")
+  expect(ignore).toContain(".yalc-store")
+  expect(ignore).toContain("yalc.lock")
 })
 
 test("environment contracts accept origins and reject paths", () => {
@@ -217,6 +231,12 @@ test("environment contracts accept origins and reject paths", () => {
     assertHttpsOrigin("PACKAGE_SERVICE_URL", "http://package-service.local")
   ).toThrow(ConfgenError)
   expect(requiredReference("SSL_PATH")).toBe("${SSL_PATH:?}")
+  expect(
+    githubRepositoryOwner("git://github.com/multiplayerdb/package-service.git")
+  ).toBe("multiplayerdb")
+  expect(() =>
+    githubRepositoryOwner("https://gitlab.com/example/service.git")
+  ).toThrow(ConfgenError)
   expect(requiredReference("PACKAGE_SERVICE_URL")).toBe(
     "${PACKAGE_SERVICE_URL:?}"
   )

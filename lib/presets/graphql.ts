@@ -41,6 +41,12 @@ export const contributions: ProduceContributions = (selection) => {
     starter("resolvers", "gql/resolvers.ts", RESOLVERS),
     starter("graphql-module", "gql/index.ts", GRAPHQL_MODULE),
     starter("raw-module", "gql/raw-modules.d.ts", RAW_MODULE),
+    wholeFile(
+      "raw-register",
+      "gql/registerGraphqlRaw.mjs",
+      REGISTER_GRAPHQL_RAW
+    ),
+    wholeFile("raw-loader", "gql/graphqlRawLoader.mjs", GRAPHQL_RAW_LOADER),
     starter("resolver-test", "gql/resolvers.test.ts", RESOLVER_TEST),
   ]
   if (selection.runtimes.includes("client")) {
@@ -110,6 +116,42 @@ const RAW_MODULE = `declare module "*.graphql?raw" {
 }
 `
 
+const REGISTER_GRAPHQL_RAW = `import { register } from "node:module"
+
+register("./graphqlRawLoader.mjs", import.meta.url)
+`
+
+/**
+ * Node loader for the single specifier suffix `.graphql?raw`.
+ * Vite already inlines that import; this is only for `node --watch`.
+ */
+const GRAPHQL_RAW_LOADER = `import { readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
+
+export async function resolve(specifier, context, nextResolve) {
+  if (!specifier.endsWith(".graphql?raw"))
+    return nextResolve(specifier, context)
+  return {
+    url: new URL(specifier, context.parentURL).href,
+    shortCircuit: true,
+  }
+}
+
+export async function load(url, context, nextLoad) {
+  const parsed = new URL(url)
+  if (!(parsed.pathname.endsWith(".graphql") && parsed.search === "?raw")) {
+    return nextLoad(url, context)
+  }
+  parsed.search = ""
+  const source = readFileSync(fileURLToPath(parsed), "utf8")
+  return {
+    format: "module",
+    source: "export default " + JSON.stringify(source) + "\\n",
+    shortCircuit: true,
+  }
+}
+`
+
 const CLIENT_MODULE = `export { graphql } from "./_generated/gql.js"
 `
 
@@ -174,6 +216,16 @@ function codegenYaml(selection: Selection): string {
     )
   }
   return `${lines.join("\n")}\n`
+}
+
+function wholeFile(id: string, path: string, contents: string): Contribution {
+  return {
+    id: `graphql:${id}`,
+    source: "preset:graphql",
+    kind: "whole-file",
+    path,
+    contents,
+  }
 }
 
 function starter(id: string, path: string, contents: string): Contribution {

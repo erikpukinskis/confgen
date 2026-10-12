@@ -5,6 +5,7 @@ import type {
   StructuredAddress,
 } from "../contributions.js"
 import { ConfgenError } from "../errors.js"
+import type { ProjectFacts } from "../facts.js"
 import type { Selection } from "../selection.js"
 
 /** Node API containers listen on this port inside their own network namespace. */
@@ -19,7 +20,7 @@ const DEV_CLUSTER_VERSION = "0.1.0"
  */
 export const contributions: ProduceContributions = (selection, facts) => {
   if (!selection.runtimes.includes("server")) return []
-  const identity = containerIdentity(facts.root.name)
+  const identity = requireContainerIdentity(facts)
   assertHttpsOrigin("SERVICE_URL", `https://${identity.alias}`)
   const corner = gatewaySelected(selection)
     ? identity.gatewayServiceName
@@ -29,8 +30,8 @@ export const contributions: ProduceContributions = (selection, facts) => {
     script("dev-cluster", "dev-cluster"),
     script("start:containers:local", `dev-cluster up ${corner}`),
     script("stop:containers:local", "dev-cluster down"),
-    script("start:server", "node --watch server/index.ts"),
-    wholeFile("Dockerfile", dockerfile(selection, identity)),
+    script("start:server", startServerCommand(selection)),
+    wholeFile("Dockerfile", dockerfile(selection, identity, facts)),
     wholeFile("scripts/docker-entrypoint-node.sh", ENTRYPOINT),
     ...DOCKERIGNORE_LINES.map(([id, value]) => line(id, value)),
     ...baseCompose(selection, identity),
@@ -65,6 +66,8 @@ export type ContainerIdentity = {
   alias: string
   workdir: string
   yarnVolume: string
+  /** GitHub owner used in published GHCR image names. Empty when no repository URL was supplied. */
+  owner: string
   image: string
   gatewayServiceName: string
   gatewayAlias: string
@@ -76,8 +79,56 @@ export type ContainerIdentity = {
   serviceUrl: string
 }
 
+/**
+ * Service names come from the root package. GHCR image names also require the
+ * repository URL so Compose refers to the images the publication workflow pushes.
+ */
+export function requireContainerIdentity(
+  facts: ProjectFacts
+): ContainerIdentity {
+  const repository = facts.root.repository
+  if (repository === undefined) {
+    throw new ConfgenError([
+      "package.json repository is required to name the published GHCR images.",
+    ])
+  }
+  return containerIdentity(facts.root.name, repository.url)
+}
+
+/** Owner segment of a github.com repository URL. */
+export function githubRepositoryOwner(repositoryUrl: string): string {
+  const parsed = repositoryUrl.startsWith("git@github.com:")
+    ? `https://github.com/${repositoryUrl.slice("git@github.com:".length)}`
+    : repositoryUrl
+  let url: URL
+  try {
+    url = new URL(parsed)
+  } catch {
+    throw new ConfgenError([
+      `package.json repository must be a GitHub repository URL ("${repositoryUrl}").`,
+    ])
+  }
+  if (url.hostname !== "github.com") {
+    throw new ConfgenError([
+      `package.json repository must be a GitHub repository URL ("${repositoryUrl}").`,
+    ])
+  }
+  const owner = url.pathname
+    .split("/")
+    .filter((segment) => segment.length > 0)[0]
+  if (owner === undefined) {
+    throw new ConfgenError([
+      `package.json repository must include a GitHub owner ("${repositoryUrl}").`,
+    ])
+  }
+  return owner
+}
+
 /** Globally distinctive service names derived from the root package name. */
-export function containerIdentity(packageName: string): ContainerIdentity {
+export function containerIdentity(
+  packageName: string,
+  repositoryUrl?: string
+): ContainerIdentity {
   const slash = packageName.lastIndexOf("/")
   const directoryName = slash < 0 ? packageName : packageName.slice(slash + 1)
   const stem = directoryName.endsWith("-service")
@@ -89,20 +140,22 @@ export function containerIdentity(packageName: string): ContainerIdentity {
   const serviceUrlName = `${directoryName
     .toUpperCase()
     .replaceAll("-", "_")}_URL`
+  const owner =
+    repositoryUrl === undefined ? "" : githubRepositoryOwner(repositoryUrl)
+  const tag = requiredReference("IMAGE_TAG")
   return {
     directoryName,
     serviceName,
     alias: `${serviceName}.local.multiplayerdb.dev`,
     workdir: `/mnt/${directoryName}`,
     yarnVolume: `${serviceName}-yarn`,
-    image: `${serviceName}:${requiredReference("IMAGE_TAG")}`,
+    owner,
+    image: publishedImage(owner, serviceName, tag),
     gatewayServiceName,
     gatewayAlias: `${gatewayServiceName}.local.multiplayerdb.dev`,
-    gatewayImage: `${gatewayServiceName}:${requiredReference("IMAGE_TAG")}`,
+    gatewayImage: publishedImage(owner, gatewayServiceName, tag),
     integrationServiceName,
-    integrationImage: `${integrationServiceName}:${requiredReference(
-      "IMAGE_TAG"
-    )}`,
+    integrationImage: publishedImage(owner, integrationServiceName, tag),
     integrationYarnVolume: `${integrationServiceName}-yarn`,
     serviceUrlName,
     serviceUrl: `https://${gatewayServiceName}.local.multiplayerdb.dev`,
@@ -174,7 +227,30 @@ const DOCKERIGNORE_LINES: readonly (readonly [string, string])[] = [
   ["client-dist", "client/dist"],
   ["git", ".git"],
   ["ssl", "ssl"],
+  ["yalc", ".yalc"],
+  ["yalc-store", ".yalc-store"],
+  ["yalc-lock", "yalc.lock"],
 ]
+
+function publishedImage(
+  owner: string,
+  serviceName: string,
+  tag: string
+): string {
+  if (owner.length === 0) return `${serviceName}:${tag}`
+  return `ghcr.io/${owner}/${serviceName}:${tag}`
+}
+
+/** Root and workspace manifests Yarn needs before it installs. */
+function manifestCopies(selection: Selection, facts: ProjectFacts): string {
+  const workspaces = new Set(facts.root.workspaces)
+  if (selection.runtimes.includes("client")) workspaces.add("client")
+  const lines = ["COPY package.json yarn.lock .yarnrc.yml ./"]
+  for (const workspace of [...workspaces].sort()) {
+    lines.push(`COPY ${workspace}/package.json ${workspace}/package.json`)
+  }
+  return `${lines.join("\n")}\n`
+}
 
 function line(id: string, value: string): Contribution {
   return {
@@ -186,12 +262,23 @@ function line(id: string, value: string): Contribution {
   }
 }
 
-function dockerfile(selection: Selection, identity: ContainerIdentity): string {
-  const clientCopy = selection.runtimes.includes("client")
-    ? `RUN mkdir -p client
-COPY client/package.json ./client/package.json
-`
-    : ""
+/**
+ * GraphQL owns the `.graphql?raw` loader. This command only imports it when
+ * that preset is selected.
+ */
+function startServerCommand(selection: Selection): string {
+  if (!selection.presets.includes("graphql")) {
+    return "node --watch server/index.ts"
+  }
+  return "node --watch --import ./gql/registerGraphqlRaw.mjs server/index.ts"
+}
+
+function dockerfile(
+  selection: Selection,
+  identity: ContainerIdentity,
+  facts: ProjectFacts
+): string {
+  const manifests = manifestCopies(selection, facts)
   return `##################################
 FROM node:24-bookworm-slim AS base
 
@@ -226,9 +313,7 @@ CMD ["sh", "-c", "yarn install --immutable && yarn start:server"]
 
 #########################
 FROM base AS dependencies
-COPY package.json yarn.lock .yarnrc.yml ./
-${clientCopy}COPY . .
-RUN gosu www-data yarn install --immutable
+${manifests}RUN gosu www-data yarn install --immutable
 
 ###########################
 FROM dependencies AS source
@@ -240,8 +325,7 @@ RUN yarn build
 ${integrationStage(selection)}
 #################
 FROM base AS prod
-COPY package.json yarn.lock .yarnrc.yml ./
-${clientCopy}RUN yarn workspaces focus --production
+${manifests}RUN yarn workspaces focus --production
 COPY --from=builder ${identity.workdir}/dist/server ./dist/server
 CMD ["yarn", "node", "dist/server/index.js"]
 `
