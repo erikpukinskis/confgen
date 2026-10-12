@@ -1,35 +1,82 @@
-import type { Contribution } from "./contributions.js"
+import type { Contribution, JsonValue } from "./contributions.js"
+import type { ProjectFacts } from "./facts.js"
 import type { RuntimeName } from "./runtimes.js"
 import type { Selection } from "./selection.js"
 
 /**
- * Package-manifest owner for lifecycle scripts. Aggregate commands are chosen
- * from the complete selection here so preset order cannot change them.
- * Contributions are recorded as `preset:yarn` because they live in the
- * Yarn-managed package manifest.
+ * Package-manifest owner for workspaces, exports, dependency publication
+ * metadata, and lifecycle scripts. Aggregate commands are chosen from the
+ * complete selection here so preset order cannot change them. Contributions
+ * are recorded as `preset:yarn` because they live in the Yarn-managed
+ * package manifests.
  */
 export function packageManifestContributions(
-  selection: Selection
+  selection: Selection,
+  facts: ProjectFacts
 ): readonly Contribution[] {
-  const scripts = [script("confgen", confgenCommand(selection))]
+  const produced: Contribution[] = [
+    script("confgen", confgenCommand(selection)),
+  ]
   const build = aggregateBuild(selection)
-  if (build !== undefined) scripts.push(script("build", build))
+  if (build !== undefined) produced.push(script("build", build))
   const fix = aggregateFix(selection)
-  if (fix !== undefined) scripts.push(script("fix", fix))
-  return scripts
+  if (fix !== undefined) produced.push(script("fix", fix))
+  const check = aggregateCheck(selection)
+  if (check !== undefined) produced.push(script("check", check))
+
+  if (
+    selection.presets.includes("vite") &&
+    selection.runtimes.includes("lib")
+  ) {
+    produced.push(
+      json("files", ["files"], ["dist"]),
+      json("exports", ["exports"], rootExports(selection))
+    )
+  }
+  if (selection.runtimes.includes("client")) {
+    produced.push(
+      json("workspaces", ["workspaces"], ["client"]),
+      ...clientManifest(facts)
+    )
+  }
+  if (publishable(selection)) {
+    produced.push(
+      dependency("yalc", "1.0.0-pre.53"),
+      script("inspect:pack", inspectCommand(selection, facts)),
+      script("yalc:publish", yalcPublishCommand(selection))
+    )
+  }
+  return produced
+}
+
+/** Client workspace package name derived from the root package name. */
+export function clientPackageName(rootName: string): string {
+  return `${rootName}-client`
 }
 
 const BUILD_SCRIPTS: Partial<Record<RuntimeName, string>> = {
   lib: "build:lib",
   server: "build:server",
+  client: "build:client",
 }
 
 function aggregateBuild(selection: Selection): string | undefined {
-  if (!selection.presets.includes("vite")) return undefined
-  const commands = selection.runtimes.flatMap((runtime) => {
-    const name = BUILD_SCRIPTS[runtime]
-    return name === undefined ? [] : [`yarn ${name}`]
-  })
+  const commands: string[] = []
+  if (selection.presets.includes("graphql"))
+    commands.push("yarn build:generate")
+  if (selection.presets.includes("vite")) {
+    for (const runtime of selection.runtimes) {
+      const name = BUILD_SCRIPTS[runtime]
+      if (name !== undefined) commands.push(`yarn ${name}`)
+      if (
+        runtime === "lib" &&
+        selection.presets.includes("graphql") &&
+        selection.runtimes.includes("lib")
+      ) {
+        commands.push("yarn build:test-kit")
+      }
+    }
+  }
   if (commands.length === 0) return undefined
   return commands.join(" && ")
 }
@@ -42,11 +89,106 @@ function aggregateFix(selection: Selection): string | undefined {
   return commands.join(" && ")
 }
 
+function aggregateCheck(selection: Selection): string | undefined {
+  const commands: string[] = []
+  if (selection.presets.includes("typescript"))
+    commands.push("yarn check:types")
+  if (selection.presets.includes("eslint")) commands.push("yarn check:lint")
+  if (selection.presets.includes("prettier")) commands.push("yarn check:format")
+  if (commands.length === 0) return undefined
+  return commands.join(" && ")
+}
+
 function confgenCommand(selection: Selection): string {
   const runtimes = selection.runtimes.map((runtime) => `#${runtime}`).join(",")
   const command = `confgen runtimes=${runtimes}`
   if (selection.presets.length === 0) return command
   return `${command} ${selection.presets.join(" ")}`
+}
+
+function rootExports(selection: Selection): JsonValue {
+  const value: { [key: string]: JsonValue } = {
+    ".": {
+      import: {
+        types: "./dist/lib/index.d.ts",
+        default: "./dist/lib/index.js",
+      },
+    },
+  }
+  if (selection.presets.includes("graphql")) {
+    value["./test"] = {
+      import: {
+        types: "./dist/test/index.d.ts",
+        default: "./dist/test/index.js",
+      },
+    }
+  }
+  return value
+}
+
+function clientManifest(facts: ProjectFacts): Contribution[] {
+  const name = clientPackageName(facts.root.name)
+  const produced: Contribution[] = [
+    clientJson("name", ["name"], name),
+    clientJson("type", ["type"], "module"),
+    clientJson("files", ["files"], ["dist"]),
+    clientJson("exports", ["exports"], {
+      ".": {
+        import: {
+          types: "./dist/client/index.d.ts",
+          default: "./dist/index.js",
+        },
+      },
+    }),
+    clientJson("engines", ["engines", "node"], "^24.0.0"),
+  ]
+  if (facts.root.version !== undefined) {
+    produced.push(clientJson("version", ["version"], facts.root.version))
+  }
+  if (facts.root.repository !== undefined) {
+    produced.push(
+      clientJson("repository", ["repository"], {
+        type: facts.root.repository.type,
+        url: facts.root.repository.url,
+      })
+    )
+  }
+  if (facts.root.registry !== undefined) {
+    produced.push(
+      clientJson("registry", ["publishConfig", "registry"], facts.root.registry)
+    )
+  }
+  return produced
+}
+
+function inspectCommand(selection: Selection, facts: ProjectFacts): string {
+  const commands: string[] = []
+  if (selection.runtimes.includes("lib")) commands.push("yarn pack --dry-run")
+  if (selection.runtimes.includes("client")) {
+    commands.push(
+      `yarn workspace ${clientPackageName(facts.root.name)} pack --dry-run`
+    )
+  }
+  return commands.join(" && ")
+}
+
+function yalcPublishCommand(selection: Selection): string {
+  const commands: string[] = []
+  if (selection.runtimes.includes("lib")) {
+    commands.push("yalc publish --store-folder .yalc-store .")
+  }
+  if (selection.runtimes.includes("client")) {
+    commands.push("yalc publish --store-folder .yalc-store client")
+  }
+  return commands.join(" && ")
+}
+
+function publishable(selection: Selection): boolean {
+  return (
+    selection.presets.includes("vite") &&
+    (selection.runtimes.includes("lib") ||
+      selection.runtimes.includes("client"))
+  )
 }
 
 function script(name: string, command: string): Contribution {
@@ -57,5 +199,51 @@ function script(name: string, command: string): Contribution {
     manifest: "package.json",
     name,
     command,
+  }
+}
+
+function json(
+  id: string,
+  address: readonly (string | number)[],
+  value: JsonValue
+): Contribution {
+  return {
+    id: `package-manifest:${id}`,
+    source: "preset:yarn",
+    kind: "structured",
+    path: "package.json",
+    format: "json",
+    address,
+    value,
+    update: "replace",
+  }
+}
+
+function clientJson(
+  id: string,
+  address: readonly (string | number)[],
+  value: JsonValue
+): Contribution {
+  return {
+    id: `package-manifest:client:${id}`,
+    source: "preset:yarn",
+    kind: "structured",
+    path: "client/package.json",
+    format: "json",
+    address,
+    value,
+    update: "replace",
+  }
+}
+
+function dependency(name: string, range: string): Contribution {
+  return {
+    id: `package-manifest:dependency:${name}`,
+    source: "preset:yarn",
+    kind: "dependency",
+    manifest: "package.json",
+    section: "devDependencies",
+    package: name,
+    range,
   }
 }

@@ -4,9 +4,10 @@ import type {
   ProduceContributions,
   StructuredAddress,
 } from "../contributions.js"
+import type { Selection } from "../selection.js"
 
 /** ESLint owns lint configuration for TypeScript sources. */
-export const contributions: ProduceContributions = () => [
+export const contributions: ProduceContributions = (selection) => [
   dependency("eslint", "8.57.1"),
   dependency("@typescript-eslint/eslint-plugin", "8.70.0"),
   dependency("@typescript-eslint/parser", "8.70.0"),
@@ -27,21 +28,10 @@ export const contributions: ProduceContributions = () => [
       "plugin:@typescript-eslint/recommended-requiring-type-checking",
     ]
   ),
-  setting(
-    "eslint:ignore",
-    ["ignorePatterns"],
-    [
-      "dist",
-      ".yarn",
-      ".pnp.cjs",
-      ".pnp.loader.mjs",
-      "coverage",
-      "vite.*.config.ts",
-    ]
-  ),
+  setting("eslint:ignore", ["ignorePatterns"], ignorePatterns(selection)),
   setting("eslint:parser-options", ["parserOptions"], {
     warnOnUnsupportedTypeScriptVersion: false,
-    project: ["./tsconfig.json"],
+    project: typecheckProjects(selection),
   }),
   setting("eslint:settings", ["settings"], {
     "import/external-module-folders": [".yarn", "node_modules"],
@@ -52,6 +42,27 @@ export const contributions: ProduceContributions = () => [
   }),
   setting("eslint:rules", ["rules"], rules, "merge"),
 ]
+
+function ignorePatterns(selection: Selection): string[] {
+  const patterns = [
+    "dist",
+    ".yarn",
+    ".pnp.cjs",
+    ".pnp.loader.mjs",
+    "coverage",
+    "vite.*.config.ts",
+  ]
+  if (selection.presets.includes("graphql")) patterns.push("gql/**/_generated")
+  return patterns
+}
+
+function typecheckProjects(selection: Selection): string[] {
+  const projects = ["./tsconfig.json"]
+  if (selection.runtimes.includes("client")) {
+    projects.push("./tsconfig.client.json")
+  }
+  return projects
+}
 
 const rules = {
   "@typescript-eslint/no-explicit-any": "error",

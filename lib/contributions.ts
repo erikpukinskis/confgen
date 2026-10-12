@@ -119,7 +119,7 @@ export function collectContributions(
   for (const preset of selection.presets) {
     collected.push(...presetContributions(preset, selection, facts))
   }
-  collected.push(...packageManifestContributions(selection))
+  collected.push(...packageManifestContributions(selection, facts))
   return normalizeContributions(collected)
 }
 

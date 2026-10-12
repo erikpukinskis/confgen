@@ -6,23 +6,29 @@ import type {
 } from "../contributions.js"
 
 /** Prettier owns formatting configuration. */
-export const contributions: ProduceContributions = () => [
-  dependency("prettier", "2.8.1"),
-  script("check:format", "prettier --check ."),
-  script("fix:format", "prettier --write ."),
-  setting("prettier:semi", ["semi"], false),
-  setting("prettier:tab-width", ["tabWidth"], 2),
-  setting("prettier:quote-props", ["quoteProps"], "preserve"),
-  ...IGNORE_LINES.map(
-    ([id, value]): Contribution => ({
-      id: `prettier:ignore:${id}`,
-      source: "preset:prettier",
-      kind: "line",
-      path: ".prettierignore",
-      value,
-    })
-  ),
-]
+export const contributions: ProduceContributions = (selection) => {
+  const ignores: (readonly [string, string])[] = [...IGNORE_LINES]
+  if (selection.presets.includes("graphql")) {
+    ignores.push(["generated-graphql", "gql/**/_generated"])
+  }
+  return [
+    dependency("prettier", "2.8.1"),
+    script("check:format", "prettier --check ."),
+    script("fix:format", "prettier --write ."),
+    setting("prettier:semi", ["semi"], false),
+    setting("prettier:tab-width", ["tabWidth"], 2),
+    setting("prettier:quote-props", ["quoteProps"], "preserve"),
+    ...ignores.map(
+      ([id, value]): Contribution => ({
+        id: `prettier:ignore:${id}`,
+        source: "preset:prettier",
+        kind: "line",
+        path: ".prettierignore",
+        value,
+      })
+    ),
+  ]
+}
 
 const IGNORE_LINES: readonly (readonly [string, string])[] = [
   ["dist", "dist"],

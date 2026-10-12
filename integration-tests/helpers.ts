@@ -63,6 +63,12 @@ export type SyntheticProject = {
     args: readonly string[],
     timeoutMs?: number
   ): Promise<CommandResult>
+  runAt(
+    directory: string,
+    executable: string,
+    args: readonly string[],
+    timeoutMs?: number
+  ): Promise<CommandResult>
   start(
     executable: string,
     args: readonly string[],
@@ -140,6 +146,15 @@ function openProject(directory: string): SyntheticProject {
     run(executable, args, timeoutMs = 120_000) {
       return runCollected({
         cwd: directory,
+        executable,
+        args,
+        timeoutMs,
+        children,
+      })
+    },
+    runAt(directoryOverride, executable, args, timeoutMs = 120_000) {
+      return runCollected({
+        cwd: directoryOverride,
         executable,
         args,
         timeoutMs,

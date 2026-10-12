@@ -52,7 +52,7 @@ const runtimeProducers: Record<RuntimeName, ProduceContributions> = {
   lib: libContributions,
   app: () => [],
   server: serverContributions,
-  client: () => [],
+  client: clientContributions,
   integration: () => [],
   gateway: () => [],
   docs: () => [],
@@ -101,6 +101,21 @@ function libContributions(): readonly Contribution[] {
       kind: "starter-file",
       path: "lib/index.ts",
       contents: LIB_INDEX,
+    },
+  ]
+}
+
+const CLIENT_INDEX = `export {}\n`
+
+function clientContributions(selection: Selection): readonly Contribution[] {
+  if (selection.presets.includes("graphql")) return []
+  return [
+    {
+      id: "runtime:client:index",
+      source: "runtime:client",
+      kind: "starter-file",
+      path: "client/index.ts",
+      contents: CLIENT_INDEX,
     },
   ]
 }

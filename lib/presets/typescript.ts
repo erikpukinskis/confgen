@@ -11,26 +11,67 @@ import type { Selection } from "../selection.js"
  * TypeScript owns TypeScript configuration for every selected runtime,
  * including project scope and package subpath imports.
  */
+const COMPILER_OPTIONS: readonly (readonly [string, JsonValue])[] = [
+  ["target", "ES2024"],
+  ["module", "NodeNext"],
+  ["moduleResolution", "NodeNext"],
+  ["strict", true],
+  ["noUncheckedIndexedAccess", true],
+  ["exactOptionalPropertyTypes", true],
+  ["verbatimModuleSyntax", true],
+  ["skipLibCheck", true],
+  ["types", ["node"]],
+  ["noEmit", true],
+]
+
 export const contributions: ProduceContributions = (selection) => [
   dependency("typescript", "5.9.3"),
   dependency("@types/node", "24.19.2"),
-  script("check:types", "tsc --noEmit -p tsconfig.json"),
-  option("target", "ES2024"),
-  option("module", "NodeNext"),
-  option("moduleResolution", "NodeNext"),
-  option("strict", true),
-  option("noUncheckedIndexedAccess", true),
-  option("exactOptionalPropertyTypes", true),
-  option("verbatimModuleSyntax", true),
-  option("skipLibCheck", true),
-  option("types", ["node"]),
-  option("noEmit", true),
+  script("check:types", typecheckCommand(selection)),
+  ...COMPILER_OPTIONS.map(([name, value]) => option(name, value)),
   tsconfig("typescript:include", ["include"], includePaths(selection), "merge"),
-  ...selection.runtimes.map((runtime) => importMap(runtime)),
+  ...importMaps(selection),
+  ...clientProject(selection),
 ]
 
+function typecheckCommand(selection: Selection): string {
+  const command = "tsc --noEmit -p tsconfig.json"
+  if (!selection.runtimes.includes("client")) return command
+  return `${command} && tsc --noEmit -p tsconfig.client.json`
+}
+
 function includePaths(selection: Selection): string[] {
-  return selection.runtimes.map((runtime) => `${runtimePath(runtime)}/**/*.ts`)
+  const paths = selection.runtimes.flatMap((runtime) => {
+    if (runtime === "client") return []
+    return [`${runtimePath(runtime)}/**/*.ts`]
+  })
+  if (selection.presets.includes("graphql")) {
+    paths.push("gql/*.ts", "gql/*.d.ts", "gql/_generated/**/*.ts")
+  }
+  return paths
+}
+
+function importMaps(selection: Selection): Contribution[] {
+  const maps = selection.runtimes.flatMap((runtime) => {
+    if (runtime === "client") return []
+    return [importMap(runtime)]
+  })
+  if (!selection.presets.includes("graphql")) return maps
+  maps.push(
+    json(
+      "typescript:import:gql",
+      ["imports", "#gql"],
+      "./gql/index.ts",
+      "replace"
+    ),
+    json(
+      "typescript:import:gql-star",
+      ["imports", "#gql/*"],
+      "./gql/*.ts",
+      "replace"
+    )
+  )
+  return maps
 }
 
 function importMap(runtime: RuntimeName): Contribution {
@@ -40,6 +81,33 @@ function importMap(runtime: RuntimeName): Contribution {
     `./${runtimePath(runtime)}/*.ts`,
     "replace"
   )
+}
+
+function clientProject(selection: Selection): Contribution[] {
+  if (!selection.runtimes.includes("client")) return []
+  const options = COMPILER_OPTIONS.map(([name, value]) =>
+    clientTsconfig(
+      `typescript:client:${name}`,
+      ["compilerOptions", name],
+      value,
+      "replace"
+    )
+  )
+  return [
+    ...options,
+    clientTsconfig(
+      "typescript:client:include",
+      ["include"],
+      clientInclude(selection),
+      "merge"
+    ),
+  ]
+}
+
+function clientInclude(selection: Selection): string[] {
+  const paths = ["client/**/*.ts"]
+  if (selection.presets.includes("graphql")) paths.push("gql/client/**/*.ts")
+  return paths
 }
 
 function option(name: string, value: JsonValue): Contribution {
@@ -62,6 +130,24 @@ function tsconfig(
     source: "preset:typescript",
     kind: "structured",
     path: "tsconfig.json",
+    format: "json",
+    address,
+    value,
+    update,
+  }
+}
+
+function clientTsconfig(
+  id: string,
+  address: StructuredAddress,
+  value: JsonValue,
+  update: "merge" | "replace"
+): Contribution {
+  return {
+    id,
+    source: "preset:typescript",
+    kind: "structured",
+    path: "tsconfig.client.json",
     format: "json",
     address,
     value,

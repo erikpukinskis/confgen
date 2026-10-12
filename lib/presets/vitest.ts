@@ -39,15 +39,14 @@ function testConfig(selection: Selection): Contribution {
   const patterns = selection.runtimes.map(
     (runtime) => `${runtimePath(runtime)}/**/*.test.ts`
   )
+  if (selection.presets.includes("graphql")) patterns.push("gql/**/*.test.ts")
   const items: ViteConfigItem[] = [
     {
       id: "property:test-include",
       source: "preset:vitest",
       kind: "property",
       path: ["test", "include"],
-      value: `[${patterns
-        .map((pattern) => JSON.stringify(pattern))
-        .join(", ")}]`,
+      value: includeValue(patterns),
     },
   ]
   return {
@@ -57,6 +56,17 @@ function testConfig(selection: Selection): Contribution {
     path: "vite.test.config.ts",
     items,
   }
+}
+
+function includeValue(patterns: readonly string[]): string {
+  const flat = `[${patterns
+    .map((pattern) => JSON.stringify(pattern))
+    .join(", ")}]`
+  if (`    include: ${flat},`.length <= 80) return flat
+  const entries = patterns
+    .map((pattern) => `      ${JSON.stringify(pattern)}`)
+    .join(",\n")
+  return `[\n${entries},\n    ]`
 }
 
 function dependency(name: string, range: string): Contribution {

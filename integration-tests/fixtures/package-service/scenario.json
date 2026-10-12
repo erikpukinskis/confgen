@@ -1,12 +1,13 @@
 {
   "args": [
-    "runtimes=#lib,#server",
+    "runtimes=#lib,#server,#client",
     "yarn",
     "typescript",
     "vite",
     "vitest",
     "eslint",
     "prettier",
-    "git"
+    "git",
+    "graphql"
   ]
 }

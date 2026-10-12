@@ -593,9 +593,8 @@ function generateConfig(items: readonly ViteConfigItem[]): string {
     return pluginCall(local, plugin.arguments)
   })
   const fields: string[] = []
-  if (plugins.length > 0) {
-    fields.push(`  plugins: [${plugins.join(", ")}],`)
-  }
+  const pluginsText = printPlugins(plugins)
+  if (pluginsText.length > 0) fields.push(pluginsText)
   const properties = printPropertyTree(
     propertyTree(items.filter(isPropertyItem)),
     1
@@ -690,6 +689,30 @@ function importLine(item: ImportItem): string {
 
 function pluginCall(local: string, args: readonly string[]): string {
   return `${local}(${args.join(", ")})`
+}
+
+/** Keeps plugin lists inside Prettier's 80-column width. */
+function printPlugins(calls: readonly string[]): string {
+  if (calls.length === 0) return ""
+  if (
+    calls.length === 1 &&
+    calls[0] !== undefined &&
+    !calls[0].includes("\n") &&
+    `  plugins: [${calls[0]}],`.length <= 80
+  ) {
+    return `  plugins: [${calls[0]}],`
+  }
+  const lines = calls.map((call) => {
+    if (!call.includes("\n") && `    ${call},`.length <= 80)
+      return `    ${call},`
+    const [first, ...rest] = call.split("\n")
+    const body = [`    ${first ?? ""}`, ...rest]
+    const last = body.length - 1
+    const ending = body[last]
+    if (ending !== undefined) body[last] = `${ending},`
+    return body.join("\n")
+  })
+  return `  plugins: [\n${lines.join("\n")}\n  ],`
 }
 
 function nestedProperty(

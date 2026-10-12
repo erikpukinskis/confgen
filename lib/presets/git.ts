@@ -1,8 +1,22 @@
 import type { Contribution, ProduceContributions } from "../contributions.js"
 
 /** Git owns repository exclusions. */
-export const contributions: ProduceContributions = () =>
-  IGNORE_LINES.map(
+export const contributions: ProduceContributions = (selection) => {
+  const lines: (readonly [string, string])[] = [...IGNORE_LINES]
+  if (
+    selection.runtimes.includes("lib") ||
+    selection.runtimes.includes("client")
+  ) {
+    lines.push(
+      ["yalc-store", ".yalc-store"],
+      ["yalc-dir", ".yalc"],
+      ["yalc-lock", "yalc.lock"]
+    )
+  }
+  if (selection.presets.includes("graphql")) {
+    lines.push(["generated-graphql", "gql/**/_generated"])
+  }
+  return lines.map(
     ([id, value]): Contribution => ({
       id: `git:ignore:${id}`,
       source: "preset:git",
@@ -11,6 +25,7 @@ export const contributions: ProduceContributions = () =>
       value,
     })
   )
+}
 
 const IGNORE_LINES: readonly (readonly [string, string])[] = [
   ["01", "yarn-error.log"],
