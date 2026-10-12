@@ -41,12 +41,19 @@ test("container contributions describe the ordinary service image", () => {
   expect(dockerfile).toContain('CMD ["yarn", "node", "dist/server/index.js"]')
   expect(dockerfile).toContain("EXPOSE 7001")
   expect(dockerfile).toContain("COPY client/package.json ./client/package.json")
-  expect(dockerfile).toContain("COPY .yal[c] ./.yalc")
+  expect(dockerfile).not.toContain(".yalc")
   expect(dockerfile).not.toContain("integration-test-host")
   expect(text(contributions, "scripts/docker-entrypoint-node.sh")).toContain(
     "update-ca-certificates"
   )
-  expect(text(contributions, ".dockerignore")).toContain(".yarn")
+  expect(
+    contributions.some(
+      (contribution) =>
+        contribution.kind === "line" &&
+        contribution.path === ".dockerignore" &&
+        contribution.value === ".yarn"
+    )
+  ).toBe(true)
   expect(byId(contributions, "docker:script:dev-cluster")).toMatchObject({
     command: "dev-cluster",
   })
@@ -133,6 +140,32 @@ test("compose layers merge and keep unrelated services", () => {
     "package-api-server-yarn:/mnt/package-service/.yarn",
   ])
 
+  const withMount = reconcile({
+    selection,
+    contributions,
+    prior: undefined,
+    files: new Map([
+      ["package.json", '{ "name": "@example/package-service" }\n'],
+      [
+        "compose.base.yaml",
+        "services:\n  package-api-server:\n    volumes:\n      - git-repos:/srv/git\n",
+      ],
+    ]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  const mounted = objectField(
+    objectField(
+      yamlObject(written(withMount.files, "compose.base.yaml")),
+      "services"
+    ),
+    "package-api-server"
+  )
+  expect(mounted.volumes).toEqual([
+    "git-repos:/srv/git",
+    "${SSL_PATH:?}:/ssl:ro",
+  ])
+
   const conflict = () =>
     reconcile({
       selection,
@@ -146,6 +179,25 @@ test("compose layers merge and keep unrelated services", () => {
       pnpPresent: true,
     })
   expect(conflict).toThrow(ConfgenError)
+})
+
+test("dockerignore keeps application lines", () => {
+  const contributions = collectContributions(selection, facts)
+  const created = reconcile({
+    selection,
+    contributions,
+    prior: undefined,
+    files: new Map([
+      ["package.json", '{ "name": "@example/package-service" }\n'],
+      [".dockerignore", "repos\n"],
+    ]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  const ignore = written(created.files, ".dockerignore")
+  expect(ignore).toContain("repos")
+  expect(ignore).toContain(".yarn")
+  expect(ignore).not.toContain(".yalc")
 })
 
 test("environment contracts accept origins and reject paths", () => {
@@ -216,7 +268,6 @@ test("deselecting docker removes its container assets", () => {
     expect.arrayContaining([
       { type: "remove", path: "Dockerfile" },
       { type: "remove", path: "scripts/docker-entrypoint-node.sh" },
-      { type: "remove", path: ".dockerignore" },
     ])
   )
   const base = yamlObject(written(removed.files, "compose.base.yaml"))

@@ -27,7 +27,7 @@ test("the baseline selection reconciles to a stable file set", () => {
   const contributions = collectContributions(selection, facts)
   expect(byId(contributions, "package-manifest:build")).toMatchObject({
     kind: "package-script",
-    command: "yarn build:lib && yarn build:server",
+    command: "rm -rf dist && yarn build:lib && yarn build:server",
   })
   expect(byId(contributions, "package-manifest:confgen")).toMatchObject({
     command:

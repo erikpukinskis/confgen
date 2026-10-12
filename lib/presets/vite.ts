@@ -102,7 +102,15 @@ function testKitConfig(facts: ProjectFacts): Contribution {
     property(
       "build-external",
       ["build", "rolldownOptions", "external"],
-      '["graphql"]'
+      `(id: string) =>
+        !(
+          id.startsWith(".") ||
+          id.startsWith("#") ||
+          id.startsWith("\\0") ||
+          (id.startsWith("/") &&
+            !id.includes("/.yarn/") &&
+            !id.includes("/node_modules/"))
+        )`
     ),
   ])
 }

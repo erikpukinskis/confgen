@@ -32,7 +32,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
     script("start:server", "node --watch server/index.ts"),
     wholeFile("Dockerfile", dockerfile(selection, identity)),
     wholeFile("scripts/docker-entrypoint-node.sh", ENTRYPOINT),
-    wholeFile(".dockerignore", DOCKERIGNORE),
+    ...DOCKERIGNORE_LINES.map(([id, value]) => line(id, value)),
     ...baseCompose(selection, identity),
     ...localCompose(selection, identity),
   ]
@@ -166,14 +166,25 @@ fi
 exec gosu www-data "$@"
 `
 
-const DOCKERIGNORE = `node_modules
-.yarn
-.pnp.*
-dist
-client/dist
-.git
-ssl
-`
+const DOCKERIGNORE_LINES: readonly (readonly [string, string])[] = [
+  ["node-modules", "node_modules"],
+  ["yarn", ".yarn"],
+  ["pnp", ".pnp.*"],
+  ["dist", "dist"],
+  ["client-dist", "client/dist"],
+  ["git", ".git"],
+  ["ssl", "ssl"],
+]
+
+function line(id: string, value: string): Contribution {
+  return {
+    id: `docker:ignore:${id}`,
+    source: "preset:docker",
+    kind: "line",
+    path: ".dockerignore",
+    value,
+  }
+}
 
 function dockerfile(selection: Selection, identity: ContainerIdentity): string {
   const clientCopy = selection.runtimes.includes("client")
@@ -216,8 +227,8 @@ CMD ["sh", "-c", "yarn install --immutable && yarn start:server"]
 #########################
 FROM base AS dependencies
 COPY package.json yarn.lock .yarnrc.yml ./
-COPY .yal[c] ./.yalc
-${clientCopy}RUN gosu www-data yarn install --immutable
+${clientCopy}COPY . .
+RUN gosu www-data yarn install --immutable
 
 ###########################
 FROM dependencies AS source
@@ -230,7 +241,6 @@ ${integrationStage(selection)}
 #################
 FROM base AS prod
 COPY package.json yarn.lock .yarnrc.yml ./
-COPY .yal[c] ./.yalc
 ${clientCopy}RUN yarn workspaces focus --production
 COPY --from=builder ${identity.workdir}/dist/server ./dist/server
 CMD ["yarn", "node", "dist/server/index.js"]
@@ -412,9 +422,9 @@ function integrationLocal(
       `.:${identity.workdir}`,
       `${identity.integrationYarnVolume}:${identity.workdir}/.yarn`,
     ],
-    entrypoint: ["sh"],
+    entrypoint: "sh",
     user: "root",
-    command: ["scripts/integration-local.sh"],
+    command: "scripts/integration-local.sh",
   }
   return [
     yaml(
@@ -501,7 +511,7 @@ exec "$@"
 const GATEWAY_DOCKERFILE = `FROM httpd:2.4
 
 RUN apt-get update \\
-  && apt-get install -y ca-certificates curl \\
+  && apt-get install -y ca-certificates curl git \\
   && rm -rf /var/lib/apt/lists/*
 
 COPY --chown=root:www-data gateway/public/ /srv/homepage/

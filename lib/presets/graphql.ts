@@ -36,7 +36,7 @@ export const contributions: ProduceContributions = (selection) => {
       "7.1.1"
     ),
     script("build:generate", "graphql-codegen"),
-    wholeFile("codegen.yml", codegenYaml(selection)),
+    starter("codegen", "codegen.yml", codegenYaml(selection)),
     starter("schema", "gql/schema.graphql", SCHEMA),
     starter("resolvers", "gql/resolvers.ts", RESOLVERS),
     starter("graphql-module", "gql/index.ts", GRAPHQL_MODULE),
@@ -174,16 +174,6 @@ function codegenYaml(selection: Selection): string {
     )
   }
   return `${lines.join("\n")}\n`
-}
-
-function wholeFile(path: string, contents: string): Contribution {
-  return {
-    id: `graphql:file:${path}`,
-    source: "preset:graphql",
-    kind: "whole-file",
-    path,
-    contents,
-  }
 }
 
 function starter(id: string, path: string, contents: string): Contribution {

@@ -5,7 +5,7 @@ import {
 } from "./contributions.js"
 import { ConfgenError } from "./errors.js"
 import { readProjectFacts, type ProjectFacts } from "./facts.js"
-import { readLock, writeLockFile } from "./lock.js"
+import { readLock, writeLockFile, type LockData } from "./lock.js"
 import { reconcile, type ChangeSet, type FileChange } from "./reconcile.js"
 import { parseSelection, type Selection } from "./selection.js"
 import { isMissingFile, type System } from "./system.js"
@@ -66,7 +66,7 @@ export async function compileCollected(input: {
       throw new ConfgenError([`yarn install failed: ${detail}`])
     }
   }
-  await verifyApplied(input.system, changeSet)
+  await verifyApplied(input.system, changeSet, prior)
   await writeLockFile(input.system, changeSet.lock)
   return {
     selection: input.selection,
@@ -114,7 +114,8 @@ async function applyChanges(
 
 async function verifyApplied(
   system: System,
-  changeSet: ChangeSet
+  changeSet: ChangeSet,
+  prior: LockData | undefined
 ): Promise<void> {
   const problems: string[] = []
   for (const change of changeSet.files) {
@@ -139,9 +140,13 @@ async function verifyApplied(
   for (const contribution of changeSet.desiredContributions) {
     if (contribution.kind !== "starter-file") continue
     const text = await readOptional(system, contribution.path)
-    if (text === undefined) {
-      problems.push(`${contribution.path}: starter file is missing`)
-    }
+    if (text !== undefined) continue
+    const delivered = prior?.contributions.some(
+      (entry) =>
+        entry.strategy === "starter-file" && entry.id === contribution.id
+    )
+    if (delivered) continue
+    problems.push(`${contribution.path}: starter file is missing`)
   }
   if (problems.length > 0) throw new ConfgenError(problems)
 }

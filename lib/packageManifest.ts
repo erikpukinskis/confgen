@@ -30,7 +30,7 @@ export function packageManifestContributions(
     selection.runtimes.includes("lib")
   ) {
     produced.push(
-      json("files", ["files"], ["dist"]),
+      json("files", ["files"], ["dist"], "merge"),
       json("exports", ["exports"], rootExports(selection))
     )
   }
@@ -64,6 +64,8 @@ const BUILD_SCRIPTS: Partial<Record<RuntimeName, string>> = {
 
 function aggregateBuild(selection: Selection): string | undefined {
   const commands: string[] = []
+  const clean = cleanOutput(selection)
+  if (clean.length > 0) commands.push(`rm -rf ${clean.join(" ")}`)
   if (selection.presets.includes("graphql"))
     commands.push("yarn build:generate")
   if (selection.presets.includes("vite")) {
@@ -81,6 +83,20 @@ function aggregateBuild(selection: Selection): string | undefined {
   }
   if (commands.length === 0) return undefined
   return commands.join(" && ")
+}
+
+function cleanOutput(selection: Selection): string[] {
+  if (!selection.presets.includes("vite")) return []
+  const paths: string[] = []
+  if (
+    selection.runtimes.includes("lib") ||
+    selection.runtimes.includes("server") ||
+    selection.runtimes.includes("client")
+  ) {
+    paths.push("dist")
+  }
+  if (selection.runtimes.includes("client")) paths.push("client/dist")
+  return paths
 }
 
 function aggregateFix(selection: Selection): string | undefined {
@@ -133,7 +149,7 @@ function clientManifest(facts: ProjectFacts): Contribution[] {
   const produced: Contribution[] = [
     clientJson("name", ["name"], name),
     clientJson("type", ["type"], "module"),
-    clientJson("files", ["files"], ["dist"]),
+    clientJson("files", ["files"], ["dist"], "merge"),
     clientJson("exports", ["exports"], {
       ".": {
         import: {
@@ -243,7 +259,8 @@ function script(name: string, command: string): Contribution {
 function json(
   id: string,
   address: readonly (string | number)[],
-  value: JsonValue
+  value: JsonValue,
+  update: "merge" | "replace" = "replace"
 ): Contribution {
   return {
     id: `package-manifest:${id}`,
@@ -253,14 +270,15 @@ function json(
     format: "json",
     address,
     value,
-    update: "replace",
+    update,
   }
 }
 
 function clientJson(
   id: string,
   address: readonly (string | number)[],
-  value: JsonValue
+  value: JsonValue,
+  update: "merge" | "replace" = "replace"
 ): Contribution {
   return {
     id: `package-manifest:client:${id}`,
@@ -270,7 +288,7 @@ function clientJson(
     format: "json",
     address,
     value,
-    update: "replace",
+    update,
   }
 }
 

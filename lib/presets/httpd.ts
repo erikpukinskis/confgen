@@ -12,16 +12,16 @@ export const contributions: ProduceContributions = (selection, facts) => {
   assertHttpsOrigin(identity.serviceUrlName, identity.serviceUrl)
   return [
     {
-      id: "httpd:file:gateway/httpd.conf",
+      id: "httpd:starter:gateway/httpd.conf",
       source: "preset:httpd",
-      kind: "whole-file",
+      kind: "starter-file",
       path: "gateway/httpd.conf",
       contents: httpdConf(identity),
     },
     {
-      id: "httpd:file:gateway/public/index.html",
+      id: "httpd:starter:gateway/public/index.html",
       source: "preset:httpd",
-      kind: "whole-file",
+      kind: "starter-file",
       path: "gateway/public/index.html",
       contents: INDEX_HTML,
     },

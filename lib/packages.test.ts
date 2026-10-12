@@ -33,7 +33,7 @@ test("the package selection publishes a root and client workspace", () => {
   const contributions = collectContributions(selection, facts)
   expect(byId(contributions, "package-manifest:build")).toMatchObject({
     command:
-      "yarn build:generate && yarn build:lib && yarn build:test-kit && yarn build:server && yarn build:client",
+      "rm -rf dist client/dist && yarn build:generate && yarn build:lib && yarn build:test-kit && yarn build:server && yarn build:client",
   })
   expect(byId(contributions, "package-manifest:check")).toMatchObject({
     command: "yarn check:types && yarn check:lint && yarn check:format",
@@ -102,6 +102,10 @@ test("the package selection publishes a root and client workspace", () => {
   expect(libVite).not.toContain('"cjs"')
   expect(libVite).not.toContain('"umd"')
   expect(files.get("vite.client.config.ts")).not.toContain("alias")
+  const testKitVite = files.get("vite.test-kit.config.ts")
+  expect(testKitVite).toContain('id.startsWith("#")')
+  expect(testKitVite).toContain('!id.includes("/node_modules/")')
+  expect(testKitVite).not.toContain('["graphql"]')
   expect(files.has("gql/schema.graphql")).toBe(true)
   expect(files.has("gql/_generated/resolvers.ts")).toBe(false)
 
@@ -117,6 +121,58 @@ test("the package selection publishes a root and client workspace", () => {
   })
   expect(again.files).toEqual([])
   expect(again.runYarnInstall).toBe(false)
+})
+
+test("published file lists keep application entries", () => {
+  const contributions = collectContributions(selection, facts)
+  const created = reconcile({
+    selection,
+    contributions,
+    prior: undefined,
+    files: new Map([
+      [
+        "package.json",
+        '{ "name": "@example/package-service", "version": "0.1.0", "files": ["dist", "compose.base.yaml"] }\n',
+      ],
+      [
+        "client/package.json",
+        '{ "name": "@example/package-service-client", "files": ["dist", "README.md"] }\n',
+      ],
+    ]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  const files = writtenFiles(created.files)
+  expect(parseObject(files.get("package.json")).files).toEqual([
+    "dist",
+    "compose.base.yaml",
+  ])
+  expect(parseObject(files.get("client/package.json")).files).toEqual([
+    "dist",
+    "README.md",
+  ])
+})
+
+test("graphql codegen keeps an existing application file", () => {
+  const contributions = collectContributions(selection, facts)
+  const current = "schema: gql/schema.graphql\nscalars: Json\n"
+  const created = reconcile({
+    selection,
+    contributions,
+    prior: undefined,
+    files: new Map([
+      [
+        "package.json",
+        '{ "name": "@example/package-service", "version": "0.1.0" }\n',
+      ],
+      ["codegen.yml", current],
+    ]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(created.files.find((change) => change.path === "codegen.yml")).toBe(
+    undefined
+  )
 })
 
 test("graphql without a client workspace stays one server pipeline", () => {

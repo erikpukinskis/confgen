@@ -41,6 +41,7 @@ test("the gateway proxies health and API and the integration host stays local", 
     "Package service"
   )
   expect(text(contributions, "gateway/Dockerfile")).toContain("FROM httpd:2.4")
+  expect(text(contributions, "gateway/Dockerfile")).toContain("git")
   expect(text(contributions, "Dockerfile")).toContain(
     "FROM source AS integration-test-host"
   )
@@ -68,8 +69,8 @@ test("the gateway proxies health and API and the integration host stays local", 
     "package-service-integration-test-host"
   )
   expect(objectField(host, "build").target).toBe("integration-test-host")
-  expect(host.entrypoint).toEqual(["sh"])
-  expect(host.command).toEqual(["scripts/integration-local.sh"])
+  expect(host.entrypoint).toBe("sh")
+  expect(host.command).toBe("scripts/integration-local.sh")
   const ci = written(created.files, "scripts/test-integration-ci.sh")
   expect(ci).toContain("docker compose -f compose.base.yaml")
   expect(ci).toContain("up -d --wait --wait-timeout 120")
@@ -103,6 +104,29 @@ test("the gateway proxies health and API and the integration host stays local", 
   if (server?.kind !== "starter-file") throw new Error("missing server starter")
   expect(server.contents).toContain('"0.0.0.0"')
   expect(server.contents).toContain('path === "/api"')
+})
+
+test("an existing gateway config stays in place", () => {
+  const contributions = collectContributions(selection, facts)
+  const current = "ServerName package-service.local.multiplayerdb.dev\n"
+  const created = reconcile({
+    selection,
+    contributions,
+    prior: undefined,
+    files: new Map([
+      ["package.json", '{ "name": "@example/package-service" }\n'],
+      ["gateway/httpd.conf", current],
+      ["gateway/public/index.html", "<p>Git service</p>\n"],
+    ]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(
+    created.files.find((change) => change.path === "gateway/httpd.conf")
+  ).toBeUndefined()
+  expect(
+    created.files.find((change) => change.path === "gateway/public/index.html")
+  ).toBeUndefined()
 })
 
 test("integration starters stay application-owned and deselection removes the runtime", () => {
@@ -155,14 +179,18 @@ test("integration starters stay application-owned and deselection removes the ru
   })
   expect(removed.files).toEqual(
     expect.arrayContaining([
-      { type: "remove", path: "gateway/httpd.conf" },
-      { type: "remove", path: "gateway/public/index.html" },
       { type: "remove", path: "gateway/Dockerfile" },
       { type: "remove", path: "scripts/docker-entrypoint-httpd.sh" },
       { type: "remove", path: "scripts/test-integration-ci.sh" },
       { type: "remove", path: "scripts/integration-local.sh" },
     ])
   )
+  expect(
+    removed.files.find((change) => change.path === "gateway/httpd.conf")
+  ).toBeUndefined()
+  expect(
+    removed.files.find((change) => change.path === "gateway/public/index.html")
+  ).toBeUndefined()
   expect(
     removed.files.find(
       (change) =>
@@ -190,9 +218,14 @@ test("httpd without a gateway runtime writes nothing", () => {
 function text(contributions: readonly Contribution[], path: string): string {
   const found = contributions.find(
     (contribution) =>
-      contribution.kind === "whole-file" && contribution.path === path
+      (contribution.kind === "whole-file" ||
+        contribution.kind === "starter-file") &&
+      contribution.path === path
   )
-  if (found === undefined || found.kind !== "whole-file") {
+  if (
+    found === undefined ||
+    (found.kind !== "whole-file" && found.kind !== "starter-file")
+  ) {
     throw new Error(`missing file ${path}`)
   }
   return found.contents

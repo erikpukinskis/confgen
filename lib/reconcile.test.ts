@@ -226,6 +226,22 @@ test("refuses to delete a changed whole file and never deletes a starter", () =>
   expect(unchanged.lock.contributions).toEqual([])
 })
 
+test("does not recreate a delivered starter after it is deleted", () => {
+  const delivered = lockOf([starter("lib/index.ts", "export {}\n")])
+  const result = reconcile({
+    selection,
+    contributions: [starter("lib/index.ts", "export {}\n")],
+    prior: delivered,
+    files: new Map(),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(result.files).toEqual([])
+  expect(
+    result.lock.contributions.find((entry) => entry.strategy === "starter-file")
+  ).toMatchObject({ path: "lib/index.ts" })
+})
+
 test("adopts an existing project without a lock and does not invent removals", () => {
   const result = reconcile({
     selection,

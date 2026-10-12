@@ -120,6 +120,12 @@ function reconcilePath(input: {
   }
   if (input.desired.starter !== undefined) {
     if (input.current !== undefined) return { changes: [], problems: [] }
+    const delivered = input.priorEntries.some(
+      (entry) =>
+        entry.strategy === "starter-file" &&
+        entry.id === input.desired.starter?.id
+    )
+    if (delivered) return { changes: [], problems: [] }
     return {
       changes: [
         {
@@ -741,6 +747,20 @@ function yamlWriteProblem(
         if (problem !== undefined) return problem
       }
       return undefined
+    }
+  }
+  if (update === "merge" && Array.isArray(value)) {
+    const existing = unknownValue(document.getIn([...address]))
+    if (isSeq(existing)) {
+      const current = jsonUnknown(existing.toJS(document))
+      if (Array.isArray(current)) {
+        const merged = current.slice()
+        for (const entry of value) {
+          if (!merged.some((item) => jsonEqual(item, entry))) merged.push(entry)
+        }
+        document.setIn([...address], jsonPlain(merged))
+        return undefined
+      }
     }
   }
   document.setIn([...address], jsonPlain(value))
