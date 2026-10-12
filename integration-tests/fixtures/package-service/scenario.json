@@ -10,6 +10,8 @@
     "git",
     "graphql",
     "docker",
-    "httpd"
+    "httpd",
+    "githubActions",
+    "githubPackage"
   ]
 }

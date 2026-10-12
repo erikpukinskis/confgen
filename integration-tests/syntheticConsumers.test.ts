@@ -6,11 +6,13 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises"
+import { createServer } from "node:http"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   createSyntheticProject,
+  packBumpNPub,
   packConfgen,
   packDevCluster,
   readScenario,
@@ -43,6 +45,7 @@ test(
     if (bundle === undefined) throw new Error("Confgen was not packed")
     const args = await readScenario(fixture)
     const devCluster = await packDevCluster()
+    const bumpNPub = await packBumpNPub()
     const project = await createSyntheticProject({
       tarball: bundle.tarball,
       fixture,
@@ -60,7 +63,8 @@ test(
       DEV_CLUSTER_HTTPS_PORT: "18443",
     }
     try {
-      await pinDevCluster(project, devCluster.tarball)
+      await pinTool(project, devCluster.tarball, "dev-cluster")
+      await pinTool(project, bumpNPub.tarball, "bump-n-pub")
       await project.run("yarn", ["confgen", ...args], 180_000)
       await project.run("yarn", ["install"], 180_000)
       await expectRuntimeScopes(project)
@@ -77,6 +81,7 @@ test(
       await project.run("yarn", ["check:format"], 180_000)
       await project.run("yarn", ["test"], 180_000)
       await expectPublishedPackages(project)
+      await proveReleaseCommands(project)
       await project.run("yarn", ["yalc:publish"], 180_000)
       await consumePublishedPackages(project, consumerDirectory)
       await project.run("git", ["init"])
@@ -92,6 +97,13 @@ test(
         "-m",
         "package service",
       ])
+      const bumped = await project.run("yarn", [
+        "bump-n-pub",
+        "patch",
+        "--bump-only",
+        "--dry-run",
+      ])
+      expect(bumped.stdout).toContain("Version would be 0.1.1")
       await project.run("yarn", ["confgen"], 180_000)
       const status = await project.run("git", ["status", "--porcelain"])
       expect(status.stdout).toBe("")
@@ -100,16 +112,18 @@ test(
       await rm(consumerDirectory, { recursive: true, force: true })
       await rm(sslDirectory, { recursive: true, force: true })
       await devCluster.cleanup()
+      await bumpNPub.cleanup()
       await project.cleanup()
     }
   }
 )
 
-async function pinDevCluster(
+async function pinTool(
   project: SyntheticProject,
-  tarball: string
+  tarball: string,
+  name: string
 ): Promise<void> {
-  const destination = join(project.directory, ".yalc", "dev-cluster")
+  const destination = join(project.directory, ".yalc", name)
   await mkdir(destination, { recursive: true })
   await project.run("tar", [
     "-xzf",
@@ -126,8 +140,63 @@ async function pinDevCluster(
     ...value,
     resolutions: {
       ...current,
-      "dev-cluster": "file:.yalc/dev-cluster",
+      [name]: `file:.yalc/${name}`,
     },
+  }
+  await writeFile(path, `${JSON.stringify(next, null, 2)}\n`)
+}
+
+async function proveReleaseCommands(project: SyntheticProject): Promise<void> {
+  await project.run("yarn", ["bump-n-pub", "check-registries"], 60_000)
+  await project.run("yarn", ["bump-n-pub", "check-pack"], 120_000)
+  const rootPath = join(project.directory, "package.json")
+  const clientPath = join(project.directory, "client/package.json")
+  const rootOriginal = await readFile(rootPath, "utf8")
+  const clientOriginal = await readFile(clientPath, "utf8")
+  const server = createServer((request, response) => {
+    void request
+    response.writeHead(404, { "content-type": "application/json" })
+    response.end(JSON.stringify({ error: "Not found" }))
+  })
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject)
+    server.listen(0, "127.0.0.1", () => resolve())
+  })
+  try {
+    const address = server.address()
+    if (address === null || typeof address === "string") {
+      throw new Error("missing registry port")
+    }
+    const registry = `http://127.0.0.1:${address.port}`
+    await writeRegistry(rootPath, registry)
+    await writeRegistry(clientPath, registry)
+    const prepared = await project.run(
+      "yarn",
+      ["bump-n-pub", "prepare"],
+      60_000,
+      {
+        GITHUB_REF_NAME: "main",
+        PUBLISHING_BRANCHES: '["main"]',
+      }
+    )
+    expect(prepared.stdout).toContain("package_version=0.1.0")
+    expect(prepared.stdout).toContain("should_publish=true")
+  } finally {
+    await writeFile(rootPath, rootOriginal)
+    await writeFile(clientPath, clientOriginal)
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error === undefined ? resolve() : reject(error)))
+    })
+  }
+}
+
+async function writeRegistry(path: string, registry: string): Promise<void> {
+  const value: unknown = JSON.parse(await readFile(path, "utf8"))
+  if (!isRecord(value)) throw new Error(`${path} must be an object`)
+  const publishConfig = isRecord(value.publishConfig) ? value.publishConfig : {}
+  const next = {
+    ...value,
+    publishConfig: { ...publishConfig, registry },
   }
   await writeFile(path, `${JSON.stringify(next, null, 2)}\n`)
 }

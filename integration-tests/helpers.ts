@@ -9,6 +9,9 @@ const confgenRoot = fileURLToPath(new URL("..", import.meta.url))
 const devClusterRoot = fileURLToPath(
   new URL("../../dev-cluster/", import.meta.url)
 )
+const bumpNPubRoot = fileURLToPath(
+  new URL("../../bump-n-pub/", import.meta.url)
+)
 
 const scenarioSchema = z.object({
   args: z.array(z.string().min(1)).min(1),
@@ -87,15 +90,38 @@ export type SyntheticProject = {
 
 /** Builds and packs the local dev-cluster revision for the harness only. */
 export async function packDevCluster(): Promise<PackedConfgen> {
-  const directory = await mkdtemp(join(tmpdir(), "dev-cluster-pack-"))
-  const tarball = join(directory, "dev-cluster.tgz")
-  await runCollected({
+  return packTool({
     cwd: devClusterRoot,
+    directoryPrefix: "dev-cluster-pack-",
+    tarballName: "dev-cluster.tgz",
+    extraEnv: { DEV_CLUSTER_PACKING: "1" },
+  })
+}
+
+/** Builds and packs the local bump-n-pub revision for the harness only. */
+export async function packBumpNPub(): Promise<PackedConfgen> {
+  return packTool({
+    cwd: bumpNPubRoot,
+    directoryPrefix: "bump-n-pub-pack-",
+    tarballName: "bump-n-pub.tgz",
+  })
+}
+
+async function packTool(input: {
+  cwd: string
+  directoryPrefix: string
+  tarballName: string
+  extraEnv?: Readonly<Record<string, string>>
+}): Promise<PackedConfgen> {
+  const directory = await mkdtemp(join(tmpdir(), input.directoryPrefix))
+  const tarball = join(directory, input.tarballName)
+  await runCollected({
+    cwd: input.cwd,
     executable: "yarn",
     args: ["pack", "--out", tarball],
     timeoutMs: 180_000,
     children: [],
-    extraEnv: { DEV_CLUSTER_PACKING: "1" },
+    ...(input.extraEnv === undefined ? {} : { extraEnv: input.extraEnv }),
   })
   return {
     tarball,
