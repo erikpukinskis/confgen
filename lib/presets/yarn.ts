@@ -30,6 +30,8 @@ export const contributions: ProduceContributions = (
       ? [json("yarn:module-type", ["type"], "module")]
       : []),
     json("yarn:engines-node", ["engines", "node"], "^24.0.0"),
+    vscodeSetting("typescript.tsdk", ".yarn/sdks/typescript/lib"),
+    vscodeSetting("typescript.enablePromptUseWorkspaceTsdk", true),
     ...packages.map((name) =>
       json(`yarn:unplugged:${name}`, ["dependenciesMeta", name], {
         unplugged: true,
@@ -73,6 +75,19 @@ function json(
     path: "package.json",
     format: "json",
     address,
+    value,
+    update: "replace",
+  }
+}
+
+function vscodeSetting(name: string, value: JsonValue): Contribution {
+  return {
+    id: `yarn:vscode:${name}`,
+    source: "preset:yarn",
+    kind: "structured",
+    path: ".vscode/settings.json",
+    format: "json",
+    address: [name],
     value,
     update: "replace",
   }

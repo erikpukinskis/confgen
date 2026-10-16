@@ -154,7 +154,9 @@ test("keeps publication in one artifacts job and preserves command order", () =>
   expect(commands).toContain("yarn bump-n-pub check-registries")
   expect(commands).toContain("yarn bump-n-pub check-pack")
   expect(commands).toContain("gh release create")
-  expect(commands).toContain("source.replaceAll(token, imageTag)")
+  expect(commands).toContain(
+    'sed -i "s/[$]{IMAGE_TAG:?}/$IMAGE_TAG/g" compose.base.yaml'
+  )
   expect(
     record(
       stepWithName(packageJob, "Push package-api-server image to registry").with

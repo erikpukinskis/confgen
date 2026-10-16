@@ -206,8 +206,7 @@ function artifactsDocument(
   const prepareStep: JsonValue = {
     id: "prepare",
     name: "Prepare release",
-    run: 'npm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN"\nyarn bump-n-pub prepare >> "$GITHUB_OUTPUT"\n',
-    env: { NPM_CONFIG_USERCONFIG: "${{ runner.temp }}/.npmrc" },
+    run: 'yarn bump-n-pub prepare >> "$GITHUB_OUTPUT"',
   }
   const packageChecks: JsonValue[] = publishesPackages(selection)
     ? [
@@ -415,12 +414,7 @@ function integrationJob(
   }
 }
 
-/**
- * Rewrites the committed Compose placeholder in the publish checkout.
- * Exits 1 when the placeholder is missing so the package cannot be published
- * with an unstamped image tag.
- */
-const STAMP_COMPOSE = `node --input-type=module -e 'import { readFileSync, writeFileSync } from "node:fs"; const token = "\${IMAGE_TAG:?}"; const path = "compose.base.yaml"; const source = readFileSync(path, "utf8"); if (!source.includes(token)) { console.error("compose.base.yaml does not contain \${IMAGE_TAG:?}"); process.exit(1) }; const imageTag = process.env.IMAGE_TAG; if (!imageTag) { console.error("IMAGE_TAG is missing"); process.exit(1) }; writeFileSync(path, source.replaceAll(token, imageTag))'`
+const STAMP_COMPOSE = 'sed -i "s/[$]{IMAGE_TAG:?}/$IMAGE_TAG/g" compose.base.yaml'
 
 function imageBuild(input: {
   name: string

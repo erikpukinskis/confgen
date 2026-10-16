@@ -1,5 +1,6 @@
 import { collectContributions } from "../contributions.js"
 import type { ProjectFacts } from "../facts.js"
+import { reconcile } from "../reconcile.js"
 import { parseSelection } from "../selection.js"
 import { expect, test } from "vitest"
 
@@ -38,4 +39,34 @@ test("unplugs the native and Compose packages declared by the project", () => {
   expect(
     collectContributions(selection, { root: moduleRoot, packages: [moduleRoot] })
   ).toContainEqual(expect.objectContaining({ id: "yarn:module-type" }))
+})
+
+test("adds workspace TypeScript settings without removing existing VS Code settings", () => {
+  const root = {
+    path: "package.json",
+    name: "@example/service",
+    workspaces: [],
+    dependencies: [],
+  }
+  const facts: ProjectFacts = { root, packages: [root] }
+  const result = reconcile({
+    selection,
+    contributions: collectContributions(selection, facts),
+    prior: undefined,
+    files: new Map([
+      ["package.json", '{"name":"@example/service"}\n'],
+      [".vscode/settings.json", '{"editor.tabSize":2}\n'],
+    ]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  const settings = result.files.find(
+    (change) => change.type === "write" && change.path === ".vscode/settings.json"
+  )
+  if (settings?.type !== "write") throw new Error("settings were not written")
+  expect(JSON.parse(settings.contents)).toEqual({
+    "editor.tabSize": 2,
+    "typescript.tsdk": ".yarn/sdks/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+  })
 })
