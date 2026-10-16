@@ -1,168 +1,201 @@
-import { getGithubWorkflow } from "./githubActions"
 import type {
-  CommandGenerator,
-  Precheck,
-  Runtimes,
-  Presets,
-  CommandWithArgs,
-} from "~/commands"
+  Contribution,
+  JsonValue,
+  ProduceContributions,
+  StructuredAddress,
+} from "../contributions.js"
+import { runtimePath, type RuntimeName } from "../runtimes.js"
+import type { Selection } from "../selection.js"
 
-export const precheck: Precheck = ({ args }) => {
-  if (args.typescript.length > 0) {
-    throw new Error("[typescript] preset should have no args")
-  }
+/**
+ * TypeScript owns TypeScript configuration for every selected runtime,
+ * including project scope and package subpath imports.
+ */
+const COMPILER_OPTIONS: readonly (readonly [string, JsonValue])[] = [
+  ["target", "ES2024"],
+  ["module", "NodeNext"],
+  ["moduleResolution", "NodeNext"],
+  ["strict", true],
+  ["noUncheckedIndexedAccess", true],
+  ["exactOptionalPropertyTypes", true],
+  ["verbatimModuleSyntax", true],
+  ["skipLibCheck", true],
+  ["types", ["node"]],
+  ["noEmit", true],
+]
+
+export const contributions: ProduceContributions = (selection) => [
+  dependency("typescript", "5.9.3"),
+  dependency("@types/node", "24.19.2"),
+  script("check:types", typecheckCommand(selection)),
+  ...COMPILER_OPTIONS.map(([name, value]) => option(name, value)),
+  tsconfig("typescript:include", ["include"], includePaths(selection), "merge"),
+  ...importMaps(selection),
+  ...clientProject(selection),
+]
+
+function typecheckCommand(selection: Selection): string {
+  const command = "tsc --noEmit -p tsconfig.json"
+  if (!selection.runtimes.includes("client")) return command
+  return `${command} && tsc --noEmit -p tsconfig.client.json`
 }
 
-const tsconfigPath = () => "tsconfig.json"
-
-export const generator: CommandGenerator = ({ presets, runtimes }) => {
-  const commands: CommandWithArgs[] = [
-    {
-      command: "yarn",
-      pkg: "typescript@4.9.4",
-      dev: true,
-    },
-    {
-      command: "yarn",
-      pkg: "@types/node@16.18.8",
-      dev: true,
-    },
-    {
-      command: "script",
-      name: "check:types",
-      script: `tsc --noEmit -p ${tsconfigPath()}; if [ $? -eq 0 ]; then echo 8J+OiSBUeXBlcyBhcmUgZ29vZCEKCg== | base64 -d; else exit 1; fi`,
-    },
-    {
-      command: "file",
-      path: tsconfigPath(),
-      contents: getConfig(presets, runtimes),
-    },
-  ]
-
-  if (presets.includes("dist")) {
-    commands.push(
-      {
-        command: "yarn",
-        dev: true,
-        pkg: "tsc-alias",
-      },
-      {
-        command: "file",
-        path: "tsconfig.dist.json",
-        contents: getDistConfig(),
-      },
-      {
-        command: "script",
-        name: "build:types",
-        script: `tsc --declaration --emitDeclarationOnly -p tsconfig.dist.json --skipLibCheck && tsc-alias -p ${tsconfigPath()} && mv dist/index.d.ts dist/lib.umd.d.ts`,
-      }
-    )
-  }
-
-  if (presets.includes("githubActions")) {
-    commands.push({
-      command: "file",
-      path: ".github/workflows/check-types.yml",
-      contents: getTypeCheckWorkflow(presets),
-      merge: "replace",
-    })
-  }
-
-  if (presets.includes("codespaces")) {
-    commands.push({
-      command: "file",
-      path: ".vscode/tasks.json",
-      contents: {
-        version: "2.0.0",
-      },
-      merge: "prefer-preset",
-    })
-    commands.push({
-      command: "file",
-      path: ".vscode/tasks.json",
-      accessor: "tasks[label=TypeScript Watch]",
-      contents: {
-        label: "TypeScript Watch",
-        type: "typescript",
-        tsconfig: "tsconfig.check.json",
-        option: "watch",
-        problemMatcher: ["$tsc-watch"],
-        group: "build",
-        runOptions: {
-          runOn: "folderOpen",
-        },
-      },
-      merge: "replace",
-    })
-  }
-  return commands
-}
-
-const getTypeCheckWorkflow = (presets: Presets) => {
-  const steps = [
-    {
-      run: "yarn check:types",
-    },
-  ]
-
-  if (presets.includes("dist")) {
-    steps.unshift({
-      run: "yarn build",
-    })
-  }
-
-  return getGithubWorkflow({
-    needsPackages: true,
-    workflowName: "types",
-    jobs: [
-      {
-        jobName: "check",
-        steps,
-      },
-    ],
+function includePaths(selection: Selection): string[] {
+  const paths = selection.runtimes.flatMap((runtime) => {
+    if (runtime === "client") return []
+    return [`${runtimePath(runtime)}/**/*.ts`]
   })
+  if (selection.presets.includes("graphql")) {
+    paths.push("gql/*.ts", "gql/*.d.ts", "gql/_generated/**/*.ts")
+  }
+  return paths
 }
 
-/**
- * ~~~~~Takes an array of runtimes (['app', 'lib', etc]) and returns the top-down path
- * aliases for the tsconfig, e.g.:~~~~~ Edit: No longer aliases all of the runtimes,
- * just the first one
- *
- *     {
- *       "@app/*": ["app/*"],
- *       "@lib/*": ["lib/*"],
- *       etc...
- *     }
- */
-const getPathAliases = (runtimes: Runtimes) => ({
-  "~/*": [`${runtimes[0]}/*`],
-  "*": [`${runtimes[0]}/*`],
-})
+function importMaps(selection: Selection): Contribution[] {
+  const maps = selection.runtimes.flatMap((runtime) => {
+    if (runtime === "client") return []
+    return [importMap(runtime)]
+  })
+  if (!selection.presets.includes("graphql")) return maps
+  maps.push(
+    json(
+      "typescript:import:gql",
+      ["imports", "#gql"],
+      "./gql/index.ts",
+      "replace"
+    ),
+    json(
+      "typescript:import:gql-star",
+      ["imports", "#gql/*"],
+      "./gql/*.ts",
+      "replace"
+    )
+  )
+  return maps
+}
 
-/**
- * Special config for just building lib.
- */
-const getDistConfig = () => ({
-  extends: "./tsconfig.json",
-  include: ["lib"],
-})
+function importMap(runtime: RuntimeName): Contribution {
+  return json(
+    `typescript:import:${runtime}`,
+    ["imports", `#${runtime}/*`],
+    `./${runtimePath(runtime)}/*.ts`,
+    "replace"
+  )
+}
 
-const getConfig = (presets: Presets, runtimes: Runtimes) => {
-  const needsReact = presets.includes("react") || presets.includes("codedocs")
+function clientProject(selection: Selection): Contribution[] {
+  if (!selection.runtimes.includes("client")) return []
+  const options = COMPILER_OPTIONS.map(([name, value]) =>
+    clientTsconfig(
+      `typescript:client:${name}`,
+      ["compilerOptions", name],
+      value,
+      "merge"
+    )
+  )
+  return [
+    ...options,
+    clientTsconfig(
+      "typescript:client:include",
+      ["include"],
+      clientInclude(selection),
+      "merge"
+    ),
+  ]
+}
 
+function clientInclude(selection: Selection): string[] {
+  const paths = ["client/**/*.ts"]
+  if (selection.presets.includes("graphql")) paths.push("gql/client/**/*.ts")
+  return paths
+}
+
+function option(
+  name: string,
+  value: JsonValue,
+  preserveExisting = true
+): Contribution {
+  return tsconfig(
+    `typescript:compiler:${name}`,
+    ["compilerOptions", name],
+    value,
+    preserveExisting ? "merge" : "replace"
+  )
+}
+
+function tsconfig(
+  id: string,
+  address: StructuredAddress,
+  value: JsonValue,
+  update: "merge" | "replace"
+): Contribution {
   return {
-    compilerOptions: {
-      lib: ["es2017", ...(needsReact ? ["dom"] : [])],
-      baseUrl: ".",
-      paths: getPathAliases(runtimes),
-      esModuleInterop: true,
-      forceConsistentCasingInFileNames: true,
-      strict: true,
-      skipLibCheck: true,
-      downlevelIteration: true,
-      ...(needsReact ? { jsx: "react-jsx" } : undefined),
-      ...(presets.includes("dist") ? { outDir: "dist" } : undefined),
-    },
-    include: runtimes,
+    id,
+    source: "preset:typescript",
+    kind: "structured",
+    path: "tsconfig.json",
+    format: "json",
+    address,
+    value,
+    update,
+  }
+}
+
+function clientTsconfig(
+  id: string,
+  address: StructuredAddress,
+  value: JsonValue,
+  update: "merge" | "replace"
+): Contribution {
+  return {
+    id,
+    source: "preset:typescript",
+    kind: "structured",
+    path: "tsconfig.client.json",
+    format: "json",
+    address,
+    value,
+    update,
+  }
+}
+
+function json(
+  id: string,
+  address: StructuredAddress,
+  value: JsonValue,
+  update: "merge" | "replace"
+): Contribution {
+  return {
+    id,
+    source: "preset:typescript",
+    kind: "structured",
+    path: "package.json",
+    format: "json",
+    address,
+    value,
+    update,
+  }
+}
+
+function dependency(name: string, range: string): Contribution {
+  return {
+    id: `typescript:dependency:${name}`,
+    source: "preset:typescript",
+    kind: "dependency",
+    manifest: "package.json",
+    section: "devDependencies",
+    package: name,
+    range,
+  }
+}
+
+function script(name: string, command: string): Contribution {
+  return {
+    id: `typescript:script:${name}`,
+    source: "preset:typescript",
+    kind: "package-script",
+    manifest: "package.json",
+    name,
+    command,
   }
 }

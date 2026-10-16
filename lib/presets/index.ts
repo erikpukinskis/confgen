@@ -1,86 +1,49 @@
-import * as all from "./all"
-import * as bin from "./bin"
-import * as codedocs from "./codedocs"
-import * as codegen from "./codegen"
-import * as codespaces from "./codespaces"
-import * as dist from "./dist"
-import * as dotenv from "./dotenv"
-import * as eslint from "./eslint"
-import * as git from "./git"
-import * as githubActions from "./githubActions"
-import * as githubPackage from "./githubPackage"
-import * as macros from "./macros"
-import * as node from "./node"
-import * as prettier from "./prettier"
-import * as react from "./react"
-import * as sql from "./sql"
-import * as start from "./start"
-import * as templates from "./templates"
-import type { PresetName } from "./types"
-import * as typescript from "./typescript"
-import * as vite from "./vite"
-import * as vitest from "./vitest"
-import * as yarn from "./yarn"
-import type { Args } from "~/args"
-import type { Precheck } from "~/commands"
-import type { Runtime } from "~/runtimes"
-import type { System } from "~/system"
+import type { Contribution, ProduceContributions } from "../contributions.js"
+import type { ProjectFacts } from "../facts.js"
+import type { Selection } from "../selection.js"
+import * as codedocs from "./codedocs.js"
+import * as docker from "./docker.js"
+import * as eslint from "./eslint.js"
+import * as git from "./git.js"
+import * as githubActions from "./githubActions.js"
+import * as githubPackage from "./githubPackage.js"
+import * as graphql from "./graphql.js"
+import * as httpd from "./httpd.js"
+import * as prettier from "./prettier.js"
+import * as react from "./react.js"
+import type { PresetName } from "./registry.js"
+import * as sql from "./sql.js"
+import * as typescript from "./typescript.js"
+import * as vite from "./vite.js"
+import * as vitest from "./vitest.js"
+import * as yarn from "./yarn.js"
 
-const PRESETS = {
-  all,
-  bin,
-  codedocs,
-  codegen,
-  codespaces,
-  dotenv,
-  dist,
-  eslint,
-  git,
-  githubActions,
-  githubPackage,
-  macros,
-  node,
-  prettier,
-  react,
-  sql,
-  start,
-  templates,
-  typescript,
-  vite,
-  vitest,
-  yarn,
-} as const
+const producers = {
+  yarn: yarn.contributions,
+  typescript: typescript.contributions,
+  vite: vite.contributions,
+  vitest: vitest.contributions,
+  eslint: eslint.contributions,
+  prettier: prettier.contributions,
+  react: react.contributions,
+  graphql: graphql.contributions,
+  docker: docker.contributions,
+  httpd: httpd.contributions,
+  sql: sql.contributions,
+  codedocs: codedocs.contributions,
+  git: git.contributions,
+  githubActions: githubActions.contributions,
+  githubPackage: githubPackage.contributions,
+} satisfies Record<PresetName, ProduceContributions>
 
-type Preset = typeof PRESETS[PresetName]
-type PresetWithPrecheck = Preset & {
-  precheck: Precheck
+export function presetContributions(
+  preset: PresetName,
+  selection: Selection,
+  facts: ProjectFacts
+): readonly Contribution[] {
+  const produce = producers[preset]
+  if (produce === undefined) {
+    throw new Error(`Missing preset producer for ${preset}`)
+  }
+  return produce(selection, facts)
 }
-
-const hasPrecheck = (preset: Preset): preset is PresetWithPrecheck => {
-  return Object.prototype.hasOwnProperty.call(preset, "precheck")
-}
-
-export const precheck = (
-  name: PresetName,
-  runtimes: Runtime[],
-  presets: PresetName[],
-  args: Args,
-  system: System
-) => {
-  const preset = PRESETS[name]
-  if (!hasPrecheck(preset)) return
-  preset.precheck({ runtimes, presets, args, system })
-}
-
-export const generate = (
-  name: PresetName,
-  runtimes: Runtime[],
-  presets: PresetName[],
-  args: Args,
-  system: System
-) => {
-  const preset = PRESETS[name]
-  return preset.generator({ runtimes, presets, args, system })
-}
-
-export * from "./types"

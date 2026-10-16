@@ -1,160 +1,92 @@
-import { execSync } from "child_process"
-import { existsSync, readFileSync, mkdirSync, rmSync } from "fs"
-import { join } from "path"
-import { outputFileSync } from "fs-extra"
-import type { JsonObject } from "./helpers/json"
+import { spawn } from "node:child_process"
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
+import { dirname, isAbsolute, join } from "node:path"
 
-export type System = {
-  silent: boolean
-
-  run(
-    command: string,
-    out?: string[],
-    silent?: boolean
-  ): { status: number | null }
-  exists(path: string): boolean
-  read(path: string): string
-  write(path: string, contents: string | object): void
-  addPackage(pkg: string, isDevOnly: boolean): void
-}
-
-export class RealSystem implements System {
-  silent: boolean
-  cwd: string | undefined
-
-  constructor({ silent, cwd }: { silent: boolean; cwd?: string }) {
-    this.silent = silent
-    this.cwd = cwd
-  }
-
-  run(command: string, out?: string[], silent?: boolean) {
-    try {
-      const result = execSync(`echo "$ ${command}" && ${command}`, {
-        cwd: this.cwd,
-        stdio: out ? "pipe" : silent || this.silent ? "ignore" : "inherit",
-      })
-      if (out) {
-        const lines = result.toString().split("\n")
-        out.push(...lines.slice(1, lines.length - 1))
-      }
-      return { status: 0 }
-    } catch (e: unknown) {
-      if (isCommandFailure(e)) return { status: e.status }
-      throw e
-    }
-  }
-  join(path: string) {
-    return this.cwd ? join(this.cwd, path) : path
-  }
-  exists(path: string) {
-    return existsSync(this.join(path))
-  }
-  read(path: string) {
-    return readFileSync(this.join(path)).toString()
-  }
-  write(path: string, contents: string) {
-    outputFileSync(this.join(path), contents)
-  }
-  addPackage(pkg: string, isDevOnly: boolean) {
-    const dashDev = isDevOnly ? "-D " : ""
-    this.run(`yarn add ${dashDev}${pkg}`)
-  }
-}
-
-type CommandFailure = Error & {
+export type RunResult = {
   status: number
+  stdout: string
+  stderr: string
 }
 
-const isCommandFailure = (e: unknown): e is CommandFailure => {
-  return typeof (e as CommandFailure).status === "number"
+/**
+ * Filesystem and subprocess access for one project directory.
+ * `run` takes an executable and argument list and does not invoke a shell.
+ */
+export type System = {
+  readFile(path: string): Promise<string>
+  writeFile(path: string, contents: string): Promise<void>
+  removeFile(path: string): Promise<void>
+  rename(from: string, to: string): Promise<void>
+  run(executable: string, args: readonly string[]): Promise<RunResult>
 }
 
-export class MockSystem implements System {
-  silent = true
-  contentsByPath: Record<string, string> = {}
+export function createSystem(cwd: string): System {
+  const resolvePath = (path: string): string =>
+    isAbsolute(path) ? path : join(cwd, path)
 
-  run() {
-    return { status: null }
-  }
-  exists(path: string) {
-    return Boolean(this.contentsByPath[path])
-  }
-  read(path: string) {
-    if (this.contentsByPath[path] === undefined) {
-      throw new Error(`MockSystem never wrote to path ${path}`)
-    }
-    return this.contentsByPath[path]
-  }
-  json(path: string) {
-    const contents = this.read(path)
-
-    let json: unknown
-
-    try {
-      json = JSON.parse(contents)
-    } catch (e) {
-      throw new Error(`Contents of ${path} were not valid JSON:\n\n${contents}`)
-    }
-
-    if (typeof json !== "object") {
-      throw new Error(
-        `Expected contents of ${path} to be an object, but it was a ${typeof json}:\n\n${contents}`
-      )
-    }
-
-    if (Array.isArray(json)) {
-      throw new Error(
-        `Expected contents of ${path} to be an object, but it was an array:\n\n${contents}`
-      )
-    }
-
-    return json as JsonObject
-  }
-  write(path: string, contents: string) {
-    if (typeof contents !== "string") {
-      throw new Error("Cannot write non-string to system")
-    }
-    this.contentsByPath[path] = contents
-  }
-  addPackage(pkgStrings: string, isDevOnly: boolean) {
-    if (!this.exists("package.json")) {
-      this.write("package.json", "{}")
-    }
-
-    const packageJson = JSON.parse(this.read("package.json")) as {
-      dependencies?: Record<string, string>
-      devDependencies?: Record<string, string>
-    }
-    const depsKey = isDevOnly ? "devDependencies" : "dependencies"
-    if (!packageJson[depsKey]) packageJson[depsKey] = {}
-    const deps = packageJson[depsKey] as Record<string, string>
-
-    const pkgs = pkgStrings.split(" ")
-
-    for (const pkg of pkgs) {
-      const [name, version] = pkg.split("@")
-      deps[name] = version || "*"
-    }
-
-    this.write("package.json", JSON.stringify(packageJson, null, 2))
-  }
-}
-export class TestSystem extends RealSystem {
-  root: string
-
-  constructor({ silent = true }: { silent?: boolean } = {}) {
-    const root = `/tmp/${randomFolder()}`
-    mkdirSync(root)
-    super({ silent, cwd: root })
-    this.root = root
-  }
-
-  cleanUp() {
-    rmSync(this.root, { recursive: true })
+  return {
+    readFile(path) {
+      return readFile(resolvePath(path), "utf8")
+    },
+    async writeFile(path, contents) {
+      const target = resolvePath(path)
+      await mkdir(dirname(target), { recursive: true })
+      await writeFile(target, contents)
+    },
+    removeFile(path) {
+      return rm(resolvePath(path), { force: true })
+    },
+    rename(from, to) {
+      return renameFile(resolvePath(from), resolvePath(to))
+    },
+    run(executable, args) {
+      return new Promise((resolveResult, reject) => {
+        const child = spawn(executable, [...args], {
+          cwd,
+          shell: false,
+          stdio: ["ignore", "pipe", "pipe"],
+        })
+        const stdoutStream = child.stdout
+        const stderrStream = child.stderr
+        if (stdoutStream === null || stderrStream === null) {
+          child.kill()
+          reject(new Error(`Could not capture output from ${executable}`))
+          return
+        }
+        let stdout = ""
+        let stderr = ""
+        stdoutStream.setEncoding("utf8")
+        stderrStream.setEncoding("utf8")
+        stdoutStream.on("data", (chunk) => {
+          stdout += textChunk(chunk)
+        })
+        stderrStream.on("data", (chunk) => {
+          stderr += textChunk(chunk)
+        })
+        child.once("error", reject)
+        child.once("exit", (code) => {
+          resolveResult({ status: code ?? 1, stdout, stderr })
+        })
+      })
+    },
   }
 }
 
-const randomFolder = () => {
-  const [, number] = Math.random().toString().split(".")
-  return `confgen-${number}`
+function renameFile(from: string, to: string): Promise<void> {
+  return rename(from, to)
+}
+
+export function isMissingFile(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "ENOENT"
+  )
+}
+
+function textChunk(chunk: unknown): string {
+  if (typeof chunk === "string") return chunk
+  if (chunk instanceof Uint8Array) return Buffer.from(chunk).toString("utf8")
+  return String(chunk)
 }

@@ -14,7 +14,7 @@
       "error",
       {
         "args": "after-used",
-        "varsIgnorePattern": "^_+$"
+        "varsIgnorePattern": "^_"
       }
     ],
     "@typescript-eslint/consistent-type-imports": [
@@ -32,7 +32,6 @@
     "semi": ["error", "never"],
     "eol-last": ["error", "always"],
     "quote-props": ["error", "consistent-as-needed"],
-    "array-element-newline": ["off"],
     "no-unused-vars": "off",
     "import/order": [
       "error",
@@ -47,23 +46,10 @@
     "import/first": "error",
     "import/newline-after-import": "error",
     "import/no-duplicates": "error",
-    "no-restricted-imports": [
-      "error",
-      {
-        "patterns": [".."]
-      }
-    ],
     "@typescript-eslint/no-floating-promises": "error"
   },
-  "ignorePatterns": ["*.js"],
   "parserOptions": {
     "warnOnUnsupportedTypeScriptVersion": false,
     "project": ["./tsconfig.json"]
-  },
-  "settings": {
-    "import/resolver": {
-      "typescript": true,
-      "node": true
-    }
   }
 }

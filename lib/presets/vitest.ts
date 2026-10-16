@@ -1,170 +1,143 @@
-import { getGithubWorkflow } from "./githubActions"
 import type {
-  CommandGenerator,
-  System,
-  Presets,
-  CommandWithArgs,
-} from "~/commands"
-import { formatTypescript } from "~/format"
-import type { Runtime } from "~/runtimes"
+  Contribution,
+  ProduceContributions,
+  ViteConfigItem,
+} from "../contributions.js"
+import { runtimePath } from "../runtimes.js"
+import type { Selection } from "../selection.js"
 
-export const generator: CommandGenerator = async ({
-  runtimes,
-  presets,
-  system,
-}) => {
-  const commands: CommandWithArgs[] = [
-    {
-      command: "yarn",
-      dev: true,
-      pkg: "vitest",
-    },
-    {
-      command: "script",
-      name: "test",
-      script: "vitest run --config vite.test.config.js",
-    },
-    {
-      command: "script",
-      name: "watch:test",
-      script: "vitest watch --config vite.test.config.js",
-    },
+/** Vitest owns test-runner configuration for the selected runtimes. */
+export const contributions: ProduceContributions = (selection, facts) => {
+  const produced: Contribution[] = [
+    dependency("vitest", "4.1.11"),
+    script("test", "vitest run --config vite.test.config.ts"),
+    testConfig(selection),
   ]
-
-  if (presets.includes("githubActions")) {
-    commands.push({
-      command: "file",
-      path: ".github/workflows/unit-tests.yml",
-      contents: getUnitTestsWorkflow(presets),
-    })
+  if (
+    selection.runtimes.includes("lib") &&
+    facts.root.dependencies.includes("graphql-dev-kit")
+  ) {
+    produced.push(libTest())
   }
-
-  if (presets.includes("codespaces")) {
-    commands.push(
-      {
-        command: "file",
-        path: ".vscode/launch.json",
-        contents: {
-          version: "0.2.0",
-        },
-      },
-      {
-        command: "file",
-        path: ".vscode/launch.json",
-        accessor: "configurations[name=Debug Current Test File]",
-        merge: "replace",
-        contents: {
-          type: "node",
-          request: "launch",
-          name: "Debug Current Test File",
-          skipFiles: ["<node_internals>/**", "**/node_modules/**"],
-          program: "${workspaceRoot}/node_modules/vitest/vitest.mjs",
-          args: [
-            "related",
-            "--config",
-            "vite.test.config.js",
-            // Not sure why we had this in multiplayer-db-schema-service? Might want it again at some point:
-            // "--test-timeout=0",
-            "${relativeFile}",
-          ],
-          smartStep: true,
-          console: "integratedTerminal",
-        },
-      }
-    )
+  if (selection.runtimes.includes("integration")) {
+    produced.push(integrationConfig(selection))
   }
-
-  if (!hasTestFiles(system)) {
-    commands.push({
-      command: "file",
-      path: getExampleTestPath(runtimes[0], presets),
-      merge: "if-not-exists",
-      contents: await getExampleTest(runtimes[0], presets),
-    })
-  }
-
-  if (presets.includes("react")) {
-    commands.push(
-      {
-        command: "yarn",
-        pkg: "@testing-library/react",
-        dev: true,
-      },
-      {
-        command: "yarn",
-        pkg: "react-dom",
-      }
-    )
-  }
-
-  return commands
+  return produced
 }
 
-const getUnitTestsWorkflow = (presets: Presets) => {
-  const steps = [
-    {
-      run: "yarn test",
-    },
-  ]
+const LIB_TEST = `import { expect, test } from "vitest"
+import { greeting } from "#lib/index"
 
-  if (presets.includes("dist")) {
-    steps.unshift({
-      run: "yarn build",
-    })
+test("greets by name", () => {
+  expect(greeting("baseline")).toBe("Hello, baseline")
+})
+`
+
+function libTest(): Contribution {
+  return {
+    id: "vitest:starter:lib-test",
+    source: "preset:vitest",
+    kind: "starter-file",
+    path: "lib/index.test.ts",
+    contents: LIB_TEST,
   }
+}
 
-  return getGithubWorkflow({
-    needsPackages: true,
-    workflowName: "unit tests",
-    jobs: [
+function integrationConfig(selection: Selection): Contribution {
+  return {
+    id: "vitest:config:vite.integration.config.ts",
+    source: "preset:vitest",
+    kind: "vite-config",
+    path: "vite.integration.config.ts",
+    items: [
+      ...sqlPlugin(selection),
       {
-        jobName: "run",
-        steps,
+        id: "property:test-include",
+        source: "preset:vitest",
+        kind: "property",
+        path: ["test", "include"],
+        value: '["integration/**/*.test.ts"]',
       },
     ],
+  }
+}
+
+function testConfig(selection: Selection): Contribution {
+  const patterns = selection.runtimes.flatMap((runtime) => {
+    if (runtime === "integration") return []
+    return [`${runtimePath(runtime)}/**/*.test.ts`]
   })
+  if (selection.presets.includes("graphql")) patterns.push("gql/**/*.test.ts")
+  const items: ViteConfigItem[] = [
+    ...sqlPlugin(selection),
+    {
+      id: "property:test-include",
+      source: "preset:vitest",
+      kind: "property",
+      path: ["test", "include"],
+      value: includeValue(patterns),
+    },
+  ]
+  return {
+    id: "vitest:config:vite.test.config.ts",
+    source: "preset:vitest",
+    kind: "vite-config",
+    path: "vite.test.config.ts",
+    items,
+  }
 }
 
-const hasTestFiles = (system: System) => {
-  const { status } = system.run(
-    `find . -not -path "./node_modules/*" | grep -E '^.+[.]test[.][tj]sx?$' | grep .`,
-    undefined,
-    true
-  )
-  return status === 0
+function sqlPlugin(selection: Selection): ViteConfigItem[] {
+  if (!selection.presets.includes("sql")) return []
+  return [
+    {
+      id: "import:sql",
+      source: "preset:vitest",
+      kind: "import",
+      module: "vite-plugin-sql",
+      imported: { kind: "default" },
+      preferredLocal: "sql",
+    },
+    {
+      id: "plugin:sql",
+      source: "preset:vitest",
+      kind: "plugin",
+      importId: "import:sql",
+      arguments: [],
+    },
+  ]
 }
 
-const getExampleTestPath = (runtime: Runtime, presets: Presets) => {
-  return presets.includes("react") && presets.includes("typescript")
-    ? `${runtime}/index.test.tsx`
-    : presets.includes("react")
-    ? `${runtime}/index.test.jsx`
-    : presets.includes("typescript")
-    ? `${runtime}/index.test.ts`
-    : `${runtime}/index.test.js`
+function includeValue(patterns: readonly string[]): string {
+  const flat = `[${patterns
+    .map((pattern) => JSON.stringify(pattern))
+    .join(", ")}]`
+  if (`    include: ${flat},`.length <= 80) return flat
+  const entries = patterns
+    .map((pattern) => `      ${JSON.stringify(pattern)}`)
+    .join(",\n")
+  return `[\n${entries},\n    ]`
 }
 
-const getExampleTest = (runtime: Runtime, presets: Presets) => {
-  const source = presets.includes("react")
-    ? `import { render } from "@testing-library/react"
-import React from "react"
-import { describe, it } from "vitest"
+function dependency(name: string, range: string): Contribution {
+  return {
+    id: `vitest:dependency:${name}`,
+    source: "preset:vitest",
+    kind: "dependency",
+    manifest: "package.json",
+    section: "devDependencies",
+    package: name,
+    range,
+  }
+}
 
-const MyComponent = () => <>hello world!</>
-
-describe("MyComponent", () => {
-  it("should render without errors", () => {
-    render(<MyComponent />)
-  })
-})
-`
-    : `import { it, expect } from "vitest"
-
-const myFunction = () => "hello world!"
-
-it("returns a greeting", () => {
-  expect(myFunction()).toContain("hello")
-})
-`
-  return formatTypescript(source)
+function script(name: string, command: string): Contribution {
+  return {
+    id: `vitest:script:${name}`,
+    source: "preset:vitest",
+    kind: "package-script",
+    manifest: "package.json",
+    name,
+    command,
+  }
 }

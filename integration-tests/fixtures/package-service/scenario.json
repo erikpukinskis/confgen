@@ -1,0 +1,17 @@
+{
+  "args": [
+    "runtimes=#lib,#server,#client,#integration,#gateway",
+    "yarn",
+    "typescript",
+    "vite",
+    "vitest",
+    "eslint",
+    "prettier",
+    "git",
+    "graphql",
+    "docker",
+    "httpd",
+    "githubActions",
+    "githubPackage"
+  ]
+}

@@ -1,19 +1,25 @@
 name: types
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out
-        uses: actions/checkout@v3
-      - name: Set up Yarn cache
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-          cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn build
-      - run: yarn check:types
+on: push
 concurrency:
   group: check-types
   cancel-in-progress: true
-on: push
+jobs:
+  check:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+      - run: corepack enable
+      - name: Enable Yarn cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            .yarn/cache
+            .yarn/unplugged
+          key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+      - run: yarn install --immutable
+      - run: yarn build && yarn check:types

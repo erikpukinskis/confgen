@@ -1,85 +1,90 @@
-import { getGithubWorkflow } from "./githubActions"
-import type { CommandGenerator, CommandWithArgs } from "~/commands"
+import type {
+  Contribution,
+  JsonValue,
+  ProduceContributions,
+  StructuredAddress,
+} from "../contributions.js"
 
-export const generator: CommandGenerator = ({ presets }) => {
-  const commands: CommandWithArgs[] = [
-    {
-      command: "yarn",
-      dev: true,
-      pkg: "prettier@2.8.1",
-    },
-    {
-      command: "file",
-      path: ".prettierrc",
-      contents: {
-        semi: false,
-        tabWidth: 2,
-        quoteProps: "preserve",
-      },
-    },
-    {
-      command: "script",
-      name: "fix:format",
-      script: "prettier --write --ignore-path .gitignore .",
-    },
-    {
-      command: "script",
-      name: "check:format",
-      script: "prettier --check --ignore-path .gitignore .",
-    },
+/** Prettier owns formatting configuration. */
+export const contributions: ProduceContributions = (selection) => {
+  const ignores: (readonly [string, string])[] = [...IGNORE_LINES]
+  if (selection.presets.includes("graphql")) {
+    ignores.push(["generated-graphql", "gql/**/_generated"])
+  }
+  return [
+    dependency("prettier", "2.8.1"),
+    script("check:format", "prettier --check ."),
+    script("fix:format", "prettier --write ."),
+    setting("prettier:semi", ["semi"], false),
+    setting("prettier:tab-width", ["tabWidth"], 2),
+    setting("prettier:quote-props", ["quoteProps"], "preserve"),
+    ...(selection.presets.includes("sql")
+      ? [
+          dependency("prettier-plugin-sql-cst", "0.8.3"),
+          setting("prettier:sql-plugin", ["plugins"], ["prettier-plugin-sql-cst"], "merge"),
+        ]
+      : []),
+    ...ignores.map(
+      ([id, value]): Contribution => ({
+        id: `prettier:ignore:${id}`,
+        source: "preset:prettier",
+        kind: "line",
+        path: ".prettierignore",
+        value,
+      })
+    ),
   ]
-
-  if (presets.includes("codespaces")) {
-    commands.push({
-      command: "file",
-      path: ".vscode/settings.json",
-      contents: {
-        "editor.codeActionsOnSave": {
-          "source.formatDocument": "explicit",
-        },
-        "editor.formatOnSave": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-      },
-    })
-  }
-
-  if (presets.includes("codespaces")) {
-    commands.push({
-      command: "file",
-      path: ".devcontainer/devcontainer.json",
-      contents: {
-        extensions: [
-          "rohit-gohri.format-code-action",
-          "esbenp.prettier-vscode",
-        ],
-      },
-    })
-  }
-
-  if (presets.includes("githubActions")) {
-    commands.push({
-      command: "file",
-      path: ".github/workflows/check-code-format.yml",
-      contents: getCheckFormatWorkflow(),
-      merge: "replace",
-    })
-  }
-
-  return commands
 }
 
-const getCheckFormatWorkflow = () =>
-  getGithubWorkflow({
-    needsPackages: true,
-    workflowName: "code format",
-    jobs: [
-      {
-        jobName: "check",
-        steps: [
-          {
-            run: "yarn check:format",
-          },
-        ],
-      },
-    ],
-  })
+const IGNORE_LINES: readonly (readonly [string, string])[] = [
+  ["dist", "dist"],
+  ["yarn-dir", ".yarn"],
+  ["pnp", ".pnp.cjs"],
+  ["pnp-loader", ".pnp.loader.mjs"],
+  ["coverage", "coverage"],
+  ["yarn-lock", "yarn.lock"],
+  ["nvmrc", ".nvmrc"],
+  ["yalc", ".yalc"],
+  ["yalc-lock", "yalc.lock"],
+]
+
+function setting(
+  id: string,
+  address: StructuredAddress,
+  value: JsonValue,
+  update: "merge" | "replace" = "replace"
+): Contribution {
+  return {
+    id,
+    source: "preset:prettier",
+    kind: "structured",
+    path: ".prettierrc.json",
+    format: "json",
+    address,
+    value,
+    update,
+  }
+}
+
+function dependency(name: string, range: string): Contribution {
+  return {
+    id: `prettier:dependency:${name}`,
+    source: "preset:prettier",
+    kind: "dependency",
+    manifest: "package.json",
+    section: "devDependencies",
+    package: name,
+    range,
+  }
+}
+
+function script(name: string, command: string): Contribution {
+  return {
+    id: `prettier:script:${name}`,
+    source: "preset:prettier",
+    kind: "package-script",
+    manifest: "package.json",
+    name,
+    command,
+  }
+}

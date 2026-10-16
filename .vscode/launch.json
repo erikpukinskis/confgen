@@ -2,14 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "node",
+      "type": "node-terminal",
       "request": "launch",
       "name": "Debug Current Test File",
-      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
-      "program": "${workspaceRoot}/node_modules/vitest/vitest.mjs",
-      "args": ["related", "--config", "vite.test.config.js", "${relativeFile}"],
-      "smartStep": true,
-      "console": "integratedTerminal"
+      "command": "yarn vitest related \"${relativeFile}\"",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

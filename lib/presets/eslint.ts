@@ -1,227 +1,147 @@
-import { getGithubWorkflow } from "./githubActions"
-import type { CommandWithArgs, CommandGenerator } from "~/commands"
-import type { JsonObject } from "~/helpers/json"
-import { type Presets } from "~/presets"
+import type {
+  Contribution,
+  JsonValue,
+  ProduceContributions,
+  StructuredAddress,
+} from "../contributions.js"
+import type { Selection } from "../selection.js"
 
-export const generator: CommandGenerator = ({ presets }) => {
-  const commands: CommandWithArgs[] = [
-    {
-      command: "yarn",
-      dev: true,
-      pkg: "eslint@8.29.0",
+/** ESLint owns lint configuration for TypeScript sources. */
+export const contributions: ProduceContributions = (selection) => [
+  dependency("eslint", "8.57.1"),
+  dependency("@typescript-eslint/eslint-plugin", "8.70.0"),
+  dependency("@typescript-eslint/parser", "8.70.0"),
+  dependency("eslint-plugin-import", "2.32.0"),
+  dependency("eslint-import-resolver-typescript", "3.7.0"),
+  script("check:lint", "eslint --no-error-on-unmatched-pattern ."),
+  script("fix:lint", "eslint --no-error-on-unmatched-pattern . --fix"),
+  setting("eslint:root", ["root"], true),
+  setting("eslint:parser", ["parser"], "@typescript-eslint/parser"),
+  setting("eslint:plugins", ["plugins"], ["@typescript-eslint", "import"]),
+  setting(
+    "eslint:extends",
+    ["extends"],
+    [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    ]
+  ),
+  setting("eslint:ignore", ["ignorePatterns"], ignorePatterns(selection), "merge"),
+  setting("eslint:parser-options", ["parserOptions"], {
+    warnOnUnsupportedTypeScriptVersion: false,
+    project: typecheckProjects(selection),
+  }),
+  setting("eslint:settings", ["settings"], {
+    "import/external-module-folders": [".yarn", "node_modules"],
+    "import/resolver": {
+      typescript: true,
+      node: true,
     },
-    {
-      command: "yarn",
-      dev: true,
-      pkg: "eslint-plugin-import",
-    },
+  }),
+  setting("eslint:rules", ["rules"], rules, "merge"),
+]
 
-    {
-      command: "file",
-      path: ".eslintignore",
-      contents: `node_modules
-dist
-vendor
-`,
-    },
-    {
-      command: "file",
-      path: ".eslintrc",
-      contents: getEslintrc(presets),
-    },
-    {
-      command: "script",
-      name: "check:lint",
-      script:
-        "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern .; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
-    },
-    {
-      command: "script",
-      name: "fix:lint",
-      script:
-        "eslint --ignore-path .gitignore --no-error-on-unmatched-pattern . --fix; if [ $? -eq 0 ]; then echo 8J+OiSBObyBsaW50IGluIHRoaXMgY29kZSEKCg== | base64 -d; else exit 1; fi",
-    },
+function ignorePatterns(selection: Selection): string[] {
+  const patterns = [
+    "dist",
+    ".yarn",
+    ".pnp.cjs",
+    ".pnp.loader.mjs",
+    "coverage",
+    "vite.*.config.ts",
   ]
-
-  if (presets.includes("typescript")) {
-    commands.push(
-      {
-        command: "yarn",
-        dev: true,
-        pkg: "@typescript-eslint/eslint-plugin@5.46.0",
-      },
-      { command: "yarn", dev: true, pkg: "@typescript-eslint/parser" },
-      {
-        command: "yarn",
-        dev: true,
-        pkg: "eslint-import-resolver-typescript",
-      }
-    )
-  }
-
-  if (presets.includes("react")) {
-    commands.push({
-      command: "yarn",
-      dev: true,
-      pkg: "eslint-plugin-react@7.31.11",
-    })
-  }
-
-  if (presets.includes("codespaces")) {
-    commands.push(
-      {
-        command: "file",
-        path: ".devcontainer/devcontainer.json",
-        contents: {
-          extensions: ["dbaeumer.vscode-eslint"],
-        },
-      },
-      {
-        command: "file",
-        path: ".vscode/settings.json",
-        contents: {
-          "editor.codeActionsOnSave": {
-            "source.fixAll.eslint": "explicit",
-          },
-        },
-      }
-    )
-  }
-
-  if (presets.includes("githubActions")) {
-    commands.push({
-      command: "file",
-      path: ".github/workflows/check-lint.yml",
-      contents: getCheckLintWorkfow(),
-      merge: "replace",
-    })
-  }
-
-  return commands
+  if (selection.presets.includes("graphql")) patterns.push("gql/**/_generated")
+  return patterns
 }
 
-const getCheckLintWorkfow = () => {
-  return getGithubWorkflow({
-    needsPackages: true,
-    workflowName: "lint",
-    jobs: [
-      {
-        jobName: "check",
-        steps: [
-          {
-            run: "yarn build",
-          },
-          {
-            run: "yarn check:lint",
-          },
-        ],
-      },
-    ],
-  })
+function typecheckProjects(selection: Selection): string[] {
+  const projects = ["./tsconfig.json"]
+  if (selection.runtimes.includes("client")) {
+    projects.push("./tsconfig.client.json")
+  }
+  return projects
 }
 
-const getEslintrc = (presets: Presets): JsonObject => ({
-  root: true,
-  plugins: [
-    "import",
-    ...(presets.includes("typescript") ? ["@typescript-eslint"] : []),
+const rules = {
+  "@typescript-eslint/no-explicit-any": "error",
+  "@typescript-eslint/no-unused-vars": [
+    "error",
+    {
+      args: "after-used",
+      varsIgnorePattern: "^_",
+    },
   ],
-  ignorePatterns: ["*.js"],
-  ...(presets.includes("typescript")
-    ? {
-        parser: "@typescript-eslint/parser",
-        parserOptions: {
-          warnOnUnsupportedTypeScriptVersion: false,
-          project: ["./tsconfig.json"],
-        },
-        // ignorePatterns: ["*.js"],
-        settings: {
-          "import/resolver": {
-            typescript: true,
-            node: true,
-          },
-        },
-      }
-    : undefined),
-  extends: [
-    "eslint:recommended",
-    ...(presets.includes("react") ? ["plugin:react/recommended"] : []),
-    ...(presets.includes("typescript")
-      ? [
-          "plugin:@typescript-eslint/eslint-recommended",
-          "plugin:@typescript-eslint/recommended",
-          "plugin:@typescript-eslint/recommended-requiring-type-checking",
-        ]
-      : []),
+  "@typescript-eslint/consistent-type-imports": [
+    "error",
+    {
+      prefer: "type-imports",
+    },
   ],
-  ...(presets.includes("react")
-    ? {
-        settings: {
-          react: {
-            version: "detect",
-          },
-        },
-      }
-    : undefined),
-  rules: {
-    ...(presets.includes("typescript")
-      ? {
-          "@typescript-eslint/no-explicit-any": "error",
-          "@typescript-eslint/consistent-type-imports": [
-            "error",
-            { prefer: "type-imports" },
-          ],
-          "no-unused-vars": "off",
-          "@typescript-eslint/no-unused-vars": [
-            "error",
-            { args: "after-used", varsIgnorePattern: "^_+$" },
-          ],
-          "semi": ["error", "never"],
-          // being released in eslint-plugin-import@2.27.0:
-          // "import/consistent-type-specifier-style": ["error", "prefer-inline"],
-        }
-      : {
-          "no-unused-vars": [
-            "error",
-            { args: "after-used", varsIgnorePattern: "^_+$" },
-          ],
-        }),
-    ...(presets.includes("react") && presets.includes("typescript")
-      ? {
-          // Doesn't work that great with const Foo: SomeType = ... style components
-          "react/prop-types": ["off"],
-          "@typescript-eslint/no-misused-promises": [
-            "error",
-            {
-              checksVoidReturn: {
-                attributes: false,
-              },
-            },
-          ],
-        }
-      : undefined),
-    ...(presets.includes("react")
-      ? {
-          "react/react-in-jsx-scope": "off",
-        }
-      : undefined),
-    "eol-last": ["error", "always"],
-    "array-element-newline": ["off"],
-    "import/order": [
-      "error",
-      {
-        "alphabetize": { order: "asc", caseInsensitive: true },
-        "newlines-between": "never",
+  "@typescript-eslint/restrict-template-expressions": [
+    "error",
+    {
+      allowNullish: true,
+    },
+  ],
+  "@typescript-eslint/no-floating-promises": "error",
+  "semi": ["error", "never"],
+  "eol-last": ["error", "always"],
+  "quote-props": ["error", "consistent-as-needed"],
+  "no-unused-vars": "off",
+  "import/order": [
+    "error",
+    {
+      "alphabetize": {
+        order: "asc",
+        caseInsensitive: true,
       },
-    ],
-    "import/first": "error",
-    "import/newline-after-import": "error",
-    "import/no-duplicates": "error",
-    "no-restricted-imports": [
-      "error",
-      {
-        patterns: [".."],
-      },
-    ],
-  },
-})
+      "newlines-between": "never",
+    },
+  ],
+  "import/first": "error",
+  "import/newline-after-import": "error",
+  "import/no-duplicates": "error",
+} satisfies JsonValue
+
+function setting(
+  id: string,
+  address: StructuredAddress,
+  value: JsonValue,
+  update: "merge" | "replace" = "replace"
+): Contribution {
+  return {
+    id,
+    source: "preset:eslint",
+    kind: "structured",
+    path: ".eslintrc.json",
+    format: "json",
+    address,
+    value,
+    update,
+  }
+}
+
+function dependency(name: string, range: string): Contribution {
+  return {
+    id: `eslint:dependency:${name}`,
+    source: "preset:eslint",
+    kind: "dependency",
+    manifest: "package.json",
+    section: "devDependencies",
+    package: name,
+    range,
+  }
+}
+
+function script(name: string, command: string): Contribution {
+  return {
+    id: `eslint:script:${name}`,
+    source: "preset:eslint",
+    kind: "package-script",
+    manifest: "package.json",
+    name,
+    command,
+  }
+}
