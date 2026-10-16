@@ -120,7 +120,26 @@ export function collectContributions(
     collected.push(...presetContributions(preset, selection, facts))
   }
   collected.push(...packageManifestContributions(selection, facts))
-  return normalizeContributions(collected)
+  return normalizeContributions(
+    collected.map((contribution) => {
+      if (contribution.kind !== "dependency") return contribution
+      const manifest = facts.packages.find(
+        (packageFacts) => packageFacts.path === contribution.manifest
+      )
+      const ranges = manifest?.dependencyRanges
+      const existingRange =
+        ranges?.[contribution.section][contribution.package] ??
+        ranges?.dependencies[contribution.package] ??
+        ranges?.devDependencies[contribution.package] ??
+        ranges?.peerDependencies[contribution.package]
+      const isLocalYalcDevCluster =
+        contribution.package === "dev-cluster" &&
+        existingRange?.startsWith("file:.yalc/dev-cluster")
+      return existingRange === undefined || isLocalYalcDevCluster
+        ? contribution
+        : { ...contribution, range: existingRange }
+    })
+  )
 }
 
 /**

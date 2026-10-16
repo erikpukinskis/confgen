@@ -165,7 +165,7 @@ function reconcilePath(input: {
         (entry.strategy === "structured" && entry.format === "json")
     )
   ) {
-    return reconcileJsonDocument(input)
+    return reconcileJsonDocument({ ...input, priorEntries: input.priorEntries })
   }
 
   if (
@@ -174,7 +174,7 @@ function reconcilePath(input: {
       (entry) => entry.strategy === "structured" && entry.format === "yaml"
     )
   ) {
-    return reconcileYamlDocument(input)
+    return reconcileYamlDocument({ ...input, priorEntries: input.priorEntries })
   }
 
   if (
@@ -233,6 +233,7 @@ function reconcileJsonDocument(input: {
   path: string
   desired: DesiredGroup
   prior: readonly LockContribution[]
+  priorEntries: readonly LockContribution[]
   current: string | undefined
 }): { changes: FileChange[]; problems: string[] } {
   const problems: string[] = []
@@ -257,6 +258,14 @@ function reconcileJsonDocument(input: {
   }
 
   for (const entry of input.desired.structured) {
+    if (
+      entry.update === "replace" &&
+      !input.priorEntries.some((previous) => previous.id === entry.id) &&
+      entry.id !== "yarn:package-manager" &&
+      valueAt(document, entry.address) !== undefined
+    ) {
+      continue
+    }
     const updated = updateJson(
       document,
       entry.address,
@@ -268,6 +277,12 @@ function reconcileJsonDocument(input: {
     document = updated.value
   }
   for (const entry of input.desired.dependencies) {
+    if (
+      !input.priorEntries.some((previous) => previous.id === entry.id) &&
+      valueAt(document, [entry.section, entry.package]) !== undefined
+    ) {
+      continue
+    }
     const updated = updateJson(
       document,
       [entry.section, entry.package],
@@ -302,10 +317,26 @@ function reconcileJsonDocument(input: {
   return writeJsonIfChanged(input.path, input.current, removed)
 }
 
+function valueAt(
+  value: JsonValue,
+  address: readonly (string | number)[]
+): JsonValue | undefined {
+  let current: JsonValue | undefined = value
+  for (const segment of address) {
+    if (typeof segment === "number") {
+      current = Array.isArray(current) ? current[segment] : undefined
+      continue
+    }
+    current = isJsonObject(current) ? current[segment] : undefined
+  }
+  return current
+}
+
 function reconcileYamlDocument(input: {
   path: string
   desired: DesiredGroup
   prior: readonly LockContribution[]
+  priorEntries: readonly LockContribution[]
   current: string | undefined
 }): { changes: FileChange[]; problems: string[] } {
   const problems: string[] = []
@@ -339,7 +370,8 @@ function reconcileYamlDocument(input: {
       entry.address,
       entry.value,
       entry.update,
-      input.path
+      input.path,
+      input.priorEntries.some((previous) => previous.id === entry.id)
     )
     if (problem !== undefined) return { changes: [], problems: [problem] }
   }
@@ -565,6 +597,14 @@ function writeAt(
 ): JsonResult {
   const head = address[0]
   if (head === undefined) {
+    if (
+      update === "merge" &&
+      current !== undefined &&
+      !isJsonObject(value) &&
+      !isJsonArray(value)
+    ) {
+      return { ok: true, value: current }
+    }
     if (current === undefined || update === "replace")
       return { ok: true, value }
     return mergeValues(current, value, path, walked)
@@ -727,22 +767,45 @@ function yamlWriteProblem(
   address: StructuredAddress,
   value: JsonValue,
   update: "merge" | "replace",
-  path: string
+  path: string,
+  previouslyManaged: boolean
 ): string | undefined {
   const blocked = yamlPathProblem(document, address, path)
   if (blocked !== undefined) return blocked
+  const preserveComposeValues = path.startsWith("compose.")
+  const existing = unknownValue(document.getIn([...address]))
+  if (
+    preserveComposeValues &&
+    update === "replace" &&
+    !previouslyManaged &&
+    existing !== undefined
+  ) {
+    return undefined
+  }
   if (update === "merge" && isJsonObject(value)) {
-    const existing = unknownValue(document.getIn([...address]))
     if (isMap(existing)) {
       for (const key of Object.keys(value)) {
         const child = value[key]
         if (child === undefined) continue
+        const existingChild = unknownValue(document.getIn([...address, key]))
+        const mergeableChild =
+          (isJsonObject(child) && isMap(existingChild)) ||
+          (Array.isArray(child) && isSeq(existingChild))
+        if (
+          preserveComposeValues &&
+          !previouslyManaged &&
+          existingChild !== undefined &&
+          !mergeableChild
+        ) {
+          continue
+        }
         const problem = yamlWriteProblem(
           document,
           [...address, key],
           child,
           "merge",
-          path
+          path,
+          previouslyManaged
         )
         if (problem !== undefined) return problem
       }
@@ -750,7 +813,6 @@ function yamlWriteProblem(
     }
   }
   if (update === "merge" && Array.isArray(value)) {
-    const existing = unknownValue(document.getIn([...address]))
     if (isSeq(existing)) {
       const current = jsonUnknown(existing.toJS(document))
       if (Array.isArray(current)) {

@@ -13,6 +13,7 @@ const root = {
     url: "https://github.com/example/package-service.git",
   },
   workspaces: [],
+  dependencies: ["graphql-dev-kit"],
   registry: "https://npm.example.test",
 }
 const facts: ProjectFacts = { root, packages: [root] }
@@ -128,6 +129,37 @@ test("the package selection publishes a root and client workspace", () => {
   })
   expect(again.files).toEqual([])
   expect(again.runYarnInstall).toBe(false)
+})
+
+test("existing manifest dependency ranges become the selected versions", () => {
+  const existingRoot = {
+    ...root,
+    dependencyRanges: {
+      dependencies: {},
+      devDependencies: {
+        vite: "^5.2.0",
+        typescript: "5.9.3",
+        graphql: "^16.6.0",
+      },
+      peerDependencies: {},
+    },
+  }
+  const contributions = collectContributions(selection, {
+    root: existingRoot,
+    packages: [existingRoot],
+  })
+  expect(byId(contributions, "vite:dependency:vite")).toMatchObject({
+    range: "^5.2.0",
+  })
+  expect(byId(contributions, "typescript:dependency:typescript")).toMatchObject({
+    range: "5.9.3",
+  })
+  expect(
+    byId(
+      contributions,
+      "graphql:dependency:package.json:dependencies:graphql"
+    )
+  ).toMatchObject({ range: "^16.6.0" })
 })
 
 test("published file lists keep application entries", () => {

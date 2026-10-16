@@ -34,13 +34,20 @@ export const contributions: ProduceContributions = (selection, facts) => {
     wholeFile("Dockerfile", dockerfile(selection, identity, facts)),
     wholeFile("scripts/docker-entrypoint-node.sh", ENTRYPOINT),
     ...DOCKERIGNORE_LINES.map(([id, value]) => line(id, value)),
-    ...baseCompose(selection, identity),
-    ...localCompose(selection, identity),
+    ...baseCompose(selection, identity, facts),
+    ...localCompose(selection, identity, facts),
+    ...packageServiceCompose(facts),
   ]
   if (selection.runtimes.includes("integration")) {
     assertHttpsOrigin(identity.serviceUrlName, identity.serviceUrl)
     produced.push(
-      wholeFile("scripts/test-integration-ci.sh", ciScript(identity)),
+      wholeFile(
+        "scripts/test-integration-ci.sh",
+        ciScript(
+          identity,
+          facts.root.dependencies.includes("@multiplayerdb/package-service")
+        )
+      ),
       wholeFile("scripts/integration-local.sh", INTEGRATION_LOCAL_SCRIPT)
     )
   }
@@ -51,6 +58,40 @@ export const contributions: ProduceContributions = (selection, facts) => {
     )
   }
   return produced
+}
+
+function packageServiceCompose(
+  facts: ProjectFacts
+): Contribution[] {
+  if (!facts.root.dependencies.includes("@multiplayerdb/package-service")) {
+    return []
+  }
+  return [
+    yaml(
+      "package-service-base-include",
+      "compose.base.yaml",
+      ["include"],
+      [
+        {
+          path: `${requiredReference("PACKAGE_SERVICE_PATH")}/compose.base.yaml`,
+          project_directory: "${PACKAGE_SERVICE_PATH}",
+        },
+      ],
+      "merge"
+    ),
+    yaml(
+      "package-service-local-include",
+      "compose.local.yaml",
+      ["include"],
+      [
+        {
+          path: `${requiredReference("PACKAGE_SERVICE_PATH")}/compose.local.yaml`,
+          project_directory: "${PACKAGE_SERVICE_PATH}",
+        },
+      ],
+      "merge"
+    ),
+  ]
 }
 
 function gatewaySelected(selection: Selection): boolean {
@@ -342,13 +383,27 @@ CMD ["yarn", "test:integration:run"]
 
 function baseCompose(
   selection: Selection,
-  identity: ContainerIdentity
+  identity: ContainerIdentity,
+  facts: ProjectFacts
 ): Contribution[] {
+  const includesPackageService = facts.root.dependencies.includes(
+    "@multiplayerdb/package-service"
+  )
   const service: JsonValue = {
     image: identity.image,
     environment: {
       PORT: String(SERVICE_PORT),
+      ...(includesPackageService
+        ? { PACKAGE_SERVICE_URL: requiredReference("PACKAGE_SERVICE_URL") }
+        : {}),
     },
+    ...(includesPackageService
+      ? {
+          depends_on: {
+            "package-service": { condition: "service_healthy" },
+          },
+        }
+      : {}),
     volumes: [`${requiredReference("SSL_PATH")}:/ssl:ro`],
     networks: {
       default: {
@@ -384,7 +439,8 @@ function baseCompose(
 
 function localCompose(
   selection: Selection,
-  identity: ContainerIdentity
+  identity: ContainerIdentity,
+  facts: ProjectFacts
 ): Contribution[] {
   const service: JsonValue = {
     build: {
@@ -413,7 +469,7 @@ function localCompose(
       "replace"
     ),
     ...gatewayLocal(selection, identity),
-    ...integrationLocal(selection, identity),
+    ...integrationLocal(selection, identity, facts),
   ]
 }
 
@@ -481,7 +537,8 @@ function gatewayLocal(
 
 function integrationLocal(
   selection: Selection,
-  identity: ContainerIdentity
+  identity: ContainerIdentity,
+  facts: ProjectFacts
 ): Contribution[] {
   if (!selection.runtimes.includes("integration")) return []
   const upstream = gatewaySelected(selection)
@@ -495,11 +552,19 @@ function integrationLocal(
     },
     environment: {
       [identity.serviceUrlName]: requiredReference(identity.serviceUrlName),
+      ...(facts.root.dependencies.includes("@multiplayerdb/package-service")
+        ? { PACKAGE_SERVICE_URL: requiredReference("PACKAGE_SERVICE_URL") }
+        : {}),
     },
     depends_on: {
       [upstream]: {
         condition: "service_healthy",
       },
+      ...(facts.root.dependencies.includes("@multiplayerdb/package-service")
+        ? {
+            "package-service": { condition: "service_healthy" },
+          }
+        : {}),
     },
     volumes: [
       `${requiredReference("SSL_PATH")}:/ssl:ro`,
@@ -528,7 +593,25 @@ function integrationLocal(
   ]
 }
 
-function ciScript(identity: ContainerIdentity): string {
+function ciScript(
+  identity: ContainerIdentity,
+  includesPackageService: boolean
+): string {
+  const packagePath = includesPackageService
+    ? `PACKAGE_SERVICE_PATH=$(yarn node -e '
+const { getPackageInformation, findPackageLocator } = require("pnpapi")
+const resolved = require.resolve("@multiplayerdb/package-service")
+const locator = findPackageLocator(resolved)
+if (!locator) throw new Error("Could not locate @multiplayerdb/package-service")
+process.stdout.write(getPackageInformation(locator).packageLocation.replace(/\\/$/, ""))
+')
+export PACKAGE_SERVICE_PATH
+
+`
+    : ""
+  const packageUrl = includesPackageService
+    ? `  -e PACKAGE_SERVICE_URL="\${PACKAGE_SERVICE_URL:?}" \\\n`
+    : ""
   return `#!/bin/sh
 set -eu
 
@@ -546,7 +629,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-compose up -d --wait --wait-timeout 120
+${packagePath}compose up -d --wait --wait-timeout 120
 
 ssl_abs=$(CDPATH= cd -- "\${SSL_PATH:?}" && pwd)
 server_id=$(compose ps -q ${identity.serviceName})
@@ -555,7 +638,7 @@ network=$(docker inspect --format '{{range $name, $net := .NetworkSettings.Netwo
 docker run --rm \\
   --network "$network" \\
   -e ${identity.serviceUrlName}="\${${identity.serviceUrlName}:?}" \\
-  -v "\${ssl_abs}:/ssl:ro" \\
+${packageUrl}  -v "\${ssl_abs}:/ssl:ro" \\
   "${identity.integrationImage}" \\
   yarn test:integration:run
 `

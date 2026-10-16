@@ -16,9 +16,8 @@ export function packageManifestContributions(
   facts: ProjectFacts
 ): readonly Contribution[] {
   const produced: Contribution[] = [
-    script("confgen", confgenCommand(selection)),
   ]
-  const build = aggregateBuild(selection)
+  const build = aggregateBuild(selection, facts)
   if (build !== undefined) produced.push(script("build", build))
   const fix = aggregateFix(selection)
   if (fix !== undefined) produced.push(script("fix", fix))
@@ -62,7 +61,10 @@ const BUILD_SCRIPTS: Partial<Record<RuntimeName, string>> = {
   client: "build:client",
 }
 
-function aggregateBuild(selection: Selection): string | undefined {
+function aggregateBuild(
+  selection: Selection,
+  facts: ProjectFacts
+): string | undefined {
   const commands: string[] = []
   const clean = cleanOutput(selection)
   if (clean.length > 0) commands.push(`rm -rf ${clean.join(" ")}`)
@@ -75,7 +77,8 @@ function aggregateBuild(selection: Selection): string | undefined {
       if (
         runtime === "lib" &&
         selection.presets.includes("graphql") &&
-        selection.runtimes.includes("lib")
+        selection.runtimes.includes("lib") &&
+        facts.root.dependencies.includes("graphql-dev-kit")
       ) {
         commands.push("yarn build:test-kit")
       }
@@ -115,13 +118,6 @@ function aggregateCheck(selection: Selection): string | undefined {
   if (selection.presets.includes("prettier")) commands.push("yarn check:format")
   if (commands.length === 0) return undefined
   return commands.join(" && ")
-}
-
-function confgenCommand(selection: Selection): string {
-  const runtimes = selection.runtimes.map((runtime) => `#${runtime}`).join(",")
-  const command = `confgen runtimes=${runtimes}`
-  if (selection.presets.length === 0) return command
-  return `${command} ${selection.presets.join(" ")}`
 }
 
 function rootExports(selection: Selection): JsonValue {

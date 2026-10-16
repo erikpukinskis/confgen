@@ -14,27 +14,32 @@ export const contributions: ProduceContributions = (selection, facts) => {
     selection.runtimes.includes("lib") ||
     selection.runtimes.includes("client")
   ) {
-    produced.push(
-      dependency("unplugin-dts", "1.1.2"),
-      dependency("@microsoft/api-extractor", "7.59.4")
-    )
+    produced.push(dependency("unplugin-dts", "1.1.2"))
+    if (
+      !facts.root.dependencies.includes("unplugin-dts") ||
+      facts.root.dependencies.includes("@microsoft/api-extractor")
+    ) {
+      produced.push(dependency("@microsoft/api-extractor", "7.59.4"))
+    }
   }
   if (selection.runtimes.includes("lib")) {
     produced.push(
       script("build:lib", "vite build --config vite.lib.config.ts"),
-      libConfig(facts)
+      libConfig(facts, selection)
     )
     if (selection.presets.includes("graphql")) {
-      produced.push(
-        script("build:test-kit", "vite build --config vite.test-kit.config.ts"),
-        testKitConfig(facts)
-      )
+      if (facts.root.dependencies.includes("graphql-dev-kit")) {
+        produced.push(
+          script("build:test-kit", "vite build --config vite.test-kit.config.ts"),
+          testKitConfig(facts)
+        )
+      }
     }
   }
   if (selection.runtimes.includes("server")) {
     produced.push(
       script("build:server", "vite build --config vite.server.config.ts"),
-      serverConfig()
+      serverConfig(selection)
     )
   }
   if (selection.runtimes.includes("client")) {
@@ -46,9 +51,10 @@ export const contributions: ProduceContributions = (selection, facts) => {
   return produced
 }
 
-function libConfig(facts: ProjectFacts): Contribution {
+function libConfig(facts: ProjectFacts, selection: Selection): Contribution {
   return viteConfig("vite.lib.config.ts", [
     resolveImport(),
+    ...sqlPlugin(selection),
     ...dtsPlugin(`{
       tsconfigPath: resolve("tsconfig.json"),
       bundleTypes: true,
@@ -115,9 +121,10 @@ function testKitConfig(facts: ProjectFacts): Contribution {
   ])
 }
 
-function serverConfig(): Contribution {
+function serverConfig(selection: Selection): Contribution {
   return viteConfig("vite.server.config.ts", [
     resolveImport(),
+    ...sqlPlugin(selection),
     property("app-type", ["appType"], '"custom"'),
     property("public-dir", ["publicDir"], "false"),
     property("build-ssr", ["build", "ssr"], 'resolve("server/index.ts")'),
@@ -141,6 +148,7 @@ function serverConfig(): Contribution {
 function clientConfig(selection: Selection, facts: ProjectFacts): Contribution {
   const items: ViteConfigItem[] = [
     resolveImport(),
+    ...sqlPlugin(selection),
     ...dtsPlugin(`{
       tsconfigPath: resolve("tsconfig.client.json"),
     }`),
@@ -171,6 +179,27 @@ function clientConfig(selection: Selection, facts: ProjectFacts): Contribution {
     )
   }
   return viteConfig("vite.client.config.ts", items)
+}
+
+function sqlPlugin(selection: Selection): ViteConfigItem[] {
+  if (!selection.presets.includes("sql")) return []
+  return [
+    {
+      id: "import:sql",
+      source: "preset:vite",
+      kind: "import",
+      module: "vite-plugin-sql",
+      imported: { kind: "default" },
+      preferredLocal: "sql",
+    },
+    {
+      id: "plugin:sql",
+      source: "preset:vite",
+      kind: "plugin",
+      importId: "import:sql",
+      arguments: [],
+    },
+  ]
 }
 
 function viteConfig(

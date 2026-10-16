@@ -1,4 +1,4 @@
-import type { Contribution } from "./contributions.js"
+import type { Contribution, JsonValue } from "./contributions.js"
 import { ConfgenError } from "./errors.js"
 import { textHash, type LockData } from "./lock.js"
 import { reconcile } from "./reconcile.js"
@@ -55,7 +55,7 @@ test("creates absent files and leaves an unchanged rerun alone", () => {
   expect(again.runYarnInstall).toBe(false)
 })
 
-test("preserves application JSON and replaces a recognized value", () => {
+test("preserves application JSON values on first adoption", () => {
   const current = `{
   "name": "example",
   "compilerOptions": {
@@ -93,10 +93,74 @@ test("preserves application JSON and replaces a recognized value", () => {
     yarnLockPresent: true,
     pnpPresent: true,
   })
-  expect(JSON.parse(writtenContents(replaced.files, "tsconfig.json"))).toEqual({
-    name: "example",
-    compilerOptions: { strict: true, custom: true },
+  expect(replaced.files).toEqual([])
+})
+
+test("migrates the package manager when adopting the Yarn preset", () => {
+  const result = reconcile({
+    selection,
+    contributions: [
+      {
+        id: "yarn:package-manager",
+        source: "preset:yarn",
+        kind: "structured",
+        path: "package.json",
+        format: "json",
+        address: ["packageManager"],
+        value: "yarn@4.11.0",
+        update: "replace",
+      },
+    ],
+    prior: undefined,
+    files: new Map([
+      [
+        "package.json",
+        '{ "name": "example", "packageManager": "yarn@1.22.19" }\n',
+      ],
+    ]),
+    yarnLockPresent: true,
+    pnpPresent: true,
   })
+
+  expect(
+    JSON.parse(writtenContents(result.files, "package.json"))
+  ).toMatchObject({
+    packageManager: "yarn@4.11.0",
+  })
+  expect(result.runYarnInstall).toBe(true)
+})
+
+test("merge leaves an existing scalar setting intact on every run", () => {
+  const current = '{ "module": "Preserve" }\n'
+  const first = reconcile({
+    selection,
+    contributions: [
+      structured(["module"], "NodeNext", "merge", "tsconfig.json"),
+    ],
+    prior: undefined,
+    files: new Map([["tsconfig.json", current]]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(first.files).toEqual([])
+})
+
+test("preserves an application dependency range on first adoption", () => {
+  const result = reconcile({
+    selection,
+    contributions: [dependency("typescript", "5.9.3")],
+    prior: undefined,
+    files: new Map([
+      [
+        "package.json",
+        '{ "name": "example", "devDependencies": { "typescript": "^5.8.0" } }\n',
+      ],
+    ]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+
+  expect(result.files).toEqual([])
 })
 
 test("preserves unrelated YAML keys and comments", () => {
@@ -128,6 +192,41 @@ compilerOptions:
   expect(contents).toContain("# keep")
   expect(contents).toContain("custom: true")
   expect(contents).toContain("strict: true")
+})
+
+test("preserves existing YAML leaves while adding missing configuration", () => {
+  const result = reconcile({
+    selection,
+    contributions: [
+      {
+        id: "yaml-service",
+        source: "preset:docker",
+        kind: "structured",
+        path: "compose.yaml",
+        format: "yaml",
+        address: ["services"],
+        value: {
+          api: {
+            image: "generated:tag",
+            environment: { PACKAGE_SERVICE_URL: "https://package.test" },
+          },
+        },
+        update: "merge",
+      },
+    ],
+    prior: undefined,
+    files: new Map([
+      ["compose.yaml", "services:\n  api:\n    image: application:image\n"],
+      ["package.json", '{ "name": "example" }\n'],
+      ["tsconfig.json", "{}\n"],
+    ]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+
+  const contents = writtenContents(result.files, "compose.yaml")
+  expect(contents).toContain("application:image")
+  expect(contents).toContain("PACKAGE_SERVICE_URL")
 })
 
 test("stops before a change set when replacement would destroy a container", () => {
@@ -426,7 +525,7 @@ function starter(path: string, contents: string): Contribution {
 
 function structured(
   address: readonly (string | number)[],
-  value: boolean | { readonly strict: boolean },
+  value: JsonValue,
   update: "merge" | "replace",
   path = "tsconfig.json"
 ): Contribution {

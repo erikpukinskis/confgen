@@ -62,7 +62,9 @@ export function reconcileViteConfig(input: {
     parsed.sourceFile,
     parsed.root,
     input.items,
-    removed
+    removed,
+    new Set(input.priorItems.filter(isPluginItem).map((item) => item.id)),
+    new Set(input.priorItems.filter(isPropertyItem).map((item) => item.id))
   )
   if (planned.problems.length > 0) return { problems: planned.problems }
   if (planned.edits.length === 0 && planned.removedImports.length === 0) {
@@ -240,7 +242,9 @@ function planEdits(
   sourceFile: ts.SourceFile,
   root: ts.ObjectLiteralExpression,
   items: readonly ViteConfigItem[],
-  removed: readonly ViteConfigItem[]
+  removed: readonly ViteConfigItem[],
+  previouslyManagedPlugins: ReadonlySet<string>,
+  previouslyManagedProperties: ReadonlySet<string>
 ): { edits: SourceEdit[]; removedImports: ImportItem[]; problems: string[] } {
   const problems: string[] = []
   const edits: SourceEdit[] = []
@@ -262,7 +266,8 @@ function planEdits(
     root,
     plugins,
     removedPlugins,
-    locals
+    locals,
+    previouslyManagedPlugins
   )
   problems.push(...pluginPlan.problems)
   edits.push(...pluginPlan.edits)
@@ -272,7 +277,8 @@ function planEdits(
     sourceFile,
     root,
     properties,
-    removedProperties
+    removedProperties,
+    previouslyManagedProperties
   )
   problems.push(...propertyPlan.problems)
   edits.push(...propertyPlan.edits)
@@ -295,7 +301,8 @@ function planPlugins(
   root: ts.ObjectLiteralExpression,
   plugins: readonly PluginItem[],
   removed: readonly PluginItem[],
-  locals: ReadonlyMap<string, string>
+  locals: ReadonlyMap<string, string>,
+  previouslyManagedPlugins: ReadonlySet<string>
 ): { edits: SourceEdit[]; problems: string[] } {
   const problems: string[] = []
   const edits: SourceEdit[] = []
@@ -360,6 +367,7 @@ function planPlugins(
       edits.push(insertArrayElement(initializer, next))
       continue
     }
+    if (!previouslyManagedPlugins.has(desired.id)) continue
     if (sourceFile.text.slice(call.getStart(), call.getEnd()) !== next) {
       edits.push({ start: call.getStart(), end: call.getEnd(), text: next })
     }
@@ -372,7 +380,8 @@ function planProperties(
   sourceFile: ts.SourceFile,
   root: ts.ObjectLiteralExpression,
   properties: readonly PropertyItem[],
-  removed: readonly PropertyItem[]
+  removed: readonly PropertyItem[],
+  previouslyManagedProperties: ReadonlySet<string>
 ): { edits: SourceEdit[]; problems: string[] } {
   const problems: string[] = []
   const edits: SourceEdit[] = []
@@ -381,18 +390,124 @@ function planProperties(
     problems.push(...result.problems)
     edits.push(...result.edits)
   }
+  const grouped = groupMissingProperties(root, properties)
+  edits.push(...grouped.edits)
   for (const property of properties) {
+    if (grouped.ids.has(property.id)) continue
     const result = planPropertyWrite(
       path,
       sourceFile,
       root,
       property.path,
-      property.value
+      property.value,
+      previouslyManagedProperties.has(property.id)
     )
     problems.push(...result.problems)
     edits.push(...result.edits)
   }
   return { edits, problems }
+}
+
+function groupMissingProperties(
+  root: ts.ObjectLiteralExpression,
+  properties: readonly PropertyItem[]
+): { edits: SourceEdit[]; ids: ReadonlySet<string> } {
+  const groups = new Map<string, PropertyItem[]>()
+  for (const property of properties) {
+    const missing = firstMissingPath(root, property.path)
+    if (missing === undefined || missing.index === property.path.length - 1)
+      continue
+    const key = missing.path.join(".")
+    const group = groups.get(key) ?? []
+    group.push(property)
+    groups.set(key, group)
+  }
+
+  const edits: SourceEdit[] = []
+  const ids = new Set<string>()
+  for (const [key, group] of groups) {
+    const path = key.split(".")
+    const parent = objectAtPath(root, path.slice(0, -1))
+    if (parent === undefined) continue
+    const tree = new Map<string, unknown>()
+    for (const property of group) {
+      ids.add(property.id)
+      insertTree(
+        tree,
+        property.path.slice(path.length),
+        property.value
+      )
+    }
+    edits.push(insertProperty(parent, `${path.at(-1)}: ${renderTree(tree)}`))
+  }
+  return { edits, ids }
+}
+
+function firstMissingPath(
+  root: ts.ObjectLiteralExpression,
+  path: readonly string[]
+): { path: string[]; index: number } | undefined {
+  let object = root
+  for (let index = 0; index < path.length; index += 1) {
+    const segment = path[index]
+    if (segment === undefined) return undefined
+    const found = findProperty(object, segment)
+    if (found.kind === "missing") {
+      return { path: path.slice(0, index + 1), index }
+    }
+    if (found.kind !== "property" || index === path.length - 1)
+      return undefined
+    const initializer = propertyInitializer(found.property)
+    if (initializer === undefined || !ts.isObjectLiteralExpression(initializer))
+      return undefined
+    object = initializer
+  }
+  return undefined
+}
+
+function objectAtPath(
+  root: ts.ObjectLiteralExpression,
+  path: readonly string[]
+): ts.ObjectLiteralExpression | undefined {
+  let object = root
+  for (const segment of path) {
+    const found = findProperty(object, segment)
+    if (found.kind !== "property") return undefined
+    const initializer = propertyInitializer(found.property)
+    if (initializer === undefined || !ts.isObjectLiteralExpression(initializer))
+      return undefined
+    object = initializer
+  }
+  return object
+}
+
+function insertTree(
+  tree: Map<string, unknown>,
+  path: readonly string[],
+  value: string
+): void {
+  const head = path[0]
+  if (head === undefined) return
+  if (path.length === 1) {
+    tree.set(head, value)
+    return
+  }
+  const existing = tree.get(head)
+  const nested = existing instanceof Map ? existing : new Map<string, unknown>()
+  tree.set(head, nested)
+  insertTree(nested, path.slice(1), value)
+}
+
+function renderTree(tree: Map<string, unknown>): string {
+  const entries = [...tree].map(([key, value]) => {
+    const rendered = value instanceof Map ? renderTree(value) : value
+    return `${propertyKey(key)}: ${rendered}`
+  })
+  return `{ ${entries.join(", ")} }`
+}
+
+function propertyKey(value: string): string {
+  return /^[$A-Z_a-z][$\\w]*$/.test(value) ? value : JSON.stringify(value)
 }
 
 function planPropertyRemoval(
@@ -439,7 +554,8 @@ function planPropertyWrite(
   sourceFile: ts.SourceFile,
   object: ts.ObjectLiteralExpression,
   propertyPath: readonly string[],
-  value: string
+  value: string,
+  previouslyManaged: boolean
 ): { edits: SourceEdit[]; problems: string[] } {
   const head = propertyPath[0]
   if (head === undefined) {
@@ -460,6 +576,7 @@ function planPropertyWrite(
         problems: [],
       }
     }
+    if (!previouslyManaged) return { edits: [], problems: [] }
     const initializer = propertyInitializer(found.property)
     if (initializer === undefined) {
       return {
@@ -512,7 +629,8 @@ function planPropertyWrite(
     sourceFile,
     initializer,
     propertyPath.slice(1),
-    value
+    value,
+    previouslyManaged
   )
 }
 
@@ -738,7 +856,8 @@ function insertProperty(
   if (object.properties.length === 0) {
     return { start: close, end: close, text, join: "comma" }
   }
-  return { start: close, end: close, text: `, ${text}`, join: "comma" }
+  const prefix = object.properties.hasTrailingComma ? " " : ", "
+  return { start: close, end: close, text: `${prefix}${text}`, join: "comma" }
 }
 
 function insertArrayElement(
@@ -749,7 +868,8 @@ function insertArrayElement(
   if (array.elements.length === 0) {
     return { start: close, end: close, text, join: "comma" }
   }
-  return { start: close, end: close, text: `, ${text}`, join: "comma" }
+  const prefix = array.elements.hasTrailingComma ? " " : ", "
+  return { start: close, end: close, text: `${prefix}${text}`, join: "comma" }
 }
 
 function removeArrayElement(

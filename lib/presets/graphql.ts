@@ -8,7 +8,7 @@ const GRAPHQL_VERSION = "16.11.0"
  * published client documents, the modules that expose them, and the thin
  * test kit. Generated output is left to the code generator.
  */
-export const contributions: ProduceContributions = (selection) => {
+export const contributions: ProduceContributions = (selection, facts) => {
   const produced: Contribution[] = [
     dependency("package.json", "dependencies", "graphql", GRAPHQL_VERSION),
     dependency(
@@ -38,7 +38,6 @@ export const contributions: ProduceContributions = (selection) => {
     script("build:generate", "graphql-codegen"),
     starter("codegen", "codegen.yml", codegenYaml(selection)),
     starter("schema", "gql/schema.graphql", SCHEMA),
-    starter("resolvers", "gql/resolvers.ts", RESOLVERS),
     starter("graphql-module", "gql/index.ts", GRAPHQL_MODULE),
     starter("raw-module", "gql/raw-modules.d.ts", RAW_MODULE),
     wholeFile(
@@ -47,8 +46,13 @@ export const contributions: ProduceContributions = (selection) => {
       REGISTER_GRAPHQL_RAW
     ),
     wholeFile("raw-loader", "gql/graphqlRawLoader.mjs", GRAPHQL_RAW_LOADER),
-    starter("resolver-test", "gql/resolvers.test.ts", RESOLVER_TEST),
   ]
+  if (facts.root.dependencies.includes("graphql-dev-kit")) {
+    produced.push(
+      starter("resolvers", "gql/resolvers.ts", RESOLVERS),
+      starter("resolver-test", "gql/resolvers.test.ts", RESOLVER_TEST)
+    )
+  }
   if (selection.runtimes.includes("client")) {
     produced.push(
       dependency(
@@ -79,7 +83,10 @@ export const contributions: ProduceContributions = (selection) => {
       starter("client-operations", "client/index.ts", CLIENT_OPERATIONS)
     )
   }
-  if (selection.runtimes.includes("lib")) {
+  if (
+    selection.runtimes.includes("lib") &&
+    facts.root.dependencies.includes("graphql-dev-kit")
+  ) {
     produced.push(starter("test-kit", "lib/test.ts", TEST_KIT))
   }
   return produced

@@ -21,61 +21,98 @@ import { stringify } from "yaml"
 const STANDARD_RUNNER = "ubuntu-slim"
 const DOCKER_RUNNER = "ubuntu-latest"
 const BUMP_N_PUB_VERSION = "0.30.0"
-const CHECKS_WORKFLOW = ".github/workflows/checks.yml"
-const INTEGRATION_WORKFLOW = ".github/workflows/integration.yml"
+const FORMAT_WORKFLOW = ".github/workflows/check-code-format.yml"
+const LINT_WORKFLOW = ".github/workflows/check-lint.yml"
+const TYPES_WORKFLOW = ".github/workflows/check-types.yml"
+const UNIT_WORKFLOW = ".github/workflows/unit-tests.yml"
+const DEFAULT_INTEGRATION_WORKFLOW = ".github/workflows/integration-tests.yml"
+const ARTIFACTS_WORKFLOW = ".github/workflows/artifacts.yml"
 const CI_WORKFLOW = ".github/workflows/ci.yml"
-const SHOULD_PUBLISH = "needs.prepare.outputs.should_publish == 'true'"
-/**
- * `success()` keeps npm publication behind a successful image job. A failed
- * image job skips these jobs, so a failed-job rerun can publish the images
- * and then the packages.
- */
-const PUBLISH_AFTER_IMAGES = `success() && ${SHOULD_PUBLISH}`
+const STEP_SHOULD_PUBLISH = "steps.prepare.outputs.should_publish == 'true'"
 const PUBLISH_COMMAND =
-  "yarn npm publish ${{ contains(needs.prepare.outputs.package_version, '-') && '--tag preview' || '' }}\n"
+  "yarn npm publish ${{ contains(steps.prepare.outputs.package_version, '-') && '--tag preview' || '' }}"
 const RELEASE_IF =
-  "contains(fromJSON(vars.PUBLISHING_BRANCHES), github.ref_name) && needs.prepare.outputs.should_publish == 'true' && !contains(needs.prepare.outputs.package_version, '-')"
+  "contains(fromJSON(vars.PUBLISHING_BRANCHES), github.ref_name) && steps.prepare.outputs.should_publish == 'true' && !contains(steps.prepare.outputs.package_version, '-')"
 
 export const contributions: ProduceContributions = (selection, facts) => {
-  const checks = checksDocument(selection)
+  const workflows = checkDocuments(selection)
+  const integrationPath =
+    facts.integrationWorkflowPath ?? DEFAULT_INTEGRATION_WORKFLOW
   const integration = integrationDocument(selection, facts)
-  const jobs = ciJobs(selection, facts, {
-    checks: checks !== undefined,
-    integration: integration !== undefined,
-  })
+  const hasArtifacts = preparesRelease(selection)
+  const releases = facts.publishGitHubRelease ?? publishesPackages(selection)
+  const jobs = ciCallJobs(
+    selection,
+    integrationPath,
+    integration !== undefined,
+    hasArtifacts,
+    releases
+  )
   const produced: Contribution[] = []
-  if (checks !== undefined) {
-    produced.push(wholeFile(CHECKS_WORKFLOW, renderWorkflow(checks)))
-  }
+  for (const [path, document] of workflows)
+    produced.push(wholeFile(path, renderWorkflow(document)))
   if (integration !== undefined) {
-    produced.push(wholeFile(INTEGRATION_WORKFLOW, renderWorkflow(integration)))
+    produced.push(wholeFile(integrationPath, renderWorkflow(integration)))
+  }
+  if (hasArtifacts) {
+    produced.push(
+      wholeFile(
+        ARTIFACTS_WORKFLOW,
+        renderWorkflow(artifactsDocument(selection, facts))
+      )
+    )
   }
   if (Object.keys(jobs).length > 0) produced.push(...ciDocument(jobs))
   if (usesBumpNPub(selection)) produced.push(bumpDependency())
   return produced
 }
 
-function checksDocument(selection: Selection): JsonValue | undefined {
-  const jobs: { [key: string]: JsonValue } = {}
-  if (selection.presets.includes("prettier")) {
-    jobs.format = commandJob(["yarn check:format"])
-  }
-  if (selection.presets.includes("eslint")) {
-    jobs.lint = commandJob(lintCommands(selection))
-  }
-  if (selection.presets.includes("typescript")) {
-    jobs.types = commandJob(typecheckCommands(selection))
-  }
-  if (selection.presets.includes("vitest")) {
-    jobs.test = commandJob(testCommands(selection))
-  }
-  if (selection.presets.includes("vite")) jobs.build = buildJob(selection)
-  if (Object.keys(jobs).length === 0) return undefined
+function checkDocuments(selection: Selection): Map<string, JsonValue> {
+  const docs = new Map<string, JsonValue>()
+  if (selection.presets.includes("prettier"))
+    docs.set(
+      FORMAT_WORKFLOW,
+      checkDocument("code format", "check-code-format", ["yarn check:format"])
+    )
+  if (selection.presets.includes("eslint"))
+    docs.set(
+      LINT_WORKFLOW,
+      checkDocument("lint", "check-lint", lintCommands(selection))
+    )
+  if (selection.presets.includes("typescript"))
+    docs.set(
+      TYPES_WORKFLOW,
+      checkDocument("types", "check-types", typecheckCommands(selection))
+    )
+  if (selection.presets.includes("vitest"))
+    docs.set(
+      UNIT_WORKFLOW,
+      checkDocument(
+        "unit tests",
+        "run-unit-tests",
+        testCommands(selection),
+        "run"
+      )
+    )
+  return docs
+}
+
+function checkDocument(
+  name: string,
+  concurrency: string,
+  commands: readonly string[],
+  jobName = "check"
+): JsonValue {
   return {
-    name: "checks",
-    on: { workflow_call: workflowCall(jobs.build !== undefined) },
-    permissions: { contents: "read" },
-    jobs,
+    name,
+    on: "workflow_call",
+    concurrency: { group: concurrency, "cancel-in-progress": true },
+    jobs: {
+      [jobName]: {
+        "runs-on": STANDARD_RUNNER,
+        steps: [...setupSteps(), ...commands.map((run) => ({ run }))],
+      },
+    },
   }
 }
 
@@ -86,56 +123,214 @@ function integrationDocument(
   if (!publishesContainers(selection)) return undefined
   if (!selection.runtimes.includes("integration")) return undefined
   const identity = requireContainerIdentity(facts)
+  const env: { [key: string]: JsonValue } = {
+    DEV_CLUSTER_STATE_DIR: "${{ github.workspace }}/.dev-cluster",
+    SSL_PATH: "${{ github.workspace }}/.dev-cluster/certs",
+    IMAGE_TAG: "${{ github.sha }}",
+  }
+  if (facts.publishGitHubRelease === false) {
+    env.EXPRESS_SESSION_SECRETS =
+      "${{ github.run_id }}-${{ github.run_attempt }}"
+  }
+  env[identity.serviceUrlName] = identity.serviceUrl
+  if (facts.root.dependencies.includes("@multiplayerdb/package-service")) {
+    env.PACKAGE_SERVICE_URL = "https://package-service.local.multiplayerdb.dev"
+  }
   return {
-    name: "integration",
-    on: { workflow_call: {} },
+    name: "integration tests",
+    on: "workflow_call",
     permissions: { contents: "read" },
-    jobs: { integration: integrationJob(selection, identity) },
+    env,
+    concurrency: {
+      group: "run-integration-tests-${{ github.ref }}",
+      "cancel-in-progress":
+        "${{ !contains(fromJSON(vars.PUBLISHING_BRANCHES), github.ref_name) }}",
+    },
+    jobs: {
+      run: integrationJob(
+        selection,
+        identity,
+        facts.publishGitHubRelease === false
+      ),
+    },
   }
 }
 
-function ciJobs(
+function ciCallJobs(
   selection: Selection,
-  facts: ProjectFacts,
-  present: { checks: boolean; integration: boolean }
+  integrationPath: string,
+  integration: boolean,
+  artifacts: boolean,
+  releases: boolean
 ): { [key: string]: JsonValue } {
   const jobs: { [key: string]: JsonValue } = {}
-  if (present.checks) jobs.checks = { uses: `./${CHECKS_WORKFLOW}` }
-  if (present.integration) {
-    jobs.integration = { uses: `./${INTEGRATION_WORKFLOW}` }
-  }
-  const registries = selection.presets.includes("githubPackage")
-  const prepare = preparesRelease(selection)
-  const images = publishesImages(selection)
-  const root = publishesRoot(selection)
-  const client = publishesClient(selection)
-  if (registries) jobs.registries = registriesJob()
-  if (prepare) jobs.prepare = prepareJob()
-  const flags = {
-    checks: present.checks,
-    integration: present.integration,
-    registries,
-    prepare,
-  }
-  const packageNeeds = needsBeforePublish(flags)
-  if (images) packageNeeds.push("publish-images")
-  if (root) {
-    jobs["publish-root"] = publishRootJob(packageNeeds, images)
-  }
-  if (client) {
-    jobs["publish-client"] = publishClientJob(packageNeeds, images)
-  }
-  if (images) {
-    jobs["publish-images"] = publishImagesJob(
-      selection,
-      facts,
-      needsBeforePublish(flags)
-    )
-  }
-  if (root || client) {
-    jobs.release = releaseJob(releaseNeeds({ root, client, images, prepare }))
+  if (selection.presets.includes("typescript"))
+    jobs.types = { uses: `./${TYPES_WORKFLOW}` }
+  if (selection.presets.includes("eslint"))
+    jobs.lint = { uses: `./${LINT_WORKFLOW}` }
+  if (selection.presets.includes("prettier"))
+    jobs["code-format"] = { uses: `./${FORMAT_WORKFLOW}` }
+  if (selection.presets.includes("vitest"))
+    jobs["unit-tests"] = { uses: `./${UNIT_WORKFLOW}` }
+  if (integration) jobs["integration-tests"] = { uses: `./${integrationPath}` }
+  if (artifacts) {
+    jobs.artifacts = {
+      needs: Object.keys(jobs),
+      uses: `./${ARTIFACTS_WORKFLOW}`,
+      permissions: {
+        contents: releases ? "write" : "read",
+        packages:
+          publishesContainers(selection) || publishesPackages(selection)
+            ? "write"
+            : "read",
+      },
+    }
   }
   return jobs
+}
+
+function artifactsDocument(
+  selection: Selection,
+  facts: ProjectFacts
+): JsonValue {
+  const releases = facts.publishGitHubRelease ?? publishesPackages(selection)
+  const publishesClientPackage =
+    facts.publishClientPackage ?? publishesClient(selection)
+  const steps = [...setupSteps()]
+  if (selection.presets.includes("githubPackage")) {
+    steps.push({
+      name: "Check registries",
+      run: "yarn bump-n-pub check-registries",
+    })
+  }
+  const prepareStep: JsonValue = {
+    id: "prepare",
+    name: "Prepare release",
+    run: 'npm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN"\nyarn bump-n-pub prepare >> "$GITHUB_OUTPUT"\n',
+    env: { NPM_CONFIG_USERCONFIG: "${{ runner.temp }}/.npmrc" },
+  }
+  const packageChecks: JsonValue[] = publishesPackages(selection)
+    ? [
+        { name: "Build packages", run: "yarn build" },
+        { name: "Inspect packages", run: "yarn bump-n-pub check-pack" },
+      ]
+    : []
+  const images = containerPublishSteps(selection, facts)
+  if (publishesPackages(selection) && !releases) {
+    steps.push(...images, prepareStep, ...packageChecks)
+  } else {
+    steps.push(prepareStep)
+    if (releases && publishesPackages(selection)) {
+      steps.push({
+        name: "Stamp published Compose image tags",
+        if: STEP_SHOULD_PUBLISH,
+        run: STAMP_COMPOSE,
+      })
+    }
+    steps.push(...packageChecks)
+    steps.push(...images)
+  }
+  if (publishesRoot(selection)) {
+    steps.push({
+      name: "Publish service package",
+      if: STEP_SHOULD_PUBLISH,
+      run: PUBLISH_COMMAND,
+    })
+  }
+  if (publishesClientPackage && publishesClient(selection)) {
+    steps.push({
+      name: "Publish client package",
+      if: STEP_SHOULD_PUBLISH,
+      "working-directory": "client",
+      run: PUBLISH_COMMAND,
+    })
+  }
+  if (releases && publishesPackages(selection)) {
+    steps.push({
+      name: "Create GitHub release",
+      if: RELEASE_IF,
+      env: { GH_TOKEN: "${{ github.token }}" },
+      run: 'gh release create "v${{ steps.prepare.outputs.package_version }}" --generate-notes --target "${{ github.sha }}"',
+    })
+  }
+  return {
+    name: "artifacts",
+    on: "workflow_call",
+    permissions: {
+      contents: releases && publishesPackages(selection) ? "write" : "read",
+      packages:
+        publishesContainers(selection) || publishesPackages(selection)
+          ? "write"
+          : "read",
+    },
+    env: { IMAGE_TAG: "${{ github.sha }}" },
+    concurrency: {
+      group: "package-${{ github.ref }}",
+      "cancel-in-progress": true,
+    },
+    jobs: {
+      package: {
+        "runs-on": DOCKER_RUNNER,
+        env: {
+          NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}",
+          ...(preparesRelease(selection)
+            ? { PUBLISHING_BRANCHES: "${{ vars.PUBLISHING_BRANCHES }}" }
+            : {}),
+        },
+        steps,
+      },
+    },
+  }
+}
+
+function containerPublishSteps(
+  selection: Selection,
+  facts: ProjectFacts
+): JsonValue[] {
+  if (!publishesContainers(selection)) return []
+  const identity = requireContainerIdentity(facts)
+  const steps: JsonValue[] = [
+    {
+      name: "Set up Docker Buildx",
+      if: STEP_SHOULD_PUBLISH,
+      uses: "docker/setup-buildx-action@v4",
+    },
+    {
+      name: "Log in to GHCR",
+      if: STEP_SHOULD_PUBLISH,
+      uses: "docker/login-action@v3",
+      with: {
+        registry: "ghcr.io",
+        username: "${{ github.actor }}",
+        password: "${{ secrets.GITHUB_TOKEN }}",
+      },
+    },
+    imageBuild({
+      name: `Push ${identity.serviceName} image to registry`,
+      file: "Dockerfile",
+      target: "prod",
+      tags: ghcrBuildTag(identity, identity.serviceName),
+      push: true,
+      cacheScope: gatewaySelected(selection)
+        ? `${identity.directoryName}-node-v2`
+        : identity.serviceName,
+      ...(gatewaySelected(selection) ? {} : { cacheMode: "max" }),
+      if: STEP_SHOULD_PUBLISH,
+    }),
+  ]
+  if (gatewaySelected(selection)) {
+    steps.push(
+      imageBuild({
+        name: `Push ${identity.gatewayServiceName} image to registry`,
+        file: "gateway/Dockerfile",
+        tags: ghcrBuildTag(identity, identity.gatewayServiceName),
+        push: true,
+        cacheScope: `${identity.directoryName}-httpd-v1`,
+        if: STEP_SHOULD_PUBLISH,
+      })
+    )
+  }
+  return steps
 }
 
 function ciDocument(jobs: { [key: string]: JsonValue }): Contribution[] {
@@ -158,57 +353,11 @@ function ciDocument(jobs: { [key: string]: JsonValue }): Contribution[] {
   return produced
 }
 
-function commandJob(commands: readonly string[]): JsonValue {
-  return {
-    "runs-on": STANDARD_RUNNER,
-    "steps": [
-      ...setupSteps(),
-      ...commands.map((command) => ({ run: command })),
-    ],
-  }
-}
-
-function buildJob(selection: Selection): JsonValue {
-  const steps: JsonValue[] = [
-    ...setupSteps(),
-    {
-      id: "build",
-      name: "Build",
-      run: 'yarn build\necho "built=true" >> "$GITHUB_OUTPUT"\n',
-    },
-  ]
-  if (publishesPackages(selection)) {
-    steps.push({ name: "Inspect packages", run: "yarn bump-n-pub check-pack" })
-  }
-  return {
-    "runs-on": STANDARD_RUNNER,
-    "outputs": { built: "${{ steps.build.outputs.built }}" },
-    steps,
-  }
-}
-
-function workflowCall(includeBuilt: boolean): JsonValue {
-  if (!includeBuilt) return {}
-  return {
-    outputs: {
-      built: {
-        description: "Ordinary build completed",
-        value: "${{ jobs.build.outputs.built }}",
-      },
-    },
-  }
-}
-
 function integrationJob(
   selection: Selection,
-  identity: ContainerIdentity
+  identity: ContainerIdentity,
+  cacheIntegrationHost: boolean
 ): JsonValue {
-  const env: { [key: string]: JsonValue } = {
-    IMAGE_TAG: "${{ github.sha }}",
-    DEV_CLUSTER_STATE_DIR: "${{ github.workspace }}/.dev-cluster",
-    SSL_PATH: "${{ github.workspace }}/.dev-cluster/certs",
-  }
-  env[identity.serviceUrlName] = identity.serviceUrl
   const steps: JsonValue[] = [
     ...setupSteps(),
     {
@@ -220,14 +369,16 @@ function integrationJob(
       name: "Set up Docker Buildx",
       uses: "docker/setup-buildx-action@v4",
     },
-    { name: "Create local certificates", run: "yarn dev-cluster certs" },
+    { run: "yarn dev-cluster certs" },
     imageBuild({
       name: `Build ${identity.serviceName}`,
       file: "Dockerfile",
       target: "prod",
       tags: ghcrBuildTag(identity, identity.serviceName),
       push: false,
-      cacheScope: `${identity.directoryName}-node`,
+      cacheScope: gatewaySelected(selection)
+        ? `${identity.directoryName}-node-v2`
+        : identity.serviceName,
       cacheMode: "max",
     }),
   ]
@@ -238,7 +389,7 @@ function integrationJob(
         file: "gateway/Dockerfile",
         tags: ghcrBuildTag(identity, identity.gatewayServiceName),
         push: false,
-        cacheScope: `${identity.directoryName}-gateway`,
+        cacheScope: `${identity.directoryName}-httpd-v1`,
         cacheMode: "min",
       })
     )
@@ -250,74 +401,17 @@ function integrationJob(
       target: "integration-test-host",
       tags: ghcrBuildTag(identity, identity.integrationServiceName),
       push: false,
-      cacheScope: `${identity.directoryName}-node`,
-      cacheMode: "max",
+      cacheScope: gatewaySelected(selection)
+        ? `${identity.directoryName}-node-v2`
+        : identity.serviceName,
+      ...(cacheIntegrationHost ? { cacheMode: "max" as const } : {}),
     }),
-    { name: "Run integration tests", run: "yarn test:integration:ci" }
+    { run: "yarn test:integration:ci" }
   )
-  return { "runs-on": DOCKER_RUNNER, env, steps }
-}
-
-function registriesJob(): JsonValue {
   return {
-    "runs-on": STANDARD_RUNNER,
-    "outputs": { checked: "${{ steps.registries.outputs.checked }}" },
-    "env": { NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
-    "steps": [
-      ...setupSteps(),
-      {
-        id: "registries",
-        name: "Check registries",
-        run: 'yarn bump-n-pub check-registries\necho "checked=true" >> "$GITHUB_OUTPUT"\n',
-      },
-    ],
-  }
-}
-
-function prepareJob(): JsonValue {
-  return {
-    "runs-on": STANDARD_RUNNER,
-    "outputs": {
-      package_version: "${{ steps.prepare.outputs.package_version }}",
-      should_publish: "${{ steps.prepare.outputs.should_publish }}",
-    },
-    "env": {
-      NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}",
-      PUBLISHING_BRANCHES: "${{ vars.PUBLISHING_BRANCHES }}",
-    },
-    "steps": [
-      ...setupSteps(),
-      {
-        id: "prepare",
-        name: "Prepare release",
-        run: 'yarn bump-n-pub prepare >> "$GITHUB_OUTPUT"\n',
-      },
-    ],
-  }
-}
-
-function publishRootJob(needs: readonly string[], images: boolean): JsonValue {
-  const steps: JsonValue[] = [
-    ...setupSteps(),
-    { name: "Build packages", run: "yarn build" },
-  ]
-  if (images) {
-    steps.push({
-      name: "Stamp published Compose image tags",
-      env: {
-        PACKAGE_VERSION: "${{ needs.prepare.outputs.package_version }}",
-      },
-      run: STAMP_COMPOSE,
-    })
-  }
-  steps.push({ name: "Publish root package", run: PUBLISH_COMMAND })
-  return {
-    "needs": [...needs],
-    "if": images ? PUBLISH_AFTER_IMAGES : SHOULD_PUBLISH,
-    "runs-on": STANDARD_RUNNER,
-    "permissions": { contents: "read", packages: "write" },
-    "env": { NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
-    "steps": steps,
+    "runs-on": DOCKER_RUNNER,
+    env: { NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
+    steps,
   }
 }
 
@@ -326,110 +420,7 @@ function publishRootJob(needs: readonly string[], images: boolean): JsonValue {
  * Exits 1 when the placeholder is missing so the package cannot be published
  * with an unstamped image tag.
  */
-const STAMP_COMPOSE = `node --input-type=module <<'EOF'
-import { readFileSync, writeFileSync } from "node:fs"
-const token = "\${IMAGE_TAG:?}"
-const path = "compose.base.yaml"
-const source = readFileSync(path, "utf8")
-if (!source.includes(token)) {
-  console.error("compose.base.yaml does not contain \${IMAGE_TAG:?}")
-  process.exit(1)
-}
-const version = process.env.PACKAGE_VERSION
-if (version === undefined || version.length === 0) {
-  console.error("package_version is missing")
-  process.exit(1)
-}
-writeFileSync(path, source.replaceAll(token, version))
-EOF
-`
-
-function publishClientJob(
-  needs: readonly string[],
-  images: boolean
-): JsonValue {
-  return {
-    "needs": [...needs],
-    "if": images ? PUBLISH_AFTER_IMAGES : SHOULD_PUBLISH,
-    "runs-on": STANDARD_RUNNER,
-    "permissions": { contents: "read", packages: "write" },
-    "env": { NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
-    "steps": [
-      ...setupSteps(),
-      { name: "Build packages", run: "yarn build" },
-      {
-        "name": "Publish client package",
-        "working-directory": "client",
-        "run": PUBLISH_COMMAND,
-      },
-    ],
-  }
-}
-
-function publishImagesJob(
-  selection: Selection,
-  facts: ProjectFacts,
-  needs: readonly string[]
-): JsonValue {
-  const identity = requireContainerIdentity(facts)
-  const version = "${{ needs.prepare.outputs.package_version }}"
-  const steps: JsonValue[] = [
-    ...setupSteps(),
-    { name: "Set up Docker Buildx", uses: "docker/setup-buildx-action@v4" },
-    {
-      name: "Log in to GHCR",
-      uses: "docker/login-action@v3",
-      with: {
-        registry: "ghcr.io",
-        username: "${{ github.actor }}",
-        password: "${{ secrets.GITHUB_TOKEN }}",
-      },
-    },
-    imageBuild({
-      name: `Push ${identity.serviceName}`,
-      file: "Dockerfile",
-      target: "prod",
-      tags: publishedTag(identity, identity.serviceName, version),
-      push: true,
-      cacheScope: `${identity.directoryName}-node`,
-    }),
-  ]
-  if (gatewaySelected(selection)) {
-    steps.push(
-      imageBuild({
-        name: `Push ${identity.gatewayServiceName}`,
-        file: "gateway/Dockerfile",
-        tags: publishedTag(identity, identity.gatewayServiceName, version),
-        push: true,
-        cacheScope: `${identity.directoryName}-gateway`,
-      })
-    )
-  }
-  return {
-    "needs": [...needs],
-    "if": SHOULD_PUBLISH,
-    "runs-on": DOCKER_RUNNER,
-    "permissions": { contents: "read", packages: "write" },
-    steps,
-  }
-}
-
-function releaseJob(needs: readonly string[]): JsonValue {
-  return {
-    "needs": [...needs],
-    "if": RELEASE_IF,
-    "runs-on": STANDARD_RUNNER,
-    "permissions": { contents: "write" },
-    "steps": [
-      { name: "Check out", uses: "actions/checkout@v7" },
-      {
-        name: "Create GitHub release",
-        env: { GH_TOKEN: "${{ github.token }}" },
-        run: 'gh release create "v${{ needs.prepare.outputs.package_version }}" --generate-notes --target "${{ github.sha }}"\n',
-      },
-    ],
-  }
-}
+const STAMP_COMPOSE = `node --input-type=module -e 'import { readFileSync, writeFileSync } from "node:fs"; const token = "\${IMAGE_TAG:?}"; const path = "compose.base.yaml"; const source = readFileSync(path, "utf8"); if (!source.includes(token)) { console.error("compose.base.yaml does not contain \${IMAGE_TAG:?}"); process.exit(1) }; const imageTag = process.env.IMAGE_TAG; if (!imageTag) { console.error("IMAGE_TAG is missing"); process.exit(1) }; writeFileSync(path, source.replaceAll(token, imageTag))'`
 
 function imageBuild(input: {
   name: string
@@ -439,23 +430,34 @@ function imageBuild(input: {
   push: boolean
   cacheScope: string
   cacheMode?: "max" | "min"
+  if?: string
 }): JsonValue {
   const withValue: { [key: string]: JsonValue } = {
     "context": ".",
     "file": input.file,
-    "tags": input.tags,
-    "cache-from": `type=gha,scope=${input.cacheScope}`,
   }
   if (input.target !== undefined) withValue.target = input.target
+  withValue.tags = input.tags
   if (input.push) {
     withValue.push = true
   } else {
     withValue.load = true
-    const mode = input.cacheMode ?? "max"
-    withValue["cache-to"] = `type=gha,mode=${mode},scope=${input.cacheScope}`
   }
+  withValue["cache-from"] = `type=gha,scope=${input.cacheScope}`
+  if (!input.push && input.cacheMode !== undefined) {
+    withValue[
+      "cache-to"
+    ] = `type=gha,mode=${input.cacheMode},scope=${input.cacheScope}`
+  }
+  if (input.push && input.cacheMode !== undefined) {
+    withValue[
+      "cache-to"
+    ] = `type=gha,mode=${input.cacheMode},scope=${input.cacheScope}`
+  }
+  withValue.secrets = "NODE_AUTH_TOKEN=${{ github.token }}"
   return {
     name: input.name,
+    ...(input.if === undefined ? {} : { if: input.if }),
     uses: "docker/build-push-action@v6",
     with: withValue,
   }
@@ -496,39 +498,8 @@ function typecheckCommands(selection: Selection): string[] {
 }
 
 function testCommands(selection: Selection): string[] {
-  const commands: string[] = []
-  if (selection.presets.includes("graphql"))
-    commands.push("yarn build:generate")
-  commands.push("yarn test")
-  return commands
-}
-
-function needsBeforePublish(flags: {
-  checks: boolean
-  integration: boolean
-  registries: boolean
-  prepare: boolean
-}): string[] {
-  const needs: string[] = []
-  if (flags.checks) needs.push("checks")
-  if (flags.integration) needs.push("integration")
-  if (flags.registries) needs.push("registries")
-  if (flags.prepare) needs.push("prepare")
-  return needs
-}
-
-function releaseNeeds(flags: {
-  root: boolean
-  client: boolean
-  images: boolean
-  prepare: boolean
-}): string[] {
-  const needs: string[] = []
-  if (flags.prepare) needs.push("prepare")
-  if (flags.root) needs.push("publish-root")
-  if (flags.client) needs.push("publish-client")
-  if (flags.images) needs.push("publish-images")
-  return needs
+  void selection
+  return ["yarn test"]
 }
 
 function ghcrBuildTag(
@@ -536,14 +507,6 @@ function ghcrBuildTag(
   serviceName: string
 ): string {
   return `ghcr.io/${identity.owner}/${serviceName}:\${{ env.IMAGE_TAG }}`
-}
-
-function publishedTag(
-  identity: ContainerIdentity,
-  serviceName: string,
-  version: string
-): string {
-  return `ghcr.io/${identity.owner}/${serviceName}:${version}`
 }
 
 function publishesPackages(selection: Selection): boolean {
@@ -595,7 +558,7 @@ function gatewaySelected(selection: Selection): boolean {
 }
 
 function renderWorkflow(document: JsonValue): string {
-  const text = stringify(document)
+  const text = stringify(document, { lineWidth: 0 })
   return text.endsWith("\n") ? text : `${text}\n`
 }
 

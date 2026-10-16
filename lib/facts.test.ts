@@ -45,6 +45,12 @@ test("reads identity, workspaces, repository, and registry from manifests", asyn
         url: "https://github.com/example/root.git",
       },
       workspaces: ["client"],
+      dependencies: [],
+      dependencyRanges: {
+        dependencies: {},
+        devDependencies: {},
+        peerDependencies: {},
+      },
       registry: "https://npm.pkg.github.com",
     },
     packages: [
@@ -57,6 +63,12 @@ test("reads identity, workspaces, repository, and registry from manifests", asyn
           url: "https://github.com/example/root.git",
         },
         workspaces: ["client"],
+        dependencies: [],
+        dependencyRanges: {
+          dependencies: {},
+          devDependencies: {},
+          peerDependencies: {},
+        },
         registry: "https://npm.pkg.github.com",
       },
       {
@@ -67,6 +79,12 @@ test("reads identity, workspaces, repository, and registry from manifests", asyn
           url: "https://github.com/example/root.git",
         },
         workspaces: [],
+        dependencies: [],
+        dependencyRanges: {
+          dependencies: {},
+          devDependencies: {},
+          peerDependencies: {},
+        },
         registry: "https://npm.pkg.github.com",
       },
     ],
@@ -93,6 +111,17 @@ test("reads a workspace package list object", async () => {
     "root",
     "@example/client",
   ])
+})
+
+test("detects the existing integration workflow filename", async () => {
+  for (const extension of ["yml", "yaml"]) {
+    const system = await project()
+    await system.writeFile("package.json", JSON.stringify({ name: "root" }))
+    const path = `.github/workflows/integration-tests.${extension}`
+    await system.writeFile(path, "name: integration tests\n")
+
+    expect((await readProjectFacts(system)).integrationWorkflowPath).toBe(path)
+  }
 })
 
 test("reports every missing or invalid manifest field", async () => {

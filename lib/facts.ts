@@ -10,15 +10,28 @@ export type RepositoryFacts = {
 export type PackageManifestFacts = {
   path: string
   name: string
+  type?: string
   version?: string
   repository?: RepositoryFacts
   workspaces: readonly string[]
+  dependencies: readonly string[]
+  dependencyRanges?: Readonly<
+    Record<
+      "dependencies" | "devDependencies" | "peerDependencies",
+      Readonly<Record<string, string>>
+    >
+  >
   registry?: string
 }
 
 export type ProjectFacts = {
   root: PackageManifestFacts
   packages: readonly PackageManifestFacts[]
+  integrationWorkflowPath?:
+    | ".github/workflows/integration-tests.yml"
+    | ".github/workflows/integration-tests.yaml"
+  publishGitHubRelease?: boolean
+  publishClientPackage?: boolean
 }
 
 const RepositoryObjectSchema = z
@@ -38,6 +51,7 @@ const WorkspacesSchema = z.union([
 const ManifestSchema = z
   .object({
     name: z.string().min(1),
+    type: z.string().min(1).optional(),
     version: z.string().min(1).optional(),
     repository: z.union([z.string().min(1), RepositoryObjectSchema]).optional(),
     workspaces: WorkspacesSchema.optional(),
@@ -47,6 +61,9 @@ const ManifestSchema = z
       })
       .loose()
       .optional(),
+    dependencies: z.record(z.string(), z.string()).optional(),
+    devDependencies: z.record(z.string(), z.string()).optional(),
+    peerDependencies: z.record(z.string(), z.string()).optional(),
   })
   .loose()
 
@@ -83,7 +100,54 @@ export async function readProjectFacts(system: System): Promise<ProjectFacts> {
   if (rootFacts === undefined) {
     throw new ConfgenError(["package.json: file is missing"])
   }
-  return { root: rootFacts, packages }
+  const integrationWorkflowPath = await existingIntegrationWorkflow(system)
+  const artifactPolicy = await existingArtifactPolicy(system)
+  return {
+    root: rootFacts,
+    packages,
+    ...(integrationWorkflowPath === undefined
+      ? {}
+      : { integrationWorkflowPath }),
+    ...(artifactPolicy === undefined ? {} : artifactPolicy),
+  }
+}
+
+async function existingIntegrationWorkflow(
+  system: System
+): Promise<ProjectFacts["integrationWorkflowPath"]> {
+  const integrationWorkflowPaths: readonly NonNullable<
+    ProjectFacts["integrationWorkflowPath"]
+  >[] = [
+    ".github/workflows/integration-tests.yml",
+    ".github/workflows/integration-tests.yaml",
+  ]
+  for (const path of integrationWorkflowPaths) {
+    try {
+      await system.readFile(path)
+      return path
+    } catch (error) {
+      if (!isMissingFile(error)) throw error
+    }
+  }
+  return undefined
+}
+
+async function existingArtifactPolicy(
+  system: System
+): Promise<
+  | Pick<ProjectFacts, "publishClientPackage" | "publishGitHubRelease">
+  | undefined
+> {
+  try {
+    const workflow = await system.readFile(".github/workflows/artifacts.yml")
+    return {
+      publishGitHubRelease: workflow.includes("gh release create"),
+      publishClientPackage: workflow.includes("working-directory: client"),
+    }
+  } catch (error) {
+    if (isMissingFile(error)) return undefined
+    throw error
+  }
 }
 
 type ManifestRead = {
@@ -158,8 +222,18 @@ function manifestFacts(path: string, manifest: Manifest): PackageManifestFacts {
     path,
     name: manifest.name,
     workspaces: workspaceNames(manifest.workspaces),
+    dependencies: [
+      ...Object.keys(manifest.dependencies ?? {}),
+      ...Object.keys(manifest.devDependencies ?? {}),
+    ],
+    dependencyRanges: {
+      dependencies: manifest.dependencies ?? {},
+      devDependencies: manifest.devDependencies ?? {},
+      peerDependencies: manifest.peerDependencies ?? {},
+    },
   }
   if (manifest.version !== undefined) facts.version = manifest.version
+  if (manifest.type !== undefined) facts.type = manifest.type
   const repository = repositoryFacts(manifest.repository)
   if (repository !== undefined) facts.repository = repository
   const registry = manifest.publishConfig?.registry

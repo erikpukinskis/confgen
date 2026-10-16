@@ -1,0 +1,21 @@
+schema: gql/schema.graphql
+ignoreNoDocuments: true
+generates:
+  gql/_generated/resolvers.ts:
+    config:
+      contextType: ResolverContext
+      enumsAsTypes: true
+      useTypeImports: true
+    plugins:
+      - add:
+          content: import type { ResolverContext } from '../context';
+      - typescript
+      - typescript-resolvers
+  gql/client/_generated/:
+    documents:
+      - client/**/*.ts
+      - '!**/_generated/**'
+    preset: client
+    config:
+      enumsAsTypes: true
+      useTypeImports: true

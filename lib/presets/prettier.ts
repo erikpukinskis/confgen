@@ -18,6 +18,12 @@ export const contributions: ProduceContributions = (selection) => {
     setting("prettier:semi", ["semi"], false),
     setting("prettier:tab-width", ["tabWidth"], 2),
     setting("prettier:quote-props", ["quoteProps"], "preserve"),
+    ...(selection.presets.includes("sql")
+      ? [
+          dependency("prettier-plugin-sql-cst", "0.8.3"),
+          setting("prettier:sql-plugin", ["plugins"], ["prettier-plugin-sql-cst"], "merge"),
+        ]
+      : []),
     ...ignores.map(
       ([id, value]): Contribution => ({
         id: `prettier:ignore:${id}`,
@@ -45,7 +51,8 @@ const IGNORE_LINES: readonly (readonly [string, string])[] = [
 function setting(
   id: string,
   address: StructuredAddress,
-  value: JsonValue
+  value: JsonValue,
+  update: "merge" | "replace" = "replace"
 ): Contribution {
   return {
     id,
@@ -55,7 +62,7 @@ function setting(
     format: "json",
     address,
     value,
-    update: "replace",
+    update,
   }
 }
 

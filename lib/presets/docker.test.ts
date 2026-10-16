@@ -22,6 +22,7 @@ const root = {
     url: "https://github.com/example/package-service.git",
   },
   workspaces: [],
+  dependencies: [],
 }
 const facts: ProjectFacts = { root, packages: [root] }
 
@@ -109,6 +110,38 @@ test("selected runtimes change the image and omit a service without a server", (
   expect(starter.contents).not.toContain("/healthcheck")
 })
 
+test("replaces the local yalc dev-cluster link with its published version", () => {
+  const packageWithLocalDevCluster: ProjectFacts = {
+    root: {
+      ...root,
+      dependencyRanges: {
+        dependencies: {},
+        devDependencies: { "dev-cluster": "file:.yalc/dev-cluster" },
+        peerDependencies: {},
+      },
+    },
+    packages: [
+      {
+        ...root,
+        dependencyRanges: {
+          dependencies: {},
+          devDependencies: { "dev-cluster": "file:.yalc/dev-cluster" },
+          peerDependencies: {},
+        },
+      },
+    ],
+  }
+  const dependency = collectContributions(
+    selection,
+    packageWithLocalDevCluster
+  ).find(
+    (contribution) =>
+      contribution.kind === "dependency" &&
+      contribution.package === "dev-cluster"
+  )
+  expect(dependency).toMatchObject({ kind: "dependency", range: "0.1.0" })
+})
+
 test("compose layers merge and keep unrelated services", () => {
   const identity = containerIdentity(facts.root.name)
   expect(identity.serviceName).toBe("package-api-server")
@@ -191,6 +224,78 @@ test("compose layers merge and keep unrelated services", () => {
       pnpPresent: true,
     })
   expect(conflict).toThrow(ConfgenError)
+})
+
+test("composes the installed Package Service dependency", () => {
+  const schemaRoot = {
+    ...root,
+    name: "@example/schema-service",
+    repository: {
+      type: "git",
+      url: "https://github.com/example/schema-service.git",
+    },
+    dependencies: ["@multiplayerdb/package-service"],
+  }
+  const packageFacts: ProjectFacts = {
+    root: schemaRoot,
+    packages: [schemaRoot],
+  }
+  const packageSelection = parseSelection([
+    "runtimes=#lib,#server,#integration",
+    "yarn",
+    "typescript",
+    "vite",
+    "vitest",
+    "docker",
+  ])
+  const contributions = collectContributions(packageSelection, packageFacts)
+  const created = reconcile({
+    selection: packageSelection,
+    contributions,
+    prior: undefined,
+    files: new Map([
+      [
+        "package.json",
+        '{ "name": "@example/schema-service", "devDependencies": { "@multiplayerdb/package-service": "0.8.0" } }\n',
+      ],
+    ]),
+    yarnLockPresent: false,
+    pnpPresent: false,
+  })
+  const base = yamlObject(written(created.files, "compose.base.yaml"))
+  expect(base.include).toEqual([
+    {
+      path: "${PACKAGE_SERVICE_PATH:?}/compose.base.yaml",
+      project_directory: "${PACKAGE_SERVICE_PATH}",
+    },
+  ])
+  const service = objectField(
+    objectField(base, "services"),
+    "schema-api-server"
+  )
+  expect(service.environment).toMatchObject({
+    PACKAGE_SERVICE_URL: "${PACKAGE_SERVICE_URL:?}",
+  })
+  expect(service.depends_on).toMatchObject({
+    "package-service": { condition: "service_healthy" },
+  })
+  const local = yamlObject(written(created.files, "compose.local.yaml"))
+  expect(local.include).toEqual([
+    {
+      path: "${PACKAGE_SERVICE_PATH:?}/compose.local.yaml",
+      project_directory: "${PACKAGE_SERVICE_PATH}",
+    },
+  ])
+  const integration = objectField(
+    objectField(local, "services"),
+    "schema-service-integration-test-host"
+  )
+  expect(integration.environment).toMatchObject({
+    PACKAGE_SERVICE_URL: "${PACKAGE_SERVICE_URL:?}",
+  })
+  expect(integration.depends_on).toMatchObject({
+    "package-service": { condition: "service_healthy" },
+  })
 })
 
 test("dockerignore keeps application lines", () => {

@@ -12,6 +12,9 @@ const devClusterRoot = fileURLToPath(
 const bumpNPubRoot = fileURLToPath(
   new URL("../../bump-n-pub/", import.meta.url)
 )
+const packageServiceRoot = fileURLToPath(
+  new URL("../../package-service/", import.meta.url)
+)
 
 const scenarioSchema = z.object({
   args: z.array(z.string().min(1)).min(1),
@@ -54,6 +57,12 @@ export class CommandError extends Error {
 
 export type PackedConfgen = {
   tarball: string
+  cleanup(): Promise<void>
+}
+
+export type PackedPackageService = {
+  rootTarball: string
+  clientTarball: string
   cleanup(): Promise<void>
 }
 
@@ -105,6 +114,52 @@ export async function packBumpNPub(): Promise<PackedConfgen> {
     directoryPrefix: "bump-n-pub-pack-",
     tarballName: "bump-n-pub.tgz",
   })
+}
+
+/** Builds and packs the exact root and client artifacts used by consumers. */
+export async function packPackageService(): Promise<PackedPackageService> {
+  const directory = await mkdtemp(join(tmpdir(), "package-service-pack-"))
+  const rootTarball = join(directory, "package-service.tgz")
+  const clientTarball = join(directory, "package-service-client.tgz")
+  try {
+    await runCollected({
+      cwd: packageServiceRoot,
+      executable: "yarn",
+      args: ["build"],
+      timeoutMs: 180_000,
+      children: [],
+    })
+    await runCollected({
+      cwd: packageServiceRoot,
+      executable: "yarn",
+      args: ["pack", "--out", rootTarball],
+      timeoutMs: 120_000,
+      children: [],
+    })
+    await runCollected({
+      cwd: packageServiceRoot,
+      executable: "yarn",
+      args: [
+        "workspace",
+        "@multiplayerdb/package-service-client",
+        "pack",
+        "--out",
+        clientTarball,
+      ],
+      timeoutMs: 120_000,
+      children: [],
+    })
+    return {
+      rootTarball,
+      clientTarball,
+      async cleanup() {
+        await rm(directory, { recursive: true, force: true })
+      },
+    }
+  } catch (error) {
+    await rm(directory, { recursive: true, force: true })
+    throw error
+  }
 }
 
 async function packTool(input: {

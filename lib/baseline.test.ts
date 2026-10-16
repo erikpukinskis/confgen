@@ -9,6 +9,7 @@ const root = {
   name: "baseline",
   version: "0.0.0",
   workspaces: [],
+  dependencies: [],
 }
 const facts: ProjectFacts = { root, packages: [root] }
 
@@ -29,14 +30,9 @@ test("the baseline selection reconciles to a stable file set", () => {
     kind: "package-script",
     command: "rm -rf dist && yarn build:lib && yarn build:server",
   })
-  expect(byId(contributions, "package-manifest:confgen")).toMatchObject({
-    command:
-      "confgen runtimes=#lib,#server yarn typescript vite vitest eslint prettier git",
-  })
   expect(paths(contributions)).toEqual(
     expect.arrayContaining([
       "lib/index.ts",
-      "lib/index.test.ts",
       "server/index.ts",
       "vite.lib.config.ts",
       "vite.server.config.ts",

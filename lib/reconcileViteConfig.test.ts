@@ -134,6 +134,7 @@ export default defineConfig({
     port: 1,
   },
 })
+
 `
   const result = reconcileViteConfig({
     path: "vite.config.ts",
@@ -145,6 +146,48 @@ export default defineConfig({
   expect(result.problems).toEqual([])
   expect(result.contents).toContain("port: 3000")
   expect(result.contents).not.toContain("port: 1")
+})
+
+test("preserves an application-owned value on first adoption", () => {
+  const current = `import { defineConfig } from "vite"
+
+export default defineConfig({
+  server: { port: 4173 },
+})
+`
+  const result = reconcileViteConfig({
+    path: "vite.config.ts",
+    current,
+    items: [port],
+    priorItems: [],
+  })
+
+  expect(result.problems).toEqual([])
+  expect(result.contents).toContain("port: 4173")
+  expect(result.contents).not.toContain("port: 3000")
+})
+
+test("inserts properties and plugins after trailing commas", () => {
+  const current = `import { defineConfig } from "vite"
+
+export default defineConfig({
+  plugins: [],
+  build: {
+    sourcemap: true,
+  },
+})
+`
+  const result = reconcileViteConfig({
+    path: "vite.config.ts",
+    current,
+    items: [reactImport, reactPlugin, port],
+    priorItems: [],
+  })
+
+  expect(result.problems).toEqual([])
+  expect(result.contents).toContain("plugins: [react()]")
+  expect(result.contents).toContain('"port": 3000')
+  expect(result.contents).not.toContain(",,")
 })
 
 test("reports a binding collision before editing", () => {

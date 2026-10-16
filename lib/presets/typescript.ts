@@ -90,7 +90,7 @@ function clientProject(selection: Selection): Contribution[] {
       `typescript:client:${name}`,
       ["compilerOptions", name],
       value,
-      "replace"
+      "merge"
     )
   )
   return [
@@ -110,12 +110,16 @@ function clientInclude(selection: Selection): string[] {
   return paths
 }
 
-function option(name: string, value: JsonValue): Contribution {
+function option(
+  name: string,
+  value: JsonValue,
+  preserveExisting = true
+): Contribution {
   return tsconfig(
     `typescript:compiler:${name}`,
     ["compilerOptions", name],
     value,
-    "replace"
+    preserveExisting ? "merge" : "replace"
   )
 }
 

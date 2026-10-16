@@ -7,15 +7,20 @@ import { runtimePath } from "../runtimes.js"
 import type { Selection } from "../selection.js"
 
 /** Vitest owns test-runner configuration for the selected runtimes. */
-export const contributions: ProduceContributions = (selection) => {
+export const contributions: ProduceContributions = (selection, facts) => {
   const produced: Contribution[] = [
     dependency("vitest", "4.1.11"),
     script("test", "vitest run --config vite.test.config.ts"),
     testConfig(selection),
   ]
-  if (selection.runtimes.includes("lib")) produced.push(libTest())
+  if (
+    selection.runtimes.includes("lib") &&
+    facts.root.dependencies.includes("graphql-dev-kit")
+  ) {
+    produced.push(libTest())
+  }
   if (selection.runtimes.includes("integration")) {
-    produced.push(integrationConfig())
+    produced.push(integrationConfig(selection))
   }
   return produced
 }
@@ -38,13 +43,14 @@ function libTest(): Contribution {
   }
 }
 
-function integrationConfig(): Contribution {
+function integrationConfig(selection: Selection): Contribution {
   return {
     id: "vitest:config:vite.integration.config.ts",
     source: "preset:vitest",
     kind: "vite-config",
     path: "vite.integration.config.ts",
     items: [
+      ...sqlPlugin(selection),
       {
         id: "property:test-include",
         source: "preset:vitest",
@@ -63,6 +69,7 @@ function testConfig(selection: Selection): Contribution {
   })
   if (selection.presets.includes("graphql")) patterns.push("gql/**/*.test.ts")
   const items: ViteConfigItem[] = [
+    ...sqlPlugin(selection),
     {
       id: "property:test-include",
       source: "preset:vitest",
@@ -78,6 +85,27 @@ function testConfig(selection: Selection): Contribution {
     path: "vite.test.config.ts",
     items,
   }
+}
+
+function sqlPlugin(selection: Selection): ViteConfigItem[] {
+  if (!selection.presets.includes("sql")) return []
+  return [
+    {
+      id: "import:sql",
+      source: "preset:vitest",
+      kind: "import",
+      module: "vite-plugin-sql",
+      imported: { kind: "default" },
+      preferredLocal: "sql",
+    },
+    {
+      id: "plugin:sql",
+      source: "preset:vitest",
+      kind: "plugin",
+      importId: "import:sql",
+      arguments: [],
+    },
+  ]
 }
 
 function includeValue(patterns: readonly string[]): string {

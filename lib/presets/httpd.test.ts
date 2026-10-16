@@ -14,6 +14,7 @@ const root = {
     url: "https://github.com/example/package-service.git",
   },
   workspaces: [],
+  dependencies: [],
 }
 const facts: ProjectFacts = { root, packages: [root] }
 
