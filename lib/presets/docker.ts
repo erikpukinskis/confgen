@@ -21,7 +21,6 @@ const DEV_CLUSTER_VERSION = "0.1.0"
 export const contributions: ProduceContributions = (selection, facts) => {
   if (!selection.runtimes.includes("server")) return []
   const identity = requireContainerIdentity(facts)
-  assertHttpsOrigin("SERVICE_URL", `https://${identity.alias}`)
   const corner = gatewaySelected(selection)
     ? identity.gatewayServiceName
     : identity.serviceName
@@ -31,7 +30,10 @@ export const contributions: ProduceContributions = (selection, facts) => {
     script("start:containers:local", `dev-cluster up ${corner}`),
     script("stop:containers:local", "dev-cluster down"),
     script("start:server", startServerCommand(selection)),
-    wholeFile("Dockerfile", dockerfile(selection, identity, facts)),
+    dockerfileContribution(
+      "Dockerfile",
+      dockerfile(selection, identity, facts)
+    ),
     wholeFile("scripts/docker-entrypoint-node.sh", ENTRYPOINT),
     ...DOCKERIGNORE_LINES.map(([id, value]) => line(id, value)),
     ...baseCompose(selection, identity, facts),
@@ -53,16 +55,14 @@ export const contributions: ProduceContributions = (selection, facts) => {
   }
   if (gatewaySelected(selection)) {
     produced.push(
-      wholeFile("gateway/Dockerfile", GATEWAY_DOCKERFILE),
+      dockerfileContribution("gateway/Dockerfile", GATEWAY_DOCKERFILE),
       wholeFile("scripts/docker-entrypoint-httpd.sh", HTTPD_ENTRYPOINT)
     )
   }
   return produced
 }
 
-function packageServiceCompose(
-  facts: ProjectFacts
-): Contribution[] {
+function packageServiceCompose(facts: ProjectFacts): Contribution[] {
   if (!facts.root.dependencies.includes("@multiplayerdb/package-service")) {
     return []
   }
@@ -73,7 +73,9 @@ function packageServiceCompose(
       ["include"],
       [
         {
-          path: `${requiredReference("PACKAGE_SERVICE_PATH")}/compose.base.yaml`,
+          path: `${requiredReference(
+            "PACKAGE_SERVICE_PATH"
+          )}/compose.base.yaml`,
           project_directory: "${PACKAGE_SERVICE_PATH}",
         },
       ],
@@ -85,7 +87,9 @@ function packageServiceCompose(
       ["include"],
       [
         {
-          path: `${requiredReference("PACKAGE_SERVICE_PATH")}/compose.local.yaml`,
+          path: `${requiredReference(
+            "PACKAGE_SERVICE_PATH"
+          )}/compose.local.yaml`,
           project_directory: "${PACKAGE_SERVICE_PATH}",
         },
       ],
@@ -104,7 +108,6 @@ function gatewaySelected(selection: Selection): boolean {
 export type ContainerIdentity = {
   directoryName: string
   serviceName: string
-  alias: string
   workdir: string
   yarnVolume: string
   /** GitHub owner used in published GHCR image names. Empty when no repository URL was supplied. */
@@ -187,7 +190,6 @@ export function containerIdentity(
   return {
     directoryName,
     serviceName,
-    alias: `${serviceName}.local.multiplayerdb.dev`,
     workdir: `/mnt/${directoryName}`,
     yarnVolume: `${serviceName}-yarn`,
     owner,
@@ -303,11 +305,10 @@ function line(id: string, value: string): Contribution {
   }
 }
 
-/**
- * GraphQL owns the `.graphql?raw` loader. This command only imports it when
- * that preset is selected.
- */
 function startServerCommand(selection: Selection): string {
+  if (selection.presets.includes("vite")) {
+    return "vite-node --watch --config vite.server.config.ts server/index.ts"
+  }
   if (!selection.presets.includes("graphql")) {
     return "node --watch server/index.ts"
   }
@@ -391,12 +392,13 @@ function baseCompose(
   )
   const service: JsonValue = {
     image: identity.image,
-    environment: {
-      PORT: String(SERVICE_PORT),
-      ...(includesPackageService
-        ? { PACKAGE_SERVICE_URL: requiredReference("PACKAGE_SERVICE_URL") }
-        : {}),
-    },
+    ...(includesPackageService
+      ? {
+          environment: {
+            PACKAGE_SERVICE_URL: requiredReference("PACKAGE_SERVICE_URL"),
+          },
+        }
+      : {}),
     ...(includesPackageService
       ? {
           depends_on: {
@@ -405,11 +407,6 @@ function baseCompose(
         }
       : {}),
     volumes: [`${requiredReference("SSL_PATH")}:/ssl:ro`],
-    networks: {
-      default: {
-        aliases: [identity.alias],
-      },
-    },
     healthcheck: {
       test: `curl --fail http://localhost:${SERVICE_PORT}/healthcheck`,
       interval: "1s",
@@ -721,6 +718,16 @@ function wholeFile(path: string, contents: string): Contribution {
     id: `docker:file:${path}`,
     source: "preset:docker",
     kind: "whole-file",
+    path,
+    contents,
+  }
+}
+
+function dockerfileContribution(path: string, contents: string): Contribution {
+  return {
+    id: `docker:file:${path}`,
+    source: "preset:docker",
+    kind: "dockerfile",
     path,
     contents,
   }

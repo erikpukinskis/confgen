@@ -15,6 +15,7 @@ import {
 import { reconcileViteConfig } from "./reconcileViteConfig.js"
 import type { Selection } from "./selection.js"
 import { parseDocument, isMap, isSeq } from "yaml"
+import { diff3Merge } from "node-diff3"
 
 export type FileChange =
   | { type: "write"; path: string; contents: string }
@@ -25,6 +26,7 @@ export type ChangeSet = {
   runYarnInstall: boolean
   desiredContributions: readonly Contribution[]
   lock: LockData
+  warnings: readonly string[]
 }
 
 const YARN_CONFIG_PATHS = [".yarnrc.yml", ".yarnrc"]
@@ -47,6 +49,7 @@ export function reconcile(input: {
   pnpPresent: boolean
 }): ChangeSet {
   const problems: string[] = []
+  const warnings: string[] = []
   const changes: FileChange[] = []
   const desiredIds = new Set(
     input.contributions.map((contribution) => contribution.id)
@@ -68,6 +71,7 @@ export function reconcile(input: {
       current: input.files.get(path),
     })
     problems.push(...result.problems)
+    warnings.push(...(result.warnings ?? []))
     changes.push(...result.changes)
   }
 
@@ -88,10 +92,12 @@ export function reconcile(input: {
       selection: input.selection,
       contributions: input.contributions,
     }),
+    warnings: warnings.sort(compareWarnings),
   }
 }
 
 type DesiredGroup = {
+  dockerfile?: Extract<Contribution, { kind: "dockerfile" }>
   whole?: Extract<Contribution, { kind: "whole-file" }>
   starter?: Extract<Contribution, { kind: "starter-file" }>
   structured: Extract<Contribution, { kind: "structured" }>[]
@@ -107,9 +113,13 @@ function reconcilePath(input: {
   prior: readonly LockContribution[]
   priorEntries: readonly LockContribution[]
   current: string | undefined
-}): { changes: FileChange[]; problems: string[] } {
+}): { changes: FileChange[]; problems: string[]; warnings?: string[] } {
   const problems = strategyProblems(input.path, input.desired, input.prior)
   if (problems.length > 0) return { changes: [], problems }
+
+  if (input.desired.dockerfile !== undefined) {
+    return reconcileDockerfile(input)
+  }
 
   if (input.desired.whole !== undefined) {
     return writeIfChanged(
@@ -147,6 +157,21 @@ function reconcilePath(input: {
   const wholeRemoval = input.prior.find(
     (entry) => entry.strategy === "whole-file"
   )
+  const dockerfileRemoval = input.prior.find(
+    (entry) => entry.strategy === "dockerfile"
+  )
+  if (dockerfileRemoval?.strategy === "dockerfile") {
+    if (input.current === undefined) return { changes: [], problems: [] }
+    if (input.current === dockerfileRemoval.baseline)
+      return { changes: [{ type: "remove", path: input.path }], problems: [] }
+    return {
+      changes: [],
+      problems: [],
+      warnings: [
+        `${input.path}: left modified application Dockerfile in place after capability deselection.`,
+      ],
+    }
+  }
   if (wholeRemoval !== undefined && wholeRemoval.strategy === "whole-file") {
     return removeWholeFile(input.path, input.current, wholeRemoval.hash)
   }
@@ -185,6 +210,176 @@ function reconcilePath(input: {
   }
 
   return { changes: [], problems: [] }
+}
+
+function reconcileDockerfile(input: {
+  path: string
+  desired: DesiredGroup
+  priorEntries: readonly LockContribution[]
+  current: string | undefined
+}): { changes: FileChange[]; problems: string[]; warnings?: string[] } {
+  const next = input.desired.dockerfile?.contents
+  if (next === undefined) return { changes: [], problems: [] }
+  const prior = input.priorEntries.find(
+    (entry) => entry.strategy === "dockerfile"
+  )
+  const legacy = input.priorEntries.find(
+    (entry) => entry.strategy === "whole-file"
+  )
+  if (prior === undefined && legacy?.strategy !== "whole-file") {
+    if (input.current === undefined)
+      return {
+        changes: [{ type: "write", path: input.path, contents: next }],
+        problems: [],
+      }
+    return {
+      changes: [],
+      problems: [],
+      warnings: [
+        `${input.path}: adopted existing application Dockerfile as application-owned text.`,
+      ],
+    }
+  }
+  if (prior === undefined && legacy?.strategy === "whole-file") {
+    if (input.current === undefined) {
+      return {
+        changes: [],
+        problems: [],
+        warnings: [`${input.path}: adopted the deleted legacy Dockerfile.`],
+      }
+    }
+    if (textHash(input.current) !== legacy.hash) {
+      return {
+        changes: [],
+        problems: [],
+        warnings: [
+          `${input.path}: adopted modified legacy Dockerfile as application-owned text.`,
+        ],
+      }
+    }
+    return dockerfileMerge(input.path, input.current, input.current, next)
+  }
+  const current = input.current
+  if (current === undefined) return { changes: [], problems: [] }
+  return dockerfileMerge(input.path, current, prior?.baseline ?? next, next)
+}
+
+function dockerfileMerge(
+  path: string,
+  current: string,
+  base: string,
+  next: string
+): { changes: FileChange[]; problems: string[]; warnings: string[] } {
+  const warnings: string[] = []
+  const merged: string[] = []
+  for (const region of diff3Merge(
+    splitLosslessLines(current),
+    splitLosslessLines(base),
+    splitLosslessLines(next)
+  )) {
+    if (region.ok !== undefined) {
+      merged.push(...region.ok)
+      continue
+    }
+    const conflict = region.conflict
+    if (conflict === undefined) continue
+    const { a, o, b, oIndex } = conflict
+    const line = oIndex + 1
+    if (sameLines(a, b)) merged.push(...a)
+    else if (sameLines(a, o)) merged.push(...b)
+    else if (sameLines(b, o)) merged.push(...a)
+    else if (o.length === 0) merged.push(...b, ...a)
+    else if (mergeAroundBase(merged, a, o, b)) continue
+    else {
+      merged.push(...a)
+      const behavior = a.length === 0 ? "deletion" : "edit"
+      const skipped = b.length === 0 ? "deletion" : "updated text"
+      warnings.push(
+        `${path} (near baseline line ${line}): preserved an application ${behavior}; skipped Confgen's ${skipped}.`
+      )
+    }
+  }
+  const contents = merged.join("")
+  return {
+    changes: contents === current ? [] : [{ type: "write", path, contents }],
+    problems: [],
+    warnings,
+  }
+}
+
+function mergeAroundBase(
+  merged: string[],
+  current: readonly string[],
+  base: readonly string[],
+  next: readonly string[]
+): boolean {
+  const currentBase = uniqueSubsequenceIndex(current, base)
+  const nextBase = uniqueSubsequenceIndex(next, base)
+  if (currentBase === undefined && nextBase === undefined) return false
+
+  if (currentBase !== undefined && nextBase === undefined) {
+    merged.push(
+      ...next,
+      ...current.slice(0, currentBase),
+      ...current.slice(currentBase + base.length)
+    )
+    return true
+  }
+  if (currentBase === undefined && nextBase !== undefined) {
+    merged.push(
+      ...next.slice(0, nextBase),
+      ...current,
+      ...next.slice(nextBase + base.length)
+    )
+    return true
+  }
+  if (currentBase === undefined || nextBase === undefined) return false
+  merged.push(
+    ...next.slice(0, nextBase),
+    ...current.slice(0, currentBase),
+    ...base,
+    ...next.slice(nextBase + base.length),
+    ...current.slice(currentBase + base.length)
+  )
+  return true
+}
+
+function uniqueSubsequenceIndex(
+  lines: readonly string[],
+  subsequence: readonly string[]
+): number | undefined {
+  let found: number | undefined
+  for (let start = 0; start <= lines.length - subsequence.length; start += 1) {
+    if (!subsequence.every((line, offset) => lines[start + offset] === line))
+      continue
+    if (found !== undefined) return undefined
+    found = start
+  }
+  return found
+}
+
+function splitLosslessLines(text: string): string[] {
+  if (text.length === 0) return []
+  return text.match(/[^\n]*\n|[^\n]+$/g) ?? []
+}
+
+function sameLines(left: readonly string[], right: readonly string[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((line, index) => line === right[index])
+  )
+}
+
+function compareWarnings(left: string, right: string): number {
+  const leftPath = left.split(" (near baseline line ")[0] ?? left
+  const rightPath = right.split(" (near baseline line ")[0] ?? right
+  const pathOrder = compareText(leftPath, rightPath)
+  if (pathOrder !== 0) return pathOrder
+  const lineNumber = (warning: string): number => {
+    const match = /\(near baseline line (\d+)\)/.exec(warning)
+    return match === null ? 0 : Number(match[1])
+  }
+  return lineNumber(left) - lineNumber(right)
 }
 
 function reconcileVitePath(input: {
@@ -892,6 +1087,9 @@ function groupDesired(
     const path = contributionPath(contribution)
     const group = groups.get(path) ?? emptyDesired()
     switch (contribution.kind) {
+      case "dockerfile":
+        group.dockerfile = contribution
+        break
       case "whole-file":
         group.whole = contribution
         break
@@ -962,6 +1160,7 @@ function contributionPath(contribution: Contribution): string {
     case "package-script":
       return contribution.manifest
     case "whole-file":
+    case "dockerfile":
     case "starter-file":
     case "structured":
     case "line":

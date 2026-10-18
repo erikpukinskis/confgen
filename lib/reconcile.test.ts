@@ -55,6 +55,128 @@ test("creates absent files and leaves an unchanged rerun alone", () => {
   expect(again.runYarnInstall).toBe(false)
 })
 
+test("reconciles Dockerfile upgrades around application edits and same-position additions", () => {
+  const base = "FROM node:24\nRUN echo standard\nRUN echo stable\nCMD start\n"
+  const current =
+    "FROM node:24\nRUN echo application\nRUN echo stable\nRUN echo custom\nCMD start\n"
+  const next = "FROM node:24\nRUN echo upgraded\nRUN echo stable\nCMD start\n"
+  const old = dockerfile("Dockerfile", base)
+  const baseline = lockOf([old])
+  const result = reconcile({
+    selection,
+    contributions: [dockerfile("Dockerfile", next)],
+    prior: baseline,
+    files: new Map([["Dockerfile", current]]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(result.files).toEqual([])
+  expect(result.warnings).toEqual([
+    "Dockerfile (near baseline line 2): preserved an application edit; skipped Confgen's updated text.",
+  ])
+  expect(result.lock.contributions).toContainEqual({
+    id: "Dockerfile",
+    source: "preset:docker",
+    path: "Dockerfile",
+    strategy: "dockerfile",
+    baseline: next,
+  })
+})
+
+test("adopts an existing Dockerfile without overwriting it", () => {
+  const existing = "FROM custom:latest\n"
+  const result = reconcile({
+    selection,
+    contributions: [dockerfile("Dockerfile", "FROM node:24\n")],
+    prior: undefined,
+    files: new Map([["Dockerfile", existing]]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(result.files).toEqual([])
+  expect(result.warnings).toEqual([
+    "Dockerfile: adopted existing application Dockerfile as application-owned text.",
+  ])
+})
+
+test("orders generated and application insertions as whole blocks", () => {
+  const result = reconcile({
+    selection,
+    contributions: [dockerfile("Dockerfile", "A\nD\nB\n")],
+    prior: lockOf([dockerfile("Dockerfile", "A\nB\n")]),
+    files: new Map([["Dockerfile", "A\nC\nB\n"]]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(writtenContents(result.files, "Dockerfile")).toBe("A\nD\nC\nB\n")
+  expect(result.warnings).toEqual([])
+})
+
+test("combines adjacent insertions when Confgen removes their baseline anchor", () => {
+  const result = reconcile({
+    selection,
+    contributions: [dockerfile("Dockerfile", "A\nD\nB\n")],
+    prior: lockOf([dockerfile("Dockerfile", "A\nold\nB\n")]),
+    files: new Map([["Dockerfile", "A\nC\nold\nB\n"]]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(writtenContents(result.files, "Dockerfile")).toBe("A\nD\nC\nB\n")
+  expect(result.warnings).toEqual([])
+})
+
+test("migrates matching and modified legacy Dockerfile locks", () => {
+  const base = "FROM node:24\n"
+  const next = "FROM node:25\n"
+  const legacy = lockOf([whole("Dockerfile", base)])
+  const matching = reconcile({
+    selection,
+    contributions: [dockerfile("Dockerfile", next)],
+    prior: legacy,
+    files: new Map([["Dockerfile", base]]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(writtenContents(matching.files, "Dockerfile")).toBe(next)
+
+  const modified = reconcile({
+    selection,
+    contributions: [dockerfile("Dockerfile", next)],
+    prior: legacy,
+    files: new Map([["Dockerfile", "FROM custom:latest\n"]]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(modified.files).toEqual([])
+  expect(modified.warnings).toEqual([
+    "Dockerfile: adopted modified legacy Dockerfile as application-owned text.",
+  ])
+})
+
+test("preserves Dockerfile deletions and removes unchanged deselected files", () => {
+  const current = "FROM node:24\n"
+  const prior = lockOf([dockerfile("Dockerfile", current)])
+  const deleted = reconcile({
+    selection,
+    contributions: [dockerfile("Dockerfile", "FROM node:25\n")],
+    prior,
+    files: new Map(),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(deleted.files).toEqual([])
+
+  const removed = reconcile({
+    selection,
+    contributions: [],
+    prior,
+    files: new Map([["Dockerfile", current]]),
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(removed.files).toEqual([{ type: "remove", path: "Dockerfile" }])
+})
+
 test("preserves application JSON values on first adoption", () => {
   const current = `{
   "name": "example",
@@ -508,6 +630,16 @@ function whole(path: string, contents: string): Contribution {
     id: path,
     source: "preset:docker",
     kind: "whole-file",
+    path,
+    contents,
+  }
+}
+
+function dockerfile(path: string, contents: string): Contribution {
+  return {
+    id: path,
+    source: "preset:docker",
+    kind: "dockerfile",
     path,
     contents,
   }

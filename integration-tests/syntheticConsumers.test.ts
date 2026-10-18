@@ -56,8 +56,7 @@ test(
     const composeEnv = {
       COMPOSE_PROJECT_NAME: composeProject,
       IMAGE_TAG: "test",
-      DEV_CLUSTER_STATE_DIR: sslDirectory,
-      SSL_PATH: join(sslDirectory, "certs"),
+      SSL_PATH: sslDirectory,
       PACKAGE_SERVICE_URL: "https://package-service.local.multiplayerdb.dev",
       DEV_CLUSTER_HTTP_PORT: "18080",
       DEV_CLUSTER_HTTPS_PORT: "18443",
@@ -217,9 +216,10 @@ console.log("schema-loaded")
 `
   )
   try {
-    const loaded = await project.run("node", [
-      "--import",
-      "./gql/registerGraphqlRaw.mjs",
+    const loaded = await project.run("yarn", [
+      "vite-node",
+      "--config",
+      "vite.server.config.ts",
       "gql/checkSchema.ts",
     ])
     expect(loaded.stdout).toContain("schema-loaded")
@@ -244,16 +244,11 @@ async function proveContainer(
   project: SyntheticProject,
   env: Readonly<Record<string, string>>
 ): Promise<void> {
-  const stateDirectory = env.DEV_CLUSTER_STATE_DIR
-  if (stateDirectory === undefined) {
-    throw new Error("missing DEV_CLUSTER_STATE_DIR")
+  const sslPath = env.SSL_PATH
+  if (sslPath === undefined) {
+    throw new Error("missing SSL_PATH")
   }
-  await runDevCluster(
-    project,
-    { DEV_CLUSTER_STATE_DIR: stateDirectory },
-    ["certs"],
-    60_000
-  )
+  await runDevCluster(project, { SSL_PATH: sslPath }, ["certs"], 60_000)
   const configured = await project.run(
     "docker",
     [
@@ -417,7 +412,7 @@ async function proveContainer(
         "curl",
         "--fail",
         "--silent",
-        "https://package-service.local.multiplayerdb.dev/api",
+        "https://package-service.local.multiplayerdb.dev/api?query=%7Bgreeting(name%3A%22baseline%22)%7D",
       ],
       30_000,
       env
@@ -569,7 +564,7 @@ async function stopContainers(
 }
 
 async function expectRuntimeScopes(project: SyntheticProject): Promise<void> {
-  await expectFile(project.directory, "integration/setup.ts")
+  await expectFile(project.directory, ".env.example")
   await expectFile(project.directory, "integration/service.test.ts")
   await expectFile(project.directory, "gateway/httpd.conf")
   await expectFile(project.directory, "gateway/public/index.html")

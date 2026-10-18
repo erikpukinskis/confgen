@@ -102,19 +102,23 @@ test("the package selection publishes a root and client workspace", () => {
   expect(libVite).toContain('["es"]')
   expect(libVite).not.toContain('"cjs"')
   expect(libVite).not.toContain('"umd"')
-  expect(files.get("vite.client.config.ts")).not.toContain("alias")
+  expect(files.get("vite.client.config.ts")).toContain('find: "#gql/client"')
+  expect(files.get("vite.client.config.ts")).toContain(
+    'replacement: resolve("gql/client/index.ts")'
+  )
   const testKitVite = files.get("vite.test-kit.config.ts")
   expect(testKitVite).toContain('id.startsWith("#")')
   expect(testKitVite).toContain('!id.includes("/node_modules/")')
   expect(testKitVite).not.toContain('["graphql"]')
   expect(files.has("gql/schema.graphql")).toBe(true)
   expect(files.has("gql/_generated/resolvers.ts")).toBe(false)
-  const loader = files.get("gql/graphqlRawLoader.mjs")
-  expect(loader).toContain('.endsWith(".graphql?raw")')
-  expect(loader).toContain('parsed.search === "?raw"')
-  expect(loader).not.toContain(".ts?raw")
-  expect(files.get("gql/registerGraphqlRaw.mjs")).toContain(
-    "./graphqlRawLoader.mjs"
+  expect(files.has("gql/graphqlRawLoader.mjs")).toBe(false)
+  expect(files.has("gql/registerGraphqlRaw.mjs")).toBe(false)
+  expect(files.has("gql/raw-modules.d.ts")).toBe(false)
+  expect(parseObject(files.get("tsconfig.json")).compilerOptions).toMatchObject(
+    {
+      types: ["node", "vite/client"],
+    }
   )
 
   files.set("yarn.lock", "# lock\n")
@@ -151,14 +155,13 @@ test("existing manifest dependency ranges become the selected versions", () => {
   expect(byId(contributions, "vite:dependency:vite")).toMatchObject({
     range: "^5.2.0",
   })
-  expect(byId(contributions, "typescript:dependency:typescript")).toMatchObject({
-    range: "5.9.3",
-  })
+  expect(byId(contributions, "typescript:dependency:typescript")).toMatchObject(
+    {
+      range: "5.9.3",
+    }
+  )
   expect(
-    byId(
-      contributions,
-      "graphql:dependency:package.json:dependencies:graphql"
-    )
+    byId(contributions, "graphql:dependency:package.json:dependencies:graphql")
   ).toMatchObject({ range: "^16.6.0" })
 })
 
@@ -282,6 +285,7 @@ function mentionsClientPackage(contribution: Contribution): boolean {
     case "package-script":
       return contribution.manifest === "client/package.json"
     case "whole-file":
+    case "dockerfile":
     case "starter-file":
     case "structured":
     case "line":

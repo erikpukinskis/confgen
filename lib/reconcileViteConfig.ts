@@ -432,11 +432,7 @@ function groupMissingProperties(
     const tree = new Map<string, unknown>()
     for (const property of group) {
       ids.add(property.id)
-      insertTree(
-        tree,
-        property.path.slice(path.length),
-        property.value
-      )
+      insertTree(tree, property.path.slice(path.length), property.value)
     }
     edits.push(insertProperty(parent, `${path.at(-1)}: ${renderTree(tree)}`))
   }
@@ -455,8 +451,7 @@ function firstMissingPath(
     if (found.kind === "missing") {
       return { path: path.slice(0, index + 1), index }
     }
-    if (found.kind !== "property" || index === path.length - 1)
-      return undefined
+    if (found.kind !== "property" || index === path.length - 1) return undefined
     const initializer = propertyInitializer(found.property)
     if (initializer === undefined || !ts.isObjectLiteralExpression(initializer))
       return undefined

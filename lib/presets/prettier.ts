@@ -6,11 +6,26 @@ import type {
 } from "../contributions.js"
 
 /** Prettier owns formatting configuration. */
-export const contributions: ProduceContributions = (selection) => {
+export const contributions: ProduceContributions = (selection, facts) => {
   const ignores: (readonly [string, string])[] = [...IGNORE_LINES]
   if (selection.presets.includes("graphql")) {
     ignores.push(["generated-graphql", "gql/**/_generated"])
   }
+  const gitignore = facts.gitignore?.split(/\r?\n/) ?? []
+  if (selection.presets.includes("git")) {
+    gitignore.push(
+      "dist",
+      ".pnp.*",
+      ".yarn/*",
+      "coverage",
+      ...(selection.runtimes.includes("lib") ||
+      selection.runtimes.includes("client")
+        ? [".yalc", "yalc.lock"]
+        : []),
+      ...(selection.presets.includes("graphql") ? ["gql/**/_generated"] : [])
+    )
+  }
+  const needed = ignores.filter(([, value]) => !ignoredByGit(value, gitignore))
   return [
     dependency("prettier", "2.8.1"),
     script("check:format", "prettier --check ."),
@@ -21,10 +36,15 @@ export const contributions: ProduceContributions = (selection) => {
     ...(selection.presets.includes("sql")
       ? [
           dependency("prettier-plugin-sql-cst", "0.8.3"),
-          setting("prettier:sql-plugin", ["plugins"], ["prettier-plugin-sql-cst"], "merge"),
+          setting(
+            "prettier:sql-plugin",
+            ["plugins"],
+            ["prettier-plugin-sql-cst"],
+            "merge"
+          ),
         ]
       : []),
-    ...ignores.map(
+    ...needed.map(
       ([id, value]): Contribution => ({
         id: `prettier:ignore:${id}`,
         source: "preset:prettier",
@@ -47,6 +67,22 @@ const IGNORE_LINES: readonly (readonly [string, string])[] = [
   ["yalc", ".yalc"],
   ["yalc-lock", "yalc.lock"],
 ]
+
+function ignoredByGit(path: string, lines: readonly string[]): boolean {
+  return lines.some((line) => {
+    const pattern = line.trim().replace(/\/$/, "")
+    if (
+      pattern.length === 0 ||
+      pattern.startsWith("#") ||
+      pattern.startsWith("!")
+    )
+      return false
+    if (pattern === path) return true
+    if (pattern === ".pnp.*" && path.startsWith(".pnp.")) return true
+    if (pattern === ".yarn/*" && path === ".yarn") return true
+    return false
+  })
+}
 
 function setting(
   id: string,

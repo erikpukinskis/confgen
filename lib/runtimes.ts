@@ -142,7 +142,43 @@ function listenPort(value: string | undefined): number {
 }
 `
 
-function libContributions(): readonly Contribution[] {
+const SERVER_GRAPHQL_INDEX = (
+  container: boolean
+) => `import { initServer } from "#server/initServer"
+
+const HOST = ${JSON.stringify(container ? "0.0.0.0" : "127.0.0.1")}
+const PORT = listenPort(process.env.PORT)
+
+void initServer()
+  .then(({ express: app }) => {
+    const server = app.listen(PORT, HOST)
+    server.on("listening", () => {
+      const address = server.address()
+      if (address === null || typeof address === "string") {
+        console.error("server did not bind to a port")
+        process.exit(1)
+      }
+      console.log("ready http://127.0.0.1:" + String(address.port))
+    })
+  })
+  .catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+
+function listenPort(value: string | undefined): number {
+  if (value === undefined || value.length === 0) return 7001
+  const port = Number(value)
+  if (!Number.isInteger(port) || port < 0 || port > 65535) return 7001
+  return port
+}
+`
+
+function libContributions(
+  _selection: Selection,
+  facts: ProjectFacts
+): readonly Contribution[] {
+  if (facts.hasPublishedLibFile) return []
   return [
     {
       id: "runtime:lib:index",
@@ -157,48 +193,57 @@ function libContributions(): readonly Contribution[] {
 const CLIENT_INDEX = `export {}\n`
 
 function integrationContributions(
-  _selection: Selection,
+  selection: Selection,
   facts: ProjectFacts
 ): readonly Contribution[] {
-  const urlName = containerIdentity(facts.root.name).serviceUrlName
+  const identity = containerIdentity(facts.root.name)
   return [
     {
-      id: "runtime:integration:setup",
+      id: "runtime:integration:service-url",
       source: "runtime:integration",
-      kind: "starter-file",
-      path: "integration/setup.ts",
-      contents: integrationSetup(urlName),
+      kind: "line",
+      path: ".env.example",
+      value: `${identity.serviceUrlName}='${identity.serviceUrl}'`,
     },
-    {
-      id: "runtime:integration:service-test",
-      source: "runtime:integration",
-      kind: "starter-file",
-      path: "integration/service.test.ts",
-      contents: INTEGRATION_TEST,
-    },
+    ...(!facts.hasApplicationIntegrationTest
+      ? [
+          {
+            id: "runtime:integration:service-test",
+            source: "runtime:integration",
+            kind: "starter-file",
+            path: "integration/service.test.ts",
+            contents: selection.presets.includes("graphql")
+              ? graphqlIntegrationTest(identity.serviceUrlName)
+              : integrationTest(identity.serviceUrlName),
+          } satisfies Contribution,
+        ]
+      : []),
   ]
 }
 
-function integrationSetup(urlName: string): string {
-  return `export function serviceOrigin(): string {
-  const value = process.env.${urlName}
-  if (value === undefined || value.length === 0) {
-    throw new Error("${urlName} is not set")
-  }
-  return value
-}
-`
-}
-
-const INTEGRATION_TEST = `import { expect, test } from "vitest"
-import { serviceOrigin } from "#integration/setup"
+function integrationTest(urlName: string): string {
+  return `import { expect, test } from "vitest"
 
 test("reaches the service", async () => {
-  const response = await fetch(\`\${serviceOrigin()}/api\`)
+  const response = await fetch(\`\${process.env.${urlName}}/api\`)
   expect(response.status).toBe(200)
   expect(await response.text()).toContain("Hello, baseline")
 })
 `
+}
+
+function graphqlIntegrationTest(urlName: string): string {
+  return `import { expect, test } from "vitest"
+
+test("reaches the service GraphQL API", async () => {
+  const url = new URL("/api", process.env.${urlName})
+  url.searchParams.set("query", '{ greeting(name: "baseline") }')
+  const response = await fetch(url)
+  expect(response.status).toBe(200)
+  expect(await response.text()).toContain("Hello, baseline")
+})
+`
+}
 
 function clientContributions(selection: Selection): readonly Contribution[] {
   if (selection.presets.includes("graphql")) return []
@@ -213,16 +258,23 @@ function clientContributions(selection: Selection): readonly Contribution[] {
   ]
 }
 
-function serverContributions(selection: Selection): readonly Contribution[] {
+function serverContributions(
+  selection: Selection,
+  facts: ProjectFacts
+): readonly Contribution[] {
   return [
     {
       id: "runtime:server:index",
       source: "runtime:server",
       kind: "starter-file",
       path: "server/index.ts",
-      contents: selection.presets.includes("docker")
-        ? SERVER_CONTAINER_INDEX
-        : SERVER_INDEX,
+      contents:
+        selection.presets.includes("graphql") &&
+        facts.hasApplicationServerInitServer !== true
+          ? SERVER_GRAPHQL_INDEX(selection.presets.includes("docker"))
+          : selection.presets.includes("docker")
+          ? SERVER_CONTAINER_INDEX
+          : SERVER_INDEX,
     },
     {
       id: "runtime:server:start",

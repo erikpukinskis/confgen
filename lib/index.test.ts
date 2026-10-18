@@ -14,7 +14,8 @@ test("a file-writing selection exits successfully", async () => {
 
   expect(status).toBe(0)
   expect(stderr.text).toBe("")
-  expect(stdout.text).toBe("")
+  expect(stdout.text).toContain("👷 Running confgen@")
+  expect(stdout.text).toContain("👷 Updating file\n   .gitignore\n")
 })
 
 test("invalid selections exit with every diagnostic", async () => {

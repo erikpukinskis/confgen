@@ -15,8 +15,7 @@ export function packageManifestContributions(
   selection: Selection,
   facts: ProjectFacts
 ): readonly Contribution[] {
-  const produced: Contribution[] = [
-  ]
+  const produced: Contribution[] = []
   const build = aggregateBuild(selection, facts)
   if (build !== undefined) produced.push(script("build", build))
   const fix = aggregateFix(selection)
@@ -30,7 +29,7 @@ export function packageManifestContributions(
   ) {
     produced.push(
       json("files", ["files"], ["dist"], "merge"),
-      json("exports", ["exports"], rootExports(selection))
+      json("exports", ["exports"], rootExports(selection, facts))
     )
   }
   if (selection.runtimes.includes("client")) {
@@ -77,8 +76,8 @@ function aggregateBuild(
       if (
         runtime === "lib" &&
         selection.presets.includes("graphql") &&
-        selection.runtimes.includes("lib") &&
-        facts.root.dependencies.includes("graphql-dev-kit")
+        selection.runtimes.includes("server") &&
+        facts.hasApplicationServerInitServer !== true
       ) {
         commands.push("yarn build:test-kit")
       }
@@ -120,7 +119,7 @@ function aggregateCheck(selection: Selection): string | undefined {
   return commands.join(" && ")
 }
 
-function rootExports(selection: Selection): JsonValue {
+function rootExports(selection: Selection, facts: ProjectFacts): JsonValue {
   const value: { [key: string]: JsonValue } = {
     ".": {
       import: {
@@ -129,7 +128,11 @@ function rootExports(selection: Selection): JsonValue {
       },
     },
   }
-  if (selection.presets.includes("graphql")) {
+  if (
+    selection.presets.includes("graphql") &&
+    selection.runtimes.includes("server") &&
+    facts.hasApplicationServerInitServer !== true
+  ) {
     value["./test"] = {
       import: {
         types: "./dist/test/index.d.ts",
@@ -216,8 +219,6 @@ function integrationScripts(
     selection.runtimes.includes("server")
   ) {
     const identity = containerIdentity(facts.root.name)
-    const state =
-      '"${DEV_CLUSTER_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/dev-cluster}/certs"'
     produced.push(
       script(
         "test:integration:local",
@@ -226,7 +227,7 @@ function integrationScripts(
       script("test:integration:ci", "sh scripts/test-integration-ci.sh"),
       script(
         "shell:integration",
-        `SSL_PATH=${state} docker compose -f compose.base.yaml -f compose.local.yaml run --rm -it --entrypoint /bin/bash ${identity.integrationServiceName}`
+        `SSL_PATH="\${SSL_PATH:?}" docker compose -f compose.base.yaml -f compose.local.yaml run --rm -it --entrypoint /bin/bash ${identity.integrationServiceName}`
       )
     )
   }

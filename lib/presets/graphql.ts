@@ -3,11 +3,7 @@ import type { Selection } from "../selection.js"
 
 const GRAPHQL_VERSION = "16.11.0"
 
-/**
- * GraphQL owns one service code-generation pipeline: schema, resolver types,
- * published client documents, the modules that expose them, and the thin
- * test kit. Generated output is left to the code generator.
- */
+/** GraphQL owns schema generation, client documents, and new-service setup. */
 export const contributions: ProduceContributions = (selection, facts) => {
   const produced: Contribution[] = [
     dependency("package.json", "dependencies", "graphql", GRAPHQL_VERSION),
@@ -39,19 +35,54 @@ export const contributions: ProduceContributions = (selection, facts) => {
     starter("codegen", "codegen.yml", codegenYaml(selection)),
     starter("schema", "gql/schema.graphql", SCHEMA),
     starter("graphql-module", "gql/index.ts", GRAPHQL_MODULE),
-    starter("raw-module", "gql/raw-modules.d.ts", RAW_MODULE),
-    wholeFile(
-      "raw-register",
-      "gql/registerGraphqlRaw.mjs",
-      REGISTER_GRAPHQL_RAW
-    ),
-    wholeFile("raw-loader", "gql/graphqlRawLoader.mjs", GRAPHQL_RAW_LOADER),
+    ...(!selection.presets.includes("vite")
+      ? [starter("raw-module", "gql/raw-modules.d.ts", RAW_MODULE)]
+      : []),
+    ...(!selection.presets.includes("vite")
+      ? [
+          wholeFile(
+            "raw-register",
+            "gql/registerGraphqlRaw.mjs",
+            REGISTER_GRAPHQL_RAW
+          ),
+          wholeFile(
+            "raw-loader",
+            "gql/graphqlRawLoader.mjs",
+            GRAPHQL_RAW_LOADER
+          ),
+        ]
+      : []),
   ]
-  if (facts.root.dependencies.includes("graphql-dev-kit")) {
+  const serverScaffold =
+    selection.runtimes.includes("server") &&
+    facts.hasApplicationServerInitServer !== true
+  if (serverScaffold) {
     produced.push(
-      starter("resolvers", "gql/resolvers.ts", RESOLVERS),
-      starter("resolver-test", "gql/resolvers.test.ts", RESOLVER_TEST)
+      dependency("package.json", "dependencies", "@apollo/server", "^4.9.5"),
+      dependency("package.json", "dependencies", "cors", "^2.8.5"),
+      dependency("package.json", "dependencies", "express", "^5.0.0"),
+      dependency("package.json", "devDependencies", "@types/cors", "^2.8.17"),
+      dependency("package.json", "devDependencies", "@types/express", "5.0.0"),
+      starter("server-queries", "server/queries/index.ts", QUERY_BARREL),
+      starter("server-mutations", "server/mutations/index.ts", EMPTY_BARREL),
+      starter("server-init", "server/initServer.ts", SERVER_INIT)
     )
+    produced.push(
+      starter(
+        "server-greeting",
+        "server/queries/greeting.ts",
+        GREETING_RESOLVER
+      )
+    )
+    if (selection.presets.includes("vitest")) {
+      produced.push(
+        starter(
+          "server-greeting-test",
+          "server/queries/greeting.test.ts",
+          GREETING_RESOLVER_TEST
+        )
+      )
+    }
   }
   if (selection.runtimes.includes("client")) {
     produced.push(
@@ -83,10 +114,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
       starter("client-operations", "client/index.ts", CLIENT_OPERATIONS)
     )
   }
-  if (
-    selection.runtimes.includes("lib") &&
-    facts.root.dependencies.includes("graphql-dev-kit")
-  ) {
+  if (serverScaffold && selection.runtimes.includes("lib")) {
     produced.push(starter("test-kit", "lib/test.ts", TEST_KIT))
   }
   return produced
@@ -97,18 +125,66 @@ const SCHEMA = `type Query {
 }
 `
 
-const RESOLVERS = `import type { QueryResolvers } from "#gql/index"
+const QUERY_BARREL = `export { greeting } from "./greeting.js"
+`
+
+const EMPTY_BARREL = `export {}
+`
+
+const GREETING_RESOLVER = `import type { QueryResolvers } from "#gql/index"
 
 export function greetingMessage(name: string): string {
   return \`Hello, \${name}\`
 }
 
-const greeting: NonNullable<QueryResolvers["greeting"]> = (parent, args) => {
+export const greeting: NonNullable<QueryResolvers["greeting"]> = (
+  parent,
+  args
+) => {
   void parent
   return greetingMessage(args.name)
 }
+`
 
-export const queryResolvers = { greeting }
+const SERVER_INIT = `import { ApolloServer } from "@apollo/server"
+import { expressMiddleware } from "@apollo/server/express4"
+import cors from "cors"
+import express from "express"
+import { schema } from "#gql/index"
+import * as Mutation from "#server/mutations/index"
+import * as Query from "#server/queries/index"
+
+export async function initServer() {
+  const app = express()
+  const apolloServer = new ApolloServer({
+    typeDefs: schema,
+    resolvers: {
+      Query,
+      ...(Object.keys(Mutation).length > 0 ? { Mutation } : {}),
+    },
+  })
+
+  await apolloServer.start()
+
+  app.get("/", (_, res) => {
+    res.send("Hello, baseline")
+  })
+
+  app.get("/healthcheck", (_, res) => {
+    res.send("ok")
+  })
+
+  app.use(
+    "/api",
+    cors(),
+    express.json(),
+    expressMiddleware(apolloServer, {
+      context: async () => ({}),
+    }) as unknown as express.RequestHandler
+  )
+
+  return { express: app, apollo: apolloServer }
+}
 `
 
 const GRAPHQL_MODULE = `import schema from "./schema.graphql?raw"
@@ -172,20 +248,18 @@ export const Greeting = graphql(\`
 `
 
 const TEST_KIT = `import { schema } from "#gql/index"
-import { queryResolvers } from "#gql/resolvers"
+import { greeting } from "#server/queries/index"
 
 export function serviceTestKit(): {
   schema: string
-  greeting: NonNullable<typeof queryResolvers["greeting"]>
+  greeting: typeof greeting
 } {
-  const greeting = queryResolvers.greeting
-  if (greeting === undefined) throw new Error("missing greeting resolver")
   return { schema, greeting }
 }
 `
 
-const RESOLVER_TEST = `import { expect, test } from "vitest"
-import { greetingMessage } from "#gql/resolvers"
+const GREETING_RESOLVER_TEST = `import { expect, test } from "vitest"
+import { greetingMessage } from "#server/queries/greeting"
 
 test("greeting resolver uses the name", () => {
   expect(greetingMessage("package")).toBe("Hello, package")

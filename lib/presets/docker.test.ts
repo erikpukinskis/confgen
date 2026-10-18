@@ -36,6 +36,15 @@ const selection = parseSelection([
 
 test("container contributions describe the ordinary service image", () => {
   const contributions = collectContributions(selection, facts)
+  expect(
+    contributions.find(
+      (contribution) =>
+        contribution.kind === "package-script" &&
+        contribution.name === "start:server"
+    )
+  ).toMatchObject({
+    command: "vite-node --watch --config vite.server.config.ts server/index.ts",
+  })
   const dockerfile = text(contributions, "Dockerfile")
   expect(dockerfile).toContain("FROM node:24-bookworm-slim AS base")
   expect(dockerfile).toContain("FROM base AS dev")
@@ -145,7 +154,6 @@ test("replaces the local yalc dev-cluster link with its published version", () =
 test("compose layers merge and keep unrelated services", () => {
   const identity = containerIdentity(facts.root.name)
   expect(identity.serviceName).toBe("package-api-server")
-  expect(identity.alias).toBe("package-api-server.local.multiplayerdb.dev")
   const contributions = collectContributions(selection, facts)
   const created = reconcile({
     selection,
@@ -171,7 +179,8 @@ test("compose layers merge and keep unrelated services", () => {
   expect(service.image).toBe(
     "ghcr.io/example/package-api-server:${IMAGE_TAG:?}"
   )
-  expect(service.environment).toEqual({ PORT: String(SERVICE_PORT) })
+  expect(service.environment).toBeUndefined()
+  expect(service.networks).toBeUndefined()
   expect(service.volumes).toEqual(["${SSL_PATH:?}:/ssl:ro"])
   expect(JSON.stringify(service)).not.toContain(":/mnt/")
   const local = yamlObject(written(created.files, "compose.local.yaml"))
@@ -273,7 +282,7 @@ test("composes the installed Package Service dependency", () => {
     objectField(base, "services"),
     "schema-api-server"
   )
-  expect(service.environment).toMatchObject({
+  expect(service.environment).toEqual({
     PACKAGE_SERVICE_URL: "${PACKAGE_SERVICE_URL:?}",
   })
   expect(service.depends_on).toMatchObject({
@@ -422,9 +431,14 @@ function byId(
 function text(contributions: readonly Contribution[], path: string): string {
   const found = contributions.find(
     (contribution) =>
-      contribution.kind === "whole-file" && contribution.path === path
+      (contribution.kind === "whole-file" ||
+        contribution.kind === "dockerfile") &&
+      contribution.path === path
   )
-  if (found === undefined || found.kind !== "whole-file") {
+  if (
+    found === undefined ||
+    (found.kind !== "whole-file" && found.kind !== "dockerfile")
+  ) {
     throw new Error(`missing file ${path}`)
   }
   return found.contents

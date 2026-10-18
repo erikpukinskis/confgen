@@ -399,6 +399,7 @@ Later:
 - [ ] Add eslint-plugin-react-hooks
 - [ ] Add eslint-plugin-jsx-a11y?
 - [ ] Add axe in unit tests? or docs?
+- [ ] Always run confgen twice in tests, to catch unstable outputs
 
 ---
 

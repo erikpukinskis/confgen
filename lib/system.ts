@@ -1,5 +1,12 @@
 import { spawn } from "node:child_process"
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises"
 import { dirname, isAbsolute, join } from "node:path"
 
 export type RunResult = {
@@ -14,6 +21,7 @@ export type RunResult = {
  */
 export type System = {
   readFile(path: string): Promise<string>
+  listFiles(path: string): Promise<readonly string[]>
   writeFile(path: string, contents: string): Promise<void>
   removeFile(path: string): Promise<void>
   rename(from: string, to: string): Promise<void>
@@ -27,6 +35,19 @@ export function createSystem(cwd: string): System {
   return {
     readFile(path) {
       return readFile(resolvePath(path), "utf8")
+    },
+    async listFiles(path) {
+      try {
+        const entries = await readdir(resolvePath(path), {
+          withFileTypes: true,
+        })
+        return entries
+          .filter((entry) => entry.isFile())
+          .map((entry) => entry.name)
+      } catch (error) {
+        if (isMissingFile(error)) return []
+        throw error
+      }
     },
     async writeFile(path, contents) {
       const target = resolvePath(path)

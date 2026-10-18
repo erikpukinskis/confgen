@@ -124,7 +124,6 @@ function integrationDocument(
   if (!selection.runtimes.includes("integration")) return undefined
   const identity = requireContainerIdentity(facts)
   const env: { [key: string]: JsonValue } = {
-    DEV_CLUSTER_STATE_DIR: "${{ github.workspace }}/.dev-cluster",
     SSL_PATH: "${{ github.workspace }}/.dev-cluster/certs",
     IMAGE_TAG: "${{ github.sha }}",
   }
@@ -414,7 +413,8 @@ function integrationJob(
   }
 }
 
-const STAMP_COMPOSE = 'sed -i "s/[$]{IMAGE_TAG:?}/$IMAGE_TAG/g" compose.base.yaml'
+const STAMP_COMPOSE =
+  'sed -i "s/[$]{IMAGE_TAG:?}/$IMAGE_TAG/g" compose.base.yaml'
 
 function imageBuild(input: {
   name: string

@@ -37,7 +37,10 @@ test("unplugs the native and Compose packages declared by the project", () => {
   )
   const moduleRoot = { ...root, type: "module" }
   expect(
-    collectContributions(selection, { root: moduleRoot, packages: [moduleRoot] })
+    collectContributions(selection, {
+      root: moduleRoot,
+      packages: [moduleRoot],
+    })
   ).toContainEqual(expect.objectContaining({ id: "yarn:module-type" }))
 })
 
@@ -61,7 +64,8 @@ test("adds workspace TypeScript settings without removing existing VS Code setti
     pnpPresent: true,
   })
   const settings = result.files.find(
-    (change) => change.type === "write" && change.path === ".vscode/settings.json"
+    (change) =>
+      change.type === "write" && change.path === ".vscode/settings.json"
   )
   if (settings?.type !== "write") throw new Error("settings were not written")
   expect(JSON.parse(settings.contents)).toEqual({

@@ -294,6 +294,7 @@ async function collectedError(
 function failingInstall(real: System): System {
   return {
     readFile: (path) => real.readFile(path),
+    listFiles: (path) => real.listFiles(path),
     writeFile: (path, contents) => real.writeFile(path, contents),
     removeFile: (path) => real.removeFile(path),
     rename: (from, to) => real.rename(from, to),

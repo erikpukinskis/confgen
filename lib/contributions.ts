@@ -58,6 +58,11 @@ export type ViteConfigItem = {
 
 export type Contribution =
   | (ContributionBase & {
+      kind: "dockerfile"
+      path: string
+      contents: string
+    })
+  | (ContributionBase & {
       kind: "whole-file"
       path: string
       contents: string
@@ -363,6 +368,7 @@ function targetPath(contribution: Contribution): string {
     case "package-script":
       return contribution.manifest
     case "whole-file":
+    case "dockerfile":
     case "starter-file":
     case "structured":
     case "line":
@@ -375,7 +381,9 @@ function targetPath(contribution: Contribution): string {
 
 function isExclusive(contribution: Contribution): boolean {
   return (
-    contribution.kind === "whole-file" || contribution.kind === "starter-file"
+    contribution.kind === "whole-file" ||
+    contribution.kind === "dockerfile" ||
+    contribution.kind === "starter-file"
   )
 }
 

@@ -226,12 +226,15 @@ function text(contributions: readonly Contribution[], path: string): string {
   const found = contributions.find(
     (contribution) =>
       (contribution.kind === "whole-file" ||
+        contribution.kind === "dockerfile" ||
         contribution.kind === "starter-file") &&
       contribution.path === path
   )
   if (
     found === undefined ||
-    (found.kind !== "whole-file" && found.kind !== "starter-file")
+    (found.kind !== "whole-file" &&
+      found.kind !== "dockerfile" &&
+      found.kind !== "starter-file")
   ) {
     throw new Error(`missing file ${path}`)
   }

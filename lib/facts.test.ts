@@ -113,6 +113,25 @@ test("reads a workspace package list object", async () => {
   ])
 })
 
+test("detects an existing integration test and a published library file", async () => {
+  const system = await project()
+  await system.writeFile(
+    "package.json",
+    JSON.stringify({
+      name: "@example/package-service",
+      exports: { "./test": { types: "./dist/lib/test.d.ts" } },
+    })
+  )
+  await system.writeFile("lib/test.ts", "export const kit = true\n")
+  await system.writeFile("integration/publishing.test.ts", "export {}\n")
+  await system.writeFile(".gitignore", "dist\n")
+
+  const facts = await readProjectFacts(system)
+  expect(facts.hasPublishedLibFile).toBe(true)
+  expect(facts.hasApplicationIntegrationTest).toBe(true)
+  expect(facts.gitignore).toBe("dist\n")
+})
+
 test("detects the existing integration workflow filename", async () => {
   for (const extension of ["yml", "yaml"]) {
     const system = await project()

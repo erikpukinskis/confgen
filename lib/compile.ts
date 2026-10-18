@@ -16,6 +16,12 @@ export type Compilation = {
   contributions: readonly Contribution[]
 }
 
+export type CompilationProgress =
+  | { type: "start" }
+  | { type: "write"; path: string }
+  | { type: "remove"; path: string }
+  | { type: "run"; executable: string; args: readonly string[] }
+
 /**
  * Parses the selection, reads the manifest and lock, reconciles every
  * contribution, applies the change set, and replaces confgen.lock last.
@@ -23,16 +29,21 @@ export type Compilation = {
 export async function compile(input: {
   selection: readonly string[]
   system: System
+  onWarnings?: (warnings: readonly string[]) => void
+  onProgress?: (progress: CompilationProgress) => void
 }): Promise<Compilation> {
   const selection = parseSelection(input.selection)
-  const facts = await readProjectFacts(input.system)
-  await readLock(input.system)
+  input.onProgress?.({ type: "start" })
+  const prior = await readLock(input.system)
+  const facts = await readProjectFacts(input.system, prior)
   const contributions = collectContributions(selection, facts)
   return compileCollected({
     selection,
     facts,
     contributions,
     system: input.system,
+    ...(input.onWarnings === undefined ? {} : { onWarnings: input.onWarnings }),
+    ...(input.onProgress === undefined ? {} : { onProgress: input.onProgress }),
   })
 }
 
@@ -45,6 +56,8 @@ export async function compileCollected(input: {
   facts: ProjectFacts
   contributions: readonly Contribution[]
   system: System
+  onWarnings?: (warnings: readonly string[]) => void
+  onProgress?: (progress: CompilationProgress) => void
 }): Promise<Compilation> {
   const contributions = normalizeContributions(input.contributions)
   const prior = await readLock(input.system)
@@ -57,8 +70,14 @@ export async function compileCollected(input: {
     yarnLockPresent: files.has("yarn.lock"),
     pnpPresent: files.has(".pnp.cjs"),
   })
-  await applyChanges(input.system, changeSet.files)
+  input.onWarnings?.(changeSet.warnings)
+  await applyChanges(input.system, changeSet.files, input.onProgress)
   if (changeSet.runYarnInstall) {
+    input.onProgress?.({
+      type: "run",
+      executable: "yarn",
+      args: ["install"],
+    })
     const result = await input.system.run("yarn", ["install"])
     if (result.status !== 0) {
       const detail =
@@ -101,13 +120,16 @@ async function readAffectedFiles(
 
 async function applyChanges(
   system: System,
-  changes: readonly FileChange[]
+  changes: readonly FileChange[],
+  onProgress: ((progress: CompilationProgress) => void) | undefined
 ): Promise<void> {
   for (const change of changes) {
     if (change.type === "write") {
+      onProgress?.({ type: "write", path: change.path })
       await system.writeFile(change.path, change.contents)
       continue
     }
+    onProgress?.({ type: "remove", path: change.path })
     await system.removeFile(change.path)
   }
 }
@@ -227,6 +249,7 @@ function contributionPath(contribution: Contribution): string {
     case "package-script":
       return contribution.manifest
     case "whole-file":
+    case "dockerfile":
     case "starter-file":
     case "structured":
     case "line":

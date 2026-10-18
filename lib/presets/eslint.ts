@@ -28,7 +28,12 @@ export const contributions: ProduceContributions = (selection) => [
       "plugin:@typescript-eslint/recommended-requiring-type-checking",
     ]
   ),
-  setting("eslint:ignore", ["ignorePatterns"], ignorePatterns(selection), "merge"),
+  setting(
+    "eslint:ignore",
+    ["ignorePatterns"],
+    ignorePatterns(selection),
+    "merge"
+  ),
   setting("eslint:parser-options", ["parserOptions"], {
     warnOnUnsupportedTypeScriptVersion: false,
     project: typecheckProjects(selection),

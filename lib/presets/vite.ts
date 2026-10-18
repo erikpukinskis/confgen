@@ -10,6 +10,9 @@ import type { Selection } from "../selection.js"
 /** Vite owns the standalone build config for each selected runtime. */
 export const contributions: ProduceContributions = (selection, facts) => {
   const produced: Contribution[] = [dependency("vite", "8.3.4")]
+  const serverScaffold =
+    selection.runtimes.includes("server") &&
+    facts.hasApplicationServerInitServer !== true
   if (
     selection.runtimes.includes("lib") ||
     selection.runtimes.includes("client")
@@ -28,9 +31,12 @@ export const contributions: ProduceContributions = (selection, facts) => {
       libConfig(facts, selection)
     )
     if (selection.presets.includes("graphql")) {
-      if (facts.root.dependencies.includes("graphql-dev-kit")) {
+      if (serverScaffold) {
         produced.push(
-          script("build:test-kit", "vite build --config vite.test-kit.config.ts"),
+          script(
+            "build:test-kit",
+            "vite build --config vite.test-kit.config.ts"
+          ),
           testKitConfig(facts)
         )
       }
@@ -38,6 +44,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
   }
   if (selection.runtimes.includes("server")) {
     produced.push(
+      dependency("vite-node", "6.0.0"),
       script("build:server", "vite build --config vite.server.config.ts"),
       serverConfig(selection)
     )
@@ -86,7 +93,7 @@ function testKitConfig(facts: ProjectFacts): Contribution {
     ...dtsPlugin(`{
       tsconfigPath: resolve("tsconfig.json"),
       bundleTypes: true,
-      include: ["lib/test.ts", "gql/**/*.ts"],
+      include: ["lib/test.ts", "gql/**/*.ts", "server/queries/**/*.ts"],
       exclude: ["**/*.test.ts", "gql/client/**"],
     }`),
     property(
@@ -171,6 +178,11 @@ function clientConfig(selection: Selection, facts: ProjectFacts): Contribution {
   ]
   if (selection.presets.includes("graphql")) {
     items.push(
+      property(
+        "graphql-client-alias",
+        ["resolve", "alias"],
+        '[{ find: "#gql/client", replacement: resolve("gql/client/index.ts") }]'
+      ),
       property(
         "build-external",
         ["build", "rolldownOptions", "external"],

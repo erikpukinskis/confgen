@@ -15,6 +15,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
   ]
   if (
     selection.runtimes.includes("lib") &&
+    !facts.hasPublishedLibFile &&
     facts.root.dependencies.includes("graphql-dev-kit")
   ) {
     produced.push(libTest())

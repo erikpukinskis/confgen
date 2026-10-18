@@ -20,7 +20,6 @@ const COMPILER_OPTIONS: readonly (readonly [string, JsonValue])[] = [
   ["exactOptionalPropertyTypes", true],
   ["verbatimModuleSyntax", true],
   ["skipLibCheck", true],
-  ["types", ["node"]],
   ["noEmit", true],
 ]
 
@@ -29,10 +28,15 @@ export const contributions: ProduceContributions = (selection) => [
   dependency("@types/node", "24.19.2"),
   script("check:types", typecheckCommand(selection)),
   ...COMPILER_OPTIONS.map(([name, value]) => option(name, value)),
+  option("types", compilerTypes(selection)),
   tsconfig("typescript:include", ["include"], includePaths(selection), "merge"),
   ...importMaps(selection),
   ...clientProject(selection),
 ]
+
+function compilerTypes(selection: Selection): string[] {
+  return selection.presets.includes("vite") ? ["node", "vite/client"] : ["node"]
+}
 
 function typecheckCommand(selection: Selection): string {
   const command = "tsc --noEmit -p tsconfig.json"
@@ -90,6 +94,14 @@ function clientProject(selection: Selection): Contribution[] {
       `typescript:client:${name}`,
       ["compilerOptions", name],
       value,
+      "merge"
+    )
+  )
+  options.push(
+    clientTsconfig(
+      "typescript:client:types",
+      ["compilerOptions", "types"],
+      compilerTypes(selection),
       "merge"
     )
   )

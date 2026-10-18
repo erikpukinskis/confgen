@@ -1,4 +1,5 @@
 import { ConfgenError } from "./errors.js"
+import type { LockData } from "./lock.js"
 import type { System } from "./system.js"
 import { z } from "zod"
 
@@ -27,6 +28,10 @@ export type PackageManifestFacts = {
 export type ProjectFacts = {
   root: PackageManifestFacts
   packages: readonly PackageManifestFacts[]
+  hasPublishedLibFile?: true
+  hasApplicationIntegrationTest?: true
+  gitignore?: string
+  hasApplicationServerInitServer?: true
   integrationWorkflowPath?:
     | ".github/workflows/integration-tests.yml"
     | ".github/workflows/integration-tests.yaml"
@@ -69,11 +74,11 @@ const ManifestSchema = z
 
 type Manifest = z.infer<typeof ManifestSchema>
 
-/**
- * Reads project identity, package names, workspaces, repository metadata,
- * and registry settings from the package manifests that own them.
- */
-export async function readProjectFacts(system: System): Promise<ProjectFacts> {
+/** Reads package metadata and existing files that affect contribution choices. */
+export async function readProjectFacts(
+  system: System,
+  prior?: LockData
+): Promise<ProjectFacts> {
   const root = await readManifest(system, "package.json")
   const problems = [...root.problems]
   const packages: PackageManifestFacts[] = []
@@ -102,13 +107,81 @@ export async function readProjectFacts(system: System): Promise<ProjectFacts> {
   }
   const integrationWorkflowPath = await existingIntegrationWorkflow(system)
   const artifactPolicy = await existingArtifactPolicy(system)
+  const hasServerInitServer = await existingFile(system, "server/initServer.ts")
+  const libFiles = await system.listFiles("lib")
+  const integrationFiles = await system.listFiles("integration")
+  const publishedLibFiles = exportTargets(
+    isRecord(root.source) ? root.source.exports : undefined
+  )
+  const hasPublishedLibFile = libFiles.some(
+    (file) =>
+      file.endsWith(".ts") &&
+      !file.endsWith(".test.ts") &&
+      (file !== "index.ts" ||
+        !prior?.contributions.some(
+          (entry) => entry.id === "runtime:lib:index"
+        )) &&
+      publishedLibFiles.includes(`./dist/lib/${file.replace(/\.ts$/, ".d.ts")}`)
+  )
+  const hasApplicationIntegrationTest = integrationFiles.some(
+    (file) =>
+      file.endsWith(".test.ts") &&
+      (file !== "service.test.ts" ||
+        !prior?.contributions.some(
+          (entry) => entry.id === "runtime:integration:service-test"
+        ))
+  )
+  const gitignore = await optionalText(system, ".gitignore")
+  const serverInitServerWasDelivered =
+    prior?.contributions.some(
+      (entry) =>
+        entry.strategy === "starter-file" &&
+        entry.path === "server/initServer.ts"
+    ) ?? false
   return {
     root: rootFacts,
     packages,
+    ...(hasPublishedLibFile ? { hasPublishedLibFile: true } : {}),
+    ...(hasApplicationIntegrationTest
+      ? { hasApplicationIntegrationTest: true }
+      : {}),
+    ...(gitignore === undefined ? {} : { gitignore }),
+    ...(hasServerInitServer && !serverInitServerWasDelivered
+      ? { hasApplicationServerInitServer: true }
+      : {}),
     ...(integrationWorkflowPath === undefined
       ? {}
       : { integrationWorkflowPath }),
     ...(artifactPolicy === undefined ? {} : artifactPolicy),
+  }
+}
+
+function exportTargets(value: unknown): string[] {
+  if (typeof value === "string") return [value]
+  if (Array.isArray(value)) return value.flatMap(exportTargets)
+  if (isRecord(value)) return Object.values(value).flatMap(exportTargets)
+  return []
+}
+
+async function optionalText(
+  system: System,
+  path: string
+): Promise<string | undefined> {
+  try {
+    return await system.readFile(path)
+  } catch (error) {
+    if (isMissingFile(error)) return undefined
+    throw error
+  }
+}
+
+async function existingFile(system: System, path: string): Promise<boolean> {
+  try {
+    await system.readFile(path)
+    return true
+  } catch (error) {
+    if (isMissingFile(error)) return false
+    throw error
   }
 }
 

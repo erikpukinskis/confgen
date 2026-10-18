@@ -26,7 +26,10 @@ test(
     try {
       confgen = await packConfgen()
       packageService = await packPackageService()
-      project = await createSyntheticProject({ tarball: confgen.tarball, fixture })
+      project = await createSyntheticProject({
+        tarball: confgen.tarball,
+        fixture,
+      })
       const packageDirectory = join(project.directory, ".yalc")
       await mkdir(packageDirectory, { recursive: true })
       await cp(

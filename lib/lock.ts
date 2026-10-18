@@ -82,6 +82,13 @@ const lockContributionSchema = z.discriminatedUnion("strategy", [
     id: z.string().min(1),
     source: sourceSchema,
     path: z.string().min(1),
+    strategy: z.literal("dockerfile"),
+    baseline: z.string(),
+  }),
+  z.object({
+    id: z.string().min(1),
+    source: sourceSchema,
+    path: z.string().min(1),
     strategy: z.literal("starter-file"),
   }),
   z.object({
@@ -269,6 +276,14 @@ export function viteItemsFromLock(
 
 function lockContribution(contribution: Contribution): LockContribution {
   switch (contribution.kind) {
+    case "dockerfile":
+      return {
+        id: contribution.id,
+        source: contribution.source,
+        path: contribution.path,
+        strategy: "dockerfile",
+        baseline: contribution.contents,
+      }
     case "whole-file":
       return {
         id: contribution.id,

@@ -75,6 +75,60 @@ test("the baseline selection reconciles to a stable file set", () => {
   expect(again.runYarnInstall).toBe(false)
 })
 
+test("existing service sources suppress duplicate starters", () => {
+  const service = parseSelection([
+    "runtimes=#lib,#integration",
+    "vitest",
+    "prettier",
+    "git",
+  ])
+  const contributions = collectContributions(service, {
+    root: {
+      ...root,
+      name: "@example/package-service",
+      dependencies: ["graphql-dev-kit"],
+    },
+    packages: [root],
+    hasPublishedLibFile: true,
+    hasApplicationIntegrationTest: true,
+    gitignore: "dist\n",
+  })
+  expect(paths(contributions)).not.toContain("lib/index.ts")
+  expect(paths(contributions)).not.toContain("lib/index.test.ts")
+  expect(paths(contributions)).not.toContain("integration/service.test.ts")
+  expect(paths(contributions)).toContain(".env.example")
+  expect(contributions).toContainEqual(
+    expect.objectContaining({
+      path: ".env.example",
+      value:
+        "PACKAGE_SERVICE_URL='https://package-service.local.multiplayerdb.dev'",
+    })
+  )
+  expect(contributions).not.toContainEqual(
+    expect.objectContaining({ path: ".prettierignore", value: "dist" })
+  )
+})
+
+test("a new service gets a URL example and an environment-based integration test", () => {
+  const service = parseSelection(["runtimes=#integration", "prettier", "git"])
+  const contributions = collectContributions(service, {
+    root: { ...root, name: "@example/package-service" },
+    packages: [root],
+  })
+  expect(paths(contributions)).toContain("integration/service.test.ts")
+  expect(paths(contributions)).not.toContain("integration/setup.ts")
+  expect(byId(contributions, "runtime:integration:service-test")).toMatchObject(
+    {
+      contents: expect.stringContaining("process.env.PACKAGE_SERVICE_URL"),
+    }
+  )
+  expect(
+    contributions
+      .filter((item) => item.kind === "line" && item.path === ".prettierignore")
+      .map((item) => (item.kind === "line" ? item.value : undefined))
+  ).toEqual([".nvmrc", ".yalc", "yalc.lock", "yarn.lock"])
+})
+
 function byId(
   contributions: readonly Contribution[],
   id: string
@@ -91,6 +145,7 @@ function paths(contributions: readonly Contribution[]): string[] {
       case "package-script":
         return contribution.manifest
       case "whole-file":
+      case "dockerfile":
       case "starter-file":
       case "structured":
       case "line":

@@ -834,6 +834,7 @@ __metadata:
     commander: "npm:^15.0.0"
     eslint: "npm:8.57.1"
     eslint-plugin-import: "npm:^2.31.0"
+    node-diff3: "npm:^3.2.1"
     prettier: "npm:2.8.1"
     typescript: "npm:^5.9.3"
     vitest: "npm:^4.0.7"
@@ -2235,6 +2236,13 @@ __metadata:
   version: 1.4.0
   resolution: "natural-compare@npm:1.4.0"
   checksum: 10c0/f5f9a7974bfb28a91afafa254b197f0f22c684d4a1731763dda960d2c8e375b36c7d690e0d9dc8fba774c537af14a7e979129bca23d88d052fbeb9466955e447
+  languageName: node
+  linkType: hard
+
+"node-diff3@npm:^3.2.1":
+  version: 3.2.1
+  resolution: "node-diff3@npm:3.2.1"
+  checksum: 10c0/c60f21649a5360aed3ac93f58dea90d54187f64fbcec6ac8330ecc7e862586d7f5d70ffb18912ce55824c66112a96c3182a3c65978720e43d0a643e3e79c4db0
   languageName: node
   linkType: hard
 

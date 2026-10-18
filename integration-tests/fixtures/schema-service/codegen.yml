@@ -14,7 +14,7 @@ generates:
   gql/client/_generated/:
     documents:
       - client/**/*.ts
-      - '!**/_generated/**'
+      - "!**/_generated/**"
     preset: client
     config:
       enumsAsTypes: true
