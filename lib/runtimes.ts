@@ -94,29 +94,36 @@ function listenPort(value: string | undefined): number {
 }
 `
 
-const SERVER_CONTAINER_INDEX = `import { createServer } from "node:http"
+const SERVER_CONTAINER_INDEX = `import { readFileSync } from "node:fs"
+import { createServer } from "node:https"
 import { greeting } from "#lib/index"
 
-const server = createServer((request, response) => {
-  const path = requestPath(request.url)
-  if (path === "/healthcheck") {
-    response.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
-    response.end("ok\\n")
-    return
-  }
-  if (path === "/api") {
+const server = createServer(
+  {
+    cert: readFileSync(process.env.TLS_CERT ?? "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"),
+    key: readFileSync(process.env.TLS_KEY ?? "/run/multiplayerdb-ssl/local.multiplayerdb.dev.key"),
+  },
+  (request, response) => {
+    const path = requestPath(request.url)
+    if (path === "/healthcheck") {
+      response.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
+      response.end("ok\\n")
+      return
+    }
+    if (path === "/api") {
+      response.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
+      response.end(\`\${greeting("baseline")}\\n\`)
+      return
+    }
+    if (path !== "/") {
+      response.writeHead(404)
+      response.end()
+      return
+    }
     response.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
     response.end(\`\${greeting("baseline")}\\n\`)
-    return
   }
-  if (path !== "/") {
-    response.writeHead(404)
-    response.end()
-    return
-  }
-  response.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
-  response.end(\`\${greeting("baseline")}\\n\`)
-})
+)
 
 server.listen(listenPort(process.env.PORT), "0.0.0.0", () => {
   const address = server.address()
@@ -124,7 +131,7 @@ server.listen(listenPort(process.env.PORT), "0.0.0.0", () => {
     console.error("server did not bind to a port")
     process.exit(1)
   }
-  console.log("ready http://127.0.0.1:" + String(address.port))
+  console.log("ready https://127.0.0.1:" + String(address.port))
 })
 
 function requestPath(url: string | undefined): string {
@@ -135,30 +142,45 @@ function requestPath(url: string | undefined): string {
 }
 
 function listenPort(value: string | undefined): number {
-  if (value === undefined || value.length === 0) return 3000
+  if (value === undefined || value.length === 0) return 443
   const port = Number(value)
-  if (!Number.isInteger(port) || port < 0 || port > 65535) return 3000
+  if (!Number.isInteger(port) || port < 0 || port > 65535) return 443
   return port
 }
 `
 
-const SERVER_GRAPHQL_INDEX = (
-  container: boolean
-) => `import { initServer } from "#server/initServer"
+const SERVER_GRAPHQL_INDEX = (container: boolean) => `import ${
+  container
+    ? '{ readFileSync } from "node:fs"\nimport { createServer } from "node:https"'
+    : '{ createServer } from "node:http"'
+}
+import { initServer } from "#server/initServer"
 
 const HOST = ${JSON.stringify(container ? "0.0.0.0" : "127.0.0.1")}
 const PORT = listenPort(process.env.PORT)
 
 void initServer()
   .then(({ express: app }) => {
-    const server = app.listen(PORT, HOST)
-    server.on("listening", () => {
+    const server = ${
+      container
+        ? `createServer(
+      {
+        cert: readFileSync(process.env.TLS_CERT ?? "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"),
+        key: readFileSync(process.env.TLS_KEY ?? "/run/multiplayerdb-ssl/local.multiplayerdb.dev.key"),
+      },
+      app
+    )`
+        : "createServer(app)"
+    }
+    server.listen(PORT, HOST, () => {
       const address = server.address()
       if (address === null || typeof address === "string") {
         console.error("server did not bind to a port")
         process.exit(1)
       }
-      console.log("ready http://127.0.0.1:" + String(address.port))
+      console.log("ready ${
+        container ? "https" : "http"
+      }://127.0.0.1:" + String(address.port))
     })
   })
   .catch((error) => {
@@ -167,9 +189,13 @@ void initServer()
   })
 
 function listenPort(value: string | undefined): number {
-  if (value === undefined || value.length === 0) return 7001
+  if (value === undefined || value.length === 0) return ${
+    container ? 443 : 7001
+  }
   const port = Number(value)
-  if (!Number.isInteger(port) || port < 0 || port > 65535) return 7001
+  if (!Number.isInteger(port) || port < 0 || port > 65535) return ${
+    container ? 443 : 7001
+  }
   return port
 }
 `
@@ -282,7 +308,7 @@ function serverContributions(
       kind: "package-script",
       manifest: "package.json",
       name: "start",
-      command: "node dist/server/index.js",
+      command: "node dist/server/index.mjs",
     },
   ]
 }

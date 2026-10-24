@@ -147,7 +147,7 @@ function serverConfig(selection: Selection): Contribution {
     property(
       "build-entry-file",
       ["build", "rolldownOptions", "output", "entryFileNames"],
-      '"index.js"'
+      '"index.mjs"'
     ),
   ])
 }

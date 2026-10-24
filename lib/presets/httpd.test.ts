@@ -32,7 +32,7 @@ test("the gateway proxies health and API and the integration host stays local", 
   const contributions = collectContributions(selection, facts)
   const conf = text(contributions, "gateway/httpd.conf")
   expect(conf).toContain(
-    'SSLCertificateFile "/etc/apache2/ssl/local.multiplayerdb.dev.crt"'
+    'SSLCertificateFile "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"'
   )
   expect(conf).toContain(
     'SSLCertificateKeyFile "/etc/apache2/ssl/local.multiplayerdb.dev.key"'
@@ -47,6 +47,12 @@ test("the gateway proxies health and API and the integration host stays local", 
   )
   expect(text(contributions, "gateway/Dockerfile")).toContain("FROM httpd:2.4")
   expect(text(contributions, "gateway/Dockerfile")).toContain("git")
+  expect(text(contributions, "gateway/Dockerfile")).toContain(
+    'ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \\"$@\\"", "--"]'
+  )
+  expect(text(contributions, "gateway/Dockerfile")).not.toContain(
+    "docker-entrypoint-httpd.sh"
+  )
   expect(text(contributions, "Dockerfile")).toContain(
     "FROM source AS integration-test-host"
   )
@@ -74,8 +80,12 @@ test("the gateway proxies health and API and the integration host stays local", 
     "package-service-integration-test-host"
   )
   expect(objectField(host, "build").target).toBe("integration-test-host")
-  expect(host.entrypoint).toBe("sh")
-  expect(host.command).toBe("scripts/integration-local.sh")
+  expect(host.entrypoint).toBeUndefined()
+  expect(host.command).toBeUndefined()
+  expect(host.user).toBeUndefined()
+  expect(host.volumes).toContain(
+    "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro"
+  )
   const ci = written(created.files, "scripts/test-integration-ci.sh")
   expect(ci).toContain("docker compose -f compose.base.yaml")
   expect(ci).toContain("up -d --wait --wait-timeout 120")
@@ -89,13 +99,13 @@ test("the gateway proxies health and API and the integration host stays local", 
     "vitest run --config vite.integration.config.ts"
   )
   expect(scripts["test:integration:local"]).toBe(
-    "dev-cluster up package-service-integration-test-host"
+    "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service-integration-test-host"
   )
   expect(scripts["test:integration:ci"]).toBe(
     "sh scripts/test-integration-ci.sh"
   )
   expect(scripts["start:containers:local"]).toBe(
-    "dev-cluster up package-service"
+    "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service"
   )
   const unit = written(created.files, "vite.test.config.ts")
   expect(unit).not.toContain("integration/**/*.test.ts")
@@ -189,7 +199,6 @@ test("integration starters stay application-owned and deselection removes the ru
       { type: "remove", path: "gateway/Dockerfile" },
       { type: "remove", path: "scripts/docker-entrypoint-httpd.sh" },
       { type: "remove", path: "scripts/test-integration-ci.sh" },
-      { type: "remove", path: "scripts/integration-local.sh" },
     ])
   )
   expect(

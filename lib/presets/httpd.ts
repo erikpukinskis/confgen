@@ -100,7 +100,7 @@ LogLevel warn
 <VirtualHost *:443>
     DocumentRoot /srv/homepage
     SSLEngine on
-    SSLCertificateFile "/etc/apache2/ssl/local.multiplayerdb.dev.crt"
+    SSLCertificateFile "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"
     SSLCertificateKeyFile "/etc/apache2/ssl/local.multiplayerdb.dev.key"
 
     <Directory "/srv/homepage">

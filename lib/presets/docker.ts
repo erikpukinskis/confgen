@@ -12,11 +12,11 @@ import type { Selection } from "../selection.js"
 export const SERVICE_PORT = 7001
 
 const YARN_VERSION = "4.11.0"
-const DEV_CLUSTER_VERSION = "0.1.0"
+const DEV_CLUSTER_VERSION = "0.2.0"
 
 /**
  * Docker owns the ordinary Node service image, Compose layers, and the
- * short commands that delegate local orchestration to dev-cluster.
+ * direct local Compose commands.
  */
 export const contributions: ProduceContributions = (selection, facts) => {
   if (!selection.runtimes.includes("server")) return []
@@ -27,15 +27,21 @@ export const contributions: ProduceContributions = (selection, facts) => {
   const produced: Contribution[] = [
     dependency("dev-cluster", DEV_CLUSTER_VERSION),
     script("dev-cluster", "dev-cluster"),
-    script("start:containers:local", `dev-cluster up ${corner}`),
-    script("stop:containers:local", "dev-cluster down"),
+    script(
+      "start:containers:local",
+      `docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies ${corner}`
+    ),
+    script(
+      "stop:containers:local",
+      "docker compose -f compose.base.yaml -f compose.local.yaml down"
+    ),
     script("start:server", startServerCommand(selection)),
     dockerfileContribution(
       "Dockerfile",
       dockerfile(selection, identity, facts)
     ),
-    wholeFile("scripts/docker-entrypoint-node.sh", ENTRYPOINT),
-    ...DOCKERIGNORE_LINES.map(([id, value]) => line(id, value)),
+    wholeFile("Caddyfile.local", LOCAL_CADDYFILE),
+    ...dockerignoreLines(facts),
     ...baseCompose(selection, identity, facts),
     ...localCompose(selection, identity, facts),
     ...packageServiceCompose(facts),
@@ -49,15 +55,11 @@ export const contributions: ProduceContributions = (selection, facts) => {
           identity,
           facts.root.dependencies.includes("@multiplayerdb/package-service")
         )
-      ),
-      wholeFile("scripts/integration-local.sh", INTEGRATION_LOCAL_SCRIPT)
+      )
     )
   }
   if (gatewaySelected(selection)) {
-    produced.push(
-      dockerfileContribution("gateway/Dockerfile", GATEWAY_DOCKERFILE),
-      wholeFile("scripts/docker-entrypoint-httpd.sh", HTTPD_ENTRYPOINT)
-    )
+    produced.push(dockerfileContribution("gateway/Dockerfile", GATEWAY_DOCKERFILE))
   }
   return produced
 }
@@ -243,23 +245,25 @@ export function requiredReference(name: string): string {
   return `\${${name}:?}`
 }
 
-const ENTRYPOINT = `#!/bin/sh
-set -e
+const LOCAL_CADDYFILE = `{
+  auto_https off
+}
 
-if [ -d /ssl ]; then
-  found=
-  for cert in /ssl/*.crt; do
-    if [ -f "$cert" ]; then
-      cp "$cert" /usr/local/share/ca-certificates/
-      found=1
-    fi
-  done
-  if [ -n "$found" ]; then
-    update-ca-certificates
-  fi
-fi
+http://*.local.multiplayerdb.dev {
+  redir https://{host}{uri}
+}
 
-exec gosu www-data "$@"
+*.local.multiplayerdb.dev {
+  tls /certs/local.multiplayerdb.dev.crt /certs/local.multiplayerdb.dev.key
+  reverse_proxy {labels.3}:443 {
+    header_up Host {host}
+    transport http {
+      tls
+      tls_server_name {host}
+      tls_trust_pool file /certs/local.multiplayerdb.dev.crt
+    }
+  }
+}
 `
 
 const DOCKERIGNORE_LINES: readonly (readonly [string, string])[] = [
@@ -270,10 +274,32 @@ const DOCKERIGNORE_LINES: readonly (readonly [string, string])[] = [
   ["client-dist", "client/dist"],
   ["git", ".git"],
   ["ssl", "ssl"],
-  ["yalc", ".yalc"],
   ["yalc-store", ".yalc-store"],
   ["yalc-lock", "yalc.lock"],
 ]
+
+function hasLocalConfgen(facts: ProjectFacts): boolean {
+  return (
+    facts.root.dependencyRanges?.devDependencies.confgen ===
+    "file:.yalc/confgen"
+  )
+}
+
+function dockerignoreLines(facts: ProjectFacts): Contribution[] {
+  const lines = DOCKERIGNORE_LINES.map(([id, value]) => line(id, value))
+  if (hasLocalConfgen(facts)) {
+    lines.push(
+      line("yalc", ".yalc"),
+      line("yalc-a-open", "!.yalc/"),
+      line("yalc-b-hide-others", ".yalc/*"),
+      line("yalc-c-open-confgen", "!.yalc/confgen/"),
+      line("yalc-d-open-confgen-files", "!.yalc/confgen/**")
+    )
+  } else {
+    lines.push(line("yalc", ".yalc"))
+  }
+  return lines
+}
 
 function publishedImage(
   owner: string,
@@ -285,12 +311,19 @@ function publishedImage(
 }
 
 /** Root and workspace manifests Yarn needs before it installs. */
-function manifestCopies(selection: Selection, facts: ProjectFacts): string {
+function manifestCopies(
+  selection: Selection,
+  facts: ProjectFacts,
+  includeLocalConfgen = false
+): string {
   const workspaces = new Set(facts.root.workspaces)
   if (selection.runtimes.includes("client")) workspaces.add("client")
   const lines = ["COPY package.json yarn.lock .yarnrc.yml ./"]
   for (const workspace of [...workspaces].sort()) {
     lines.push(`COPY ${workspace}/package.json ${workspace}/package.json`)
+  }
+  if (includeLocalConfgen && hasLocalConfgen(facts)) {
+    lines.push("COPY .yalc/confgen .yalc/confgen")
   }
   return `${lines.join("\n")}\n`
 }
@@ -320,7 +353,7 @@ function dockerfile(
   identity: ContainerIdentity,
   facts: ProjectFacts
 ): string {
-  const manifests = manifestCopies(selection, facts)
+  const manifests = manifestCopies(selection, facts, true)
   return `##################################
 FROM node:24-bookworm-slim AS base
 
@@ -342,15 +375,12 @@ ENV HOME=/var/www
 
 ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
-COPY scripts/docker-entrypoint-node.sh /usr/local/bin/docker-entrypoint-node.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint-node.sh
-
 WORKDIR ${identity.workdir}
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint-node.sh"]
-EXPOSE ${SERVICE_PORT}
+EXPOSE ${gatewaySelected(selection) ? SERVICE_PORT : 443}
 
 ################
 FROM base AS dev
+ENTRYPOINT ["sh", "-c", "update-ca-certificates && install -D -o root -g www-data -m 0440 /ssl/local.multiplayerdb.dev.key /run/multiplayerdb-ssl/local.multiplayerdb.dev.key && exec gosu www-data \"$@\"", "--"]
 CMD ["sh", "-c", "yarn install --immutable && yarn start:server"]
 
 #########################
@@ -367,9 +397,10 @@ RUN yarn build
 ${integrationStage(selection)}
 #################
 FROM base AS prod
-${manifests}RUN yarn workspaces focus --production
+${manifestCopies(selection, facts)}RUN yarn workspaces focus --production
 COPY --from=builder ${identity.workdir}/dist/server ./dist/server
-CMD ["yarn", "node", "dist/server/index.js"]
+ENTRYPOINT ["sh", "-c", "update-ca-certificates && install -D -o root -g www-data -m 0440 /ssl/local.multiplayerdb.dev.key /run/multiplayerdb-ssl/local.multiplayerdb.dev.key && exec gosu www-data \"$@\"", "--"]
+CMD ["yarn", "node", "dist/server/index.mjs"]
 `
 }
 
@@ -378,7 +409,8 @@ function integrationStage(selection: Selection): string {
   return `
 ####################################
 FROM source AS integration-test-host
-CMD ["yarn", "test:integration:run"]
+ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec gosu www-data \"$@\"", "--"]
+CMD ["sh", "-c", "yarn install --immutable && yarn test:integration:run"]
 `
 }
 
@@ -390,15 +422,19 @@ function baseCompose(
   const includesPackageService = facts.root.dependencies.includes(
     "@multiplayerdb/package-service"
   )
+  const port = gatewaySelected(selection) ? SERVICE_PORT : 443
+  const publicAlias = `${identity.gatewayServiceName}.local.multiplayerdb.dev`
   const service: JsonValue = {
     image: identity.image,
-    ...(includesPackageService
-      ? {
-          environment: {
-            PACKAGE_SERVICE_URL: requiredReference("PACKAGE_SERVICE_URL"),
-          },
-        }
-      : {}),
+    environment: {
+      PORT: String(port),
+      TLS_CERT:
+        "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt",
+      TLS_KEY: "/run/multiplayerdb-ssl/local.multiplayerdb.dev.key",
+      ...(includesPackageService
+        ? { PACKAGE_SERVICE_URL: requiredReference("PACKAGE_SERVICE_URL") }
+        : {}),
+    },
     ...(includesPackageService
       ? {
           depends_on: {
@@ -406,9 +442,23 @@ function baseCompose(
           },
         }
       : {}),
-    volumes: [`${requiredReference("SSL_PATH")}:/ssl:ro`],
+    volumes: [
+      `${requiredReference("SSL_PATH")}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
+      `${requiredReference("SSL_PATH")}/local.multiplayerdb.dev.key:/ssl/local.multiplayerdb.dev.key:ro`,
+    ],
+    networks: {
+      default: {
+        aliases: gatewaySelected(selection)
+          ? [`${identity.serviceName}.local.multiplayerdb.dev`]
+          : [identity.directoryName, publicAlias],
+      },
+    },
     healthcheck: {
-      test: `curl --fail http://localhost:${SERVICE_PORT}/healthcheck`,
+      test: `curl --fail https://${
+        gatewaySelected(selection)
+          ? `${identity.serviceName}.local.multiplayerdb.dev:7001`
+          : `${publicAlias}:443`
+      }/healthcheck`,
       interval: "1s",
       retries: 240,
       start_period: "0s",
@@ -483,8 +533,8 @@ function gatewayBase(
       },
     },
     volumes: [
-      `${requiredReference("SSL_PATH")}:/etc/apache2/ssl:ro`,
-      `${requiredReference("SSL_PATH")}:/ssl:ro`,
+      `${requiredReference("SSL_PATH")}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
+      `${requiredReference("SSL_PATH")}/local.multiplayerdb.dev.key:/etc/apache2/ssl/local.multiplayerdb.dev.key:ro`,
     ],
     networks: {
       default: {
@@ -564,13 +614,12 @@ function integrationLocal(
         : {}),
     },
     volumes: [
-      `${requiredReference("SSL_PATH")}:/ssl:ro`,
+      `${requiredReference(
+        "SSL_PATH"
+      )}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
       `.:${identity.workdir}`,
       `${identity.integrationYarnVolume}:${identity.workdir}/.yarn`,
     ],
-    entrypoint: "sh",
-    user: "root",
-    command: "scripts/integration-local.sh",
   }
   return [
     yaml(
@@ -635,42 +684,11 @@ network=$(docker inspect --format '{{range $name, $net := .NetworkSettings.Netwo
 docker run --rm \\
   --network "$network" \\
   -e ${identity.serviceUrlName}="\${${identity.serviceUrlName}:?}" \\
-${packageUrl}  -v "\${ssl_abs}:/ssl:ro" \\
+${packageUrl}  -v "\${ssl_abs}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro" \\
   "${identity.integrationImage}" \\
   yarn test:integration:run
 `
 }
-
-const INTEGRATION_LOCAL_SCRIPT = `#!/bin/sh
-set -eu
-
-if [ -d /ssl ]; then
-  cp /ssl/*.crt /usr/local/share/ca-certificates/ || true
-  update-ca-certificates
-fi
-
-yarn install --immutable
-yarn test:integration:run
-`
-
-const HTTPD_ENTRYPOINT = `#!/bin/sh
-set -e
-
-if [ -d /ssl ]; then
-  found=
-  for cert in /ssl/*.crt; do
-    if [ -f "$cert" ]; then
-      cp "$cert" /usr/local/share/ca-certificates/
-      found=1
-    fi
-  done
-  if [ -n "$found" ]; then
-    update-ca-certificates
-  fi
-fi
-
-exec "$@"
-`
 
 const GATEWAY_DOCKERFILE = `FROM httpd:2.4
 
@@ -686,11 +704,8 @@ COPY gateway/httpd.conf /usr/local/apache2/conf/httpd.conf
 RUN mkdir -p /var/log/httpd/ /etc/apache2/ssl
 ENV APACHE_LOG_DIR=/var/log/httpd/
 
-COPY scripts/docker-entrypoint-httpd.sh /usr/local/bin/docker-entrypoint-httpd.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint-httpd.sh
-
 WORKDIR /srv
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint-httpd.sh"]
+ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \"$@\"", "--"]
 CMD ["httpd-foreground"]
 `
 

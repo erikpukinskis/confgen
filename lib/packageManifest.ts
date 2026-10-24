@@ -222,7 +222,7 @@ function integrationScripts(
     produced.push(
       script(
         "test:integration:local",
-        `dev-cluster up ${identity.integrationServiceName}`
+        `docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies ${identity.integrationServiceName}`
       ),
       script("test:integration:ci", "sh scripts/test-integration-ci.sh"),
       script(
