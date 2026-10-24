@@ -277,16 +277,14 @@ async function proveContainer(
   expect(base.stdout).toContain("ghcr.io/example/package-api-server:test")
   expect(base.stdout).toContain("ghcr.io/example/package-service:test")
   expect(base.stdout).not.toContain("target: dev")
-  expect(base.stdout).not.toContain("integration-test-host")
-  expect(base.stdout).not.toContain("/mnt/package-service")
-  const ci = await readFile(
-    join(project.directory, "scripts/test-integration-ci.sh"),
-    "utf8"
+  expect(base.stdout).toContain(
+    "ghcr.io/example/package-service-integration-test-host:test"
   )
-  expect(ci).toContain("docker compose -f compose.base.yaml")
-  expect(ci).toContain("up -d --wait --wait-timeout 120")
-  expect(ci).not.toContain("compose.local.yaml")
-  expect(ci).toContain("package-service-integration-test-host:")
+  expect(base.stdout).not.toContain("/mnt/package-service")
+  const manifest = await readManifest(project.directory, "package.json")
+  expect(scriptCommand(manifest, "test:integration:ci")).toBe(
+    "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host"
+  )
 
   await project.run(
     "docker",
@@ -328,6 +326,7 @@ async function proveContainer(
         "120",
         "--pull",
         "never",
+        "package-service",
       ],
       180_000,
       env
@@ -592,10 +591,10 @@ async function expectRuntimeScopes(project: SyntheticProject): Promise<void> {
     "vitest run --config vite.integration.config.ts"
   )
   expect(scriptCommand(manifest, "test:integration:local")).toBe(
-    "dev-cluster up package-service-integration-test-host"
+    "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service-integration-test-host"
   )
   expect(scriptCommand(manifest, "test:integration:ci")).toBe(
-    "sh scripts/test-integration-ci.sh"
+    "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host"
   )
 }
 

@@ -13,6 +13,12 @@ export const SERVICE_PORT = 7001
 
 const YARN_VERSION = "4.11.0"
 const DEV_CLUSTER_VERSION = "0.2.0"
+const SERVER_ENTRYPOINT = [
+  "sh",
+  "-c",
+  'update-ca-certificates && install -D -o root -g www-data -m 0440 /run/secrets/local.multiplayerdb.dev.key "${SSL_PATH:?}/local.multiplayerdb.dev.key" && exec gosu www-data "$@"',
+  "--",
+]
 
 /**
  * Docker owns the ordinary Node service image, Compose layers, and the
@@ -27,6 +33,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
   const produced: Contribution[] = [
     dependency("dev-cluster", DEV_CLUSTER_VERSION),
     script("dev-cluster", "dev-cluster"),
+    script("generate:local:ssl", "dev-cluster certs"),
     script(
       "start:containers:local",
       `docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies ${corner}`
@@ -43,23 +50,16 @@ export const contributions: ProduceContributions = (selection, facts) => {
     wholeFile("Caddyfile.local", LOCAL_CADDYFILE),
     ...dockerignoreLines(facts),
     ...baseCompose(selection, identity, facts),
-    ...localCompose(selection, identity, facts),
+    ...localCompose(selection, identity),
     ...packageServiceCompose(facts),
   ]
   if (selection.runtimes.includes("integration")) {
     assertHttpsOrigin(identity.serviceUrlName, identity.serviceUrl)
-    produced.push(
-      wholeFile(
-        "scripts/test-integration-ci.sh",
-        ciScript(
-          identity,
-          facts.root.dependencies.includes("@multiplayerdb/package-service")
-        )
-      )
-    )
   }
   if (gatewaySelected(selection)) {
-    produced.push(dockerfileContribution("gateway/Dockerfile", GATEWAY_DOCKERFILE))
+    produced.push(
+      dockerfileContribution("gateway/Dockerfile", GATEWAY_DOCKERFILE)
+    )
   }
   return produced
 }
@@ -375,12 +375,15 @@ ENV HOME=/var/www
 
 ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
+RUN mkdir -p /ssl \\
+  && ln -s /usr/local/share/ca-certificates/local.multiplayerdb.dev.crt /ssl/local.multiplayerdb.dev.crt
+
 WORKDIR ${identity.workdir}
 EXPOSE ${gatewaySelected(selection) ? SERVICE_PORT : 443}
 
 ################
 FROM base AS dev
-ENTRYPOINT ["sh", "-c", "update-ca-certificates && install -D -o root -g www-data -m 0440 /ssl/local.multiplayerdb.dev.key /run/multiplayerdb-ssl/local.multiplayerdb.dev.key && exec gosu www-data \"$@\"", "--"]
+ENTRYPOINT ${JSON.stringify(SERVER_ENTRYPOINT)}
 CMD ["sh", "-c", "yarn install --immutable && yarn start:server"]
 
 #########################
@@ -399,7 +402,7 @@ ${integrationStage(selection)}
 FROM base AS prod
 ${manifestCopies(selection, facts)}RUN yarn workspaces focus --production
 COPY --from=builder ${identity.workdir}/dist/server ./dist/server
-ENTRYPOINT ["sh", "-c", "update-ca-certificates && install -D -o root -g www-data -m 0440 /ssl/local.multiplayerdb.dev.key /run/multiplayerdb-ssl/local.multiplayerdb.dev.key && exec gosu www-data \"$@\"", "--"]
+ENTRYPOINT ${JSON.stringify(SERVER_ENTRYPOINT)}
 CMD ["yarn", "node", "dist/server/index.mjs"]
 `
 }
@@ -409,8 +412,8 @@ function integrationStage(selection: Selection): string {
   return `
 ####################################
 FROM source AS integration-test-host
-ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec gosu www-data \"$@\"", "--"]
-CMD ["sh", "-c", "yarn install --immutable && yarn test:integration:run"]
+ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec gosu www-data \\\"$@\\\"", "--"]
+CMD ["sh", "-c", "yarn install --immutable && exec yarn test:integration:run"]
 `
 }
 
@@ -428,9 +431,7 @@ function baseCompose(
     image: identity.image,
     environment: {
       PORT: String(port),
-      TLS_CERT:
-        "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt",
-      TLS_KEY: "/run/multiplayerdb-ssl/local.multiplayerdb.dev.key",
+      SSL_PATH: "/ssl",
       ...(includesPackageService
         ? { PACKAGE_SERVICE_URL: requiredReference("PACKAGE_SERVICE_URL") }
         : {}),
@@ -443,8 +444,12 @@ function baseCompose(
         }
       : {}),
     volumes: [
-      `${requiredReference("SSL_PATH")}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
-      `${requiredReference("SSL_PATH")}/local.multiplayerdb.dev.key:/ssl/local.multiplayerdb.dev.key:ro`,
+      `${requiredReference(
+        "SSL_PATH"
+      )}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
+      `${requiredReference(
+        "SSL_PATH"
+      )}/local.multiplayerdb.dev.key:/run/secrets/local.multiplayerdb.dev.key:ro`,
     ],
     networks: {
       default: {
@@ -481,13 +486,13 @@ function baseCompose(
       "merge"
     ),
     ...gatewayBase(selection, identity),
+    ...integrationBase(selection, identity, facts),
   ]
 }
 
 function localCompose(
   selection: Selection,
-  identity: ContainerIdentity,
-  facts: ProjectFacts
+  identity: ContainerIdentity
 ): Contribution[] {
   const service: JsonValue = {
     build: {
@@ -516,7 +521,7 @@ function localCompose(
       "replace"
     ),
     ...gatewayLocal(selection, identity),
-    ...integrationLocal(selection, identity, facts),
+    ...integrationLocal(selection, identity),
   ]
 }
 
@@ -533,8 +538,12 @@ function gatewayBase(
       },
     },
     volumes: [
-      `${requiredReference("SSL_PATH")}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
-      `${requiredReference("SSL_PATH")}/local.multiplayerdb.dev.key:/etc/apache2/ssl/local.multiplayerdb.dev.key:ro`,
+      `${requiredReference(
+        "SSL_PATH"
+      )}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
+      `${requiredReference(
+        "SSL_PATH"
+      )}/local.multiplayerdb.dev.key:/etc/apache2/ssl/local.multiplayerdb.dev.key:ro`,
     ],
     networks: {
       default: {
@@ -582,7 +591,7 @@ function gatewayLocal(
   ]
 }
 
-function integrationLocal(
+function integrationBase(
   selection: Selection,
   identity: ContainerIdentity,
   facts: ProjectFacts
@@ -592,11 +601,7 @@ function integrationLocal(
     ? identity.gatewayServiceName
     : identity.serviceName
   const service: JsonValue = {
-    build: {
-      context: ".",
-      dockerfile: "./Dockerfile",
-      target: "integration-test-host",
-    },
+    image: identity.integrationImage,
     environment: {
       [identity.serviceUrlName]: requiredReference(identity.serviceUrlName),
       ...(facts.root.dependencies.includes("@multiplayerdb/package-service")
@@ -617,6 +622,32 @@ function integrationLocal(
       `${requiredReference(
         "SSL_PATH"
       )}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
+    ],
+  }
+  return [
+    yaml(
+      "base-integration",
+      "compose.base.yaml",
+      ["services", identity.integrationServiceName],
+      service,
+      "merge"
+    ),
+  ]
+}
+
+function integrationLocal(
+  selection: Selection,
+  identity: ContainerIdentity
+): Contribution[] {
+  if (!selection.runtimes.includes("integration")) return []
+  const service: JsonValue = {
+    build: {
+      context: ".",
+      dockerfile: "./Dockerfile",
+      target: "integration-test-host",
+    },
+    command: null,
+    volumes: [
       `.:${identity.workdir}`,
       `${identity.integrationYarnVolume}:${identity.workdir}/.yarn`,
     ],
@@ -639,57 +670,6 @@ function integrationLocal(
   ]
 }
 
-function ciScript(
-  identity: ContainerIdentity,
-  includesPackageService: boolean
-): string {
-  const packagePath = includesPackageService
-    ? `PACKAGE_SERVICE_PATH=$(yarn node -e '
-const { getPackageInformation, findPackageLocator } = require("pnpapi")
-const resolved = require.resolve("@multiplayerdb/package-service")
-const locator = findPackageLocator(resolved)
-if (!locator) throw new Error("Could not locate @multiplayerdb/package-service")
-process.stdout.write(getPackageInformation(locator).packageLocation.replace(/\\/$/, ""))
-')
-export PACKAGE_SERVICE_PATH
-
-`
-    : ""
-  const packageUrl = includesPackageService
-    ? `  -e PACKAGE_SERVICE_URL="\${PACKAGE_SERVICE_URL:?}" \\\n`
-    : ""
-  return `#!/bin/sh
-set -eu
-
-compose() {
-  docker compose -f compose.base.yaml "$@"
-}
-
-cleanup() {
-  status=$?
-  if [ "$status" -ne 0 ]; then
-    compose logs || true
-  fi
-  compose down -v --remove-orphans || true
-  exit "$status"
-}
-trap cleanup EXIT
-
-${packagePath}compose up -d --wait --wait-timeout 120
-
-ssl_abs=$(CDPATH= cd -- "\${SSL_PATH:?}" && pwd)
-server_id=$(compose ps -q ${identity.serviceName})
-network=$(docker inspect --format '{{range $name, $net := .NetworkSettings.Networks}}{{$name}}{{end}}' "$server_id")
-
-docker run --rm \\
-  --network "$network" \\
-  -e ${identity.serviceUrlName}="\${${identity.serviceUrlName}:?}" \\
-${packageUrl}  -v "\${ssl_abs}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro" \\
-  "${identity.integrationImage}" \\
-  yarn test:integration:run
-`
-}
-
 const GATEWAY_DOCKERFILE = `FROM httpd:2.4
 
 RUN apt-get update \\
@@ -705,7 +685,7 @@ RUN mkdir -p /var/log/httpd/ /etc/apache2/ssl
 ENV APACHE_LOG_DIR=/var/log/httpd/
 
 WORKDIR /srv
-ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \"$@\"", "--"]
+ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \\\"$@\\\"", "--"]
 CMD ["httpd-foreground"]
 `
 

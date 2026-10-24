@@ -149,7 +149,8 @@ function integrationDocument(
       run: integrationJob(
         selection,
         identity,
-        facts.publishGitHubRelease === false
+        facts.publishGitHubRelease === false,
+        facts.root.dependencies.includes("@multiplayerdb/package-service")
       ),
     },
   }
@@ -354,10 +355,25 @@ function ciDocument(jobs: { [key: string]: JsonValue }): Contribution[] {
 function integrationJob(
   selection: Selection,
   identity: ContainerIdentity,
-  cacheIntegrationHost: boolean
+  cacheIntegrationHost: boolean,
+  includesPackageService: boolean
 ): JsonValue {
   const steps: JsonValue[] = [
     ...setupSteps(),
+    ...(includesPackageService
+      ? [
+          {
+            name: "Locate Package Service",
+            run: `yarn node -e '
+const { getPackageInformation, findPackageLocator } = require("pnpapi")
+const resolved = require.resolve("@multiplayerdb/package-service")
+const locator = findPackageLocator(resolved)
+if (!locator) throw new Error("Could not locate @multiplayerdb/package-service")
+process.stdout.write("PACKAGE_SERVICE_PATH=" + getPackageInformation(locator).packageLocation + "\\n")
+' >> "$GITHUB_ENV"`,
+          },
+        ]
+      : []),
     {
       name: "Set up Docker Compose",
       uses: "docker/setup-compose-action@v1",

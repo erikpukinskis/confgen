@@ -29,7 +29,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
 }
 
 function httpdConf(identity: ReturnType<typeof containerIdentity>): string {
-  const api = `http://${identity.serviceName}:${SERVICE_PORT}`
+  const api = `https://${identity.serviceName}.local.multiplayerdb.dev:${SERVICE_PORT}`
   return `ServerRoot "/usr/local/apache2"
 Listen 80
 Listen 443
@@ -103,16 +103,23 @@ LogLevel warn
     SSLCertificateFile "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"
     SSLCertificateKeyFile "/etc/apache2/ssl/local.multiplayerdb.dev.key"
 
+    SSLProxyEngine on
+    SSLProxyVerify require
+    SSLProxyCACertificateFile /usr/local/share/ca-certificates/local.multiplayerdb.dev.crt
+    SSLProxyCheckPeerName on
+    SSLProxyCheckPeerExpire on
+    ProxyPreserveHost On
+    ProxyRequests Off
+
     <Directory "/srv/homepage">
         Options FollowSymLinks
         AllowOverride None
         Require all granted
     </Directory>
 
+    # Redirect responses require ProxyPassReverse to rewrite backend URLs.
     ProxyPass /api ${api}/api
-    ProxyPassReverse /api ${api}/api
     ProxyPass /healthcheck ${api}/healthcheck
-    ProxyPassReverse /healthcheck ${api}/healthcheck
 </VirtualHost>
 `
 }

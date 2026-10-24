@@ -96,12 +96,18 @@ function listenPort(value: string | undefined): number {
 
 const SERVER_CONTAINER_INDEX = `import { readFileSync } from "node:fs"
 import { createServer } from "node:https"
+import { isAbsolute, join } from "node:path"
 import { greeting } from "#lib/index"
+
+const SSL_PATH = process.env.SSL_PATH
+if (SSL_PATH === undefined || !isAbsolute(SSL_PATH)) {
+  throw new Error("SSL_PATH must be an absolute path")
+}
 
 const server = createServer(
   {
-    cert: readFileSync(process.env.TLS_CERT ?? "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"),
-    key: readFileSync(process.env.TLS_KEY ?? "/run/multiplayerdb-ssl/local.multiplayerdb.dev.key"),
+    cert: readFileSync(join(SSL_PATH, "local.multiplayerdb.dev.crt")),
+    key: readFileSync(join(SSL_PATH, "local.multiplayerdb.dev.key")),
   },
   (request, response) => {
     const path = requestPath(request.url)
@@ -151,22 +157,31 @@ function listenPort(value: string | undefined): number {
 
 const SERVER_GRAPHQL_INDEX = (container: boolean) => `import ${
   container
-    ? '{ readFileSync } from "node:fs"\nimport { createServer } from "node:https"'
+    ? '{ readFileSync } from "node:fs"\nimport { createServer } from "node:https"\nimport { isAbsolute, join } from "node:path"'
     : '{ createServer } from "node:http"'
 }
 import { initServer } from "#server/initServer"
 
 const HOST = ${JSON.stringify(container ? "0.0.0.0" : "127.0.0.1")}
 const PORT = listenPort(process.env.PORT)
-
+${
+  container
+    ? `
+const SSL_PATH = process.env.SSL_PATH
+if (SSL_PATH === undefined || !isAbsolute(SSL_PATH)) {
+  throw new Error("SSL_PATH must be an absolute path")
+}
+`
+    : ""
+}
 void initServer()
   .then(({ express: app }) => {
     const server = ${
       container
         ? `createServer(
       {
-        cert: readFileSync(process.env.TLS_CERT ?? "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"),
-        key: readFileSync(process.env.TLS_KEY ?? "/run/multiplayerdb-ssl/local.multiplayerdb.dev.key"),
+        cert: readFileSync(join(SSL_PATH, "local.multiplayerdb.dev.crt")),
+        key: readFileSync(join(SSL_PATH, "local.multiplayerdb.dev.key")),
       },
       app
     )`

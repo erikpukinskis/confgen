@@ -56,8 +56,20 @@ test("container contributions describe the ordinary service image", () => {
   expect(dockerfile).toContain("yarn workspaces focus --production")
   expect(dockerfile).toContain('CMD ["yarn", "node", "dist/server/index.mjs"]')
   expect(dockerfile).toContain(
-    'ENTRYPOINT ["sh", "-c", "update-ca-certificates && install -D -o root -g www-data -m 0440 /ssl/local.multiplayerdb.dev.key /run/multiplayerdb-ssl/local.multiplayerdb.dev.key && exec gosu www-data \\"$@\\"", "--"]'
+    "ENTRYPOINT " +
+      JSON.stringify([
+        "sh",
+        "-c",
+        'update-ca-certificates && install -D -o root -g www-data -m 0440 /run/secrets/local.multiplayerdb.dev.key "${SSL_PATH:?}/local.multiplayerdb.dev.key" && exec gosu www-data "$@"',
+        "--",
+      ])
   )
+  const serverEntrypoint = dockerfile
+    .split("\n")
+    .find((line) => line.startsWith("ENTRYPOINT "))
+  if (serverEntrypoint === undefined)
+    throw new Error("missing server entrypoint")
+  expect(dockerfile.split("FROM base AS prod")[1]).toContain(serverEntrypoint)
   expect(dockerfile).toContain("EXPOSE 443")
   expect(dockerfile).toContain("COPY client/package.json client/package.json")
   expect(dockerfile).not.toContain(".yalc")
@@ -81,10 +93,13 @@ test("container contributions describe the ordinary service image", () => {
   expect(dependencies).toContain("COPY package.json yarn.lock .yarnrc.yml ./")
   expect(dependencies).not.toContain("COPY . .")
   expect(dockerfile).not.toContain("integration-test-host")
-  expect(contributions.some((contribution) => contribution.path === "scripts/docker-entrypoint-node.sh")).toBe(false)
-  expect(text(contributions, "runtime:server:index")).toContain(
-    "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"
-  )
+  expect(
+    contributions.some(
+      (contribution) =>
+        contribution.kind === "whole-file" &&
+        contribution.path === "scripts/docker-entrypoint-node.sh"
+    )
+  ).toBe(false)
   expect(
     contributions.some(
       (contribution) =>
@@ -116,6 +131,15 @@ test("container contributions describe the ordinary service image", () => {
   expect(server).toMatchObject({ kind: "starter-file" })
   if (server?.kind !== "starter-file") throw new Error("missing server starter")
   expect(server.contents).toContain('path === "/healthcheck"')
+  expect(server.contents).toContain(
+    'join(SSL_PATH, "local.multiplayerdb.dev.crt")'
+  )
+  expect(server.contents).toContain(
+    'join(SSL_PATH, "local.multiplayerdb.dev.key")'
+  )
+  expect(server.contents).toContain(
+    'throw new Error("SSL_PATH must be an absolute path")'
+  )
   expect(
     ts.transpileModule(server.contents, {
       reportDiagnostics: true,
@@ -126,7 +150,7 @@ test("container contributions describe the ordinary service image", () => {
 
 test("gateway Compose serves HTTPS and verifies the Node API on port 7001", () => {
   const gatewaySelection = parseSelection([
-    "runtimes=#lib,#server,#gateway",
+    "runtimes=#lib,#server,#integration,#gateway",
     "yarn",
     "typescript",
     "vite",
@@ -149,11 +173,11 @@ test("gateway Compose serves HTTPS and verifies the Node API on port 7001", () =
   const api = objectField(services, "package-api-server")
   expect(api.environment).toMatchObject({ PORT: "7001" })
   expect(api.environment).toMatchObject({
-    TLS_CERT: "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt",
+    SSL_PATH: "/ssl",
   })
   expect(api.volumes).toEqual([
     "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro",
-    "${SSL_PATH:?}/local.multiplayerdb.dev.key:/ssl/local.multiplayerdb.dev.key:ro",
+    "${SSL_PATH:?}/local.multiplayerdb.dev.key:/run/secrets/local.multiplayerdb.dev.key:ro",
   ])
   expect(api.networks).toMatchObject({
     default: { aliases: ["package-api-server.local.multiplayerdb.dev"] },
@@ -172,16 +196,22 @@ test("gateway Compose serves HTTPS and verifies the Node API on port 7001", () =
   expect(written(created.files, "Dockerfile")).toContain("EXPOSE 7001")
   const gatewayDockerfile = written(created.files, "gateway/Dockerfile")
   expect(gatewayDockerfile).toContain(
-    'ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \\"$@\\"", "--"]'
+    String.raw`ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \"$@\"", "--"]`
   )
   expect(gatewayDockerfile).not.toContain("docker-entrypoint-httpd.sh")
   expect(text(contributions, "gateway/httpd.conf")).toContain(
     'SSLCertificateFile "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"'
   )
-  expect(text(contributions, "gateway/Dockerfile")).toContain("update-ca-certificates")
-  expect(text(contributions, "scripts/test-integration-ci.sh")).toContain(
-    "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro"
+  expect(text(contributions, "gateway/Dockerfile")).toContain(
+    "update-ca-certificates"
   )
+  const integration = objectField(
+    services,
+    "package-service-integration-test-host"
+  )
+  expect(integration.volumes).toEqual([
+    "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro",
+  ])
   expect(objectField(base, "services")).not.toHaveProperty("caddy")
   expect(text(contributions, "Caddyfile.local")).toContain(
     "reverse_proxy {labels.3}:443"
@@ -332,7 +362,7 @@ test("compose layers merge and keep unrelated services", () => {
   )
   expect(service.environment).toMatchObject({
     PORT: "443",
-    TLS_CERT: "/run/multiplayerdb-ssl/local.multiplayerdb.dev.crt",
+    SSL_PATH: "/ssl",
   })
   expect(service.networks).toMatchObject({
     default: {
@@ -344,7 +374,10 @@ test("compose layers merge and keep unrelated services", () => {
       "https://package-service.local.multiplayerdb.dev:443"
     ),
   })
-  expect(service.volumes).toEqual(["${SSL_PATH:?}:/ssl:ro"])
+  expect(service.volumes).toEqual([
+    "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro",
+    "${SSL_PATH:?}/local.multiplayerdb.dev.key:/run/secrets/local.multiplayerdb.dev.key:ro",
+  ])
   expect(JSON.stringify(service)).not.toContain(":/mnt/")
   const local = yamlObject(written(created.files, "compose.local.yaml"))
   const localService = objectField(
@@ -380,7 +413,8 @@ test("compose layers merge and keep unrelated services", () => {
   )
   expect(mounted.volumes).toEqual([
     "git-repos:/srv/git",
-    "${SSL_PATH:?}:/ssl:ro",
+    "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro",
+    "${SSL_PATH:?}/local.multiplayerdb.dev.key:/run/secrets/local.multiplayerdb.dev.key:ro",
   ])
 
   const conflict = () =>
@@ -459,7 +493,7 @@ test("composes the installed Package Service dependency", () => {
     },
   ])
   const integration = objectField(
-    objectField(local, "services"),
+    objectField(base, "services"),
     "schema-service-integration-test-host"
   )
   expect(integration.environment).toMatchObject({
@@ -471,11 +505,11 @@ test("composes the installed Package Service dependency", () => {
   expect(integration.volumes).toContain(
     "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro"
   )
-  const integrationDockerfile = text(generated, "Dockerfile").split(
+  const integrationDockerfile = text(contributions, "Dockerfile").split(
     "FROM source AS integration-test-host"
   )[1]
   expect(integrationDockerfile).toContain(
-    'ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec gosu www-data \\"$@\\"", "--"]'
+    String.raw`ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec gosu www-data \"$@\"", "--"]`
   )
   expect(integration.entrypoint).toBeUndefined()
   expect(integration.user).toBeUndefined()
@@ -542,9 +576,16 @@ test("environment contracts accept origins and reject paths", () => {
 
 test("deselecting docker removes its container assets", () => {
   const contributions = collectContributions(selection, facts)
+  const legacyEntrypoint: Contribution = {
+    id: "docker:file:scripts/docker-entrypoint-node.sh",
+    source: "preset:docker",
+    kind: "whole-file",
+    path: "scripts/docker-entrypoint-node.sh",
+    contents: "#!/bin/sh\nupdate-ca-certificates\n",
+  }
   const created = reconcile({
     selection,
-    contributions,
+    contributions: [...contributions, legacyEntrypoint],
     prior: undefined,
     files: new Map([
       ["package.json", '{ "name": "@example/package-service" }\n'],
@@ -615,12 +656,15 @@ function text(contributions: readonly Contribution[], path: string): string {
   const found = contributions.find(
     (contribution) =>
       (contribution.kind === "whole-file" ||
-        contribution.kind === "dockerfile") &&
+        contribution.kind === "dockerfile" ||
+        contribution.kind === "starter-file") &&
       contribution.path === path
   )
   if (
     found === undefined ||
-    (found.kind !== "whole-file" && found.kind !== "dockerfile")
+    (found.kind !== "whole-file" &&
+      found.kind !== "dockerfile" &&
+      found.kind !== "starter-file")
   ) {
     throw new Error(`missing file ${path}`)
   }

@@ -28,7 +28,7 @@ const selection = parseSelection([
   "httpd",
 ])
 
-test("the gateway proxies health and API and the integration host stays local", () => {
+test("the gateway proxies health and API and shares the integration host across environments", () => {
   const contributions = collectContributions(selection, facts)
   const conf = text(contributions, "gateway/httpd.conf")
   expect(conf).toContain(
@@ -37,10 +37,18 @@ test("the gateway proxies health and API and the integration host stays local", 
   expect(conf).toContain(
     'SSLCertificateKeyFile "/etc/apache2/ssl/local.multiplayerdb.dev.key"'
   )
+  expect(conf).toContain("SSLProxyVerify require")
+  expect(conf).toContain("SSLProxyCheckPeerName on")
+  expect(conf).toContain("SSLProxyCheckPeerExpire on")
   expect(conf).toContain(
-    "ProxyPass /healthcheck http://package-api-server:7001/healthcheck"
+    "SSLProxyCACertificateFile /usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"
   )
-  expect(conf).toContain("ProxyPass /api http://package-api-server:7001/api")
+  expect(conf).toContain(
+    "ProxyPass /healthcheck https://package-api-server.local.multiplayerdb.dev:7001/healthcheck"
+  )
+  expect(conf).toContain(
+    "ProxyPass /api https://package-api-server.local.multiplayerdb.dev:7001/api"
+  )
   expect(conf).toContain("DocumentRoot /srv/homepage")
   expect(text(contributions, "gateway/public/index.html")).toContain(
     "Package service"
@@ -48,7 +56,7 @@ test("the gateway proxies health and API and the integration host stays local", 
   expect(text(contributions, "gateway/Dockerfile")).toContain("FROM httpd:2.4")
   expect(text(contributions, "gateway/Dockerfile")).toContain("git")
   expect(text(contributions, "gateway/Dockerfile")).toContain(
-    'ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \\"$@\\"", "--"]'
+    String.raw`ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \"$@\"", "--"]`
   )
   expect(text(contributions, "gateway/Dockerfile")).not.toContain(
     "docker-entrypoint-httpd.sh"
@@ -62,14 +70,40 @@ test("the gateway proxies health and API and the integration host stays local", 
     contributions,
     prior: undefined,
     files: new Map([
-      ["package.json", '{ "name": "@example/package-service" }\n'],
+      [
+        "package.json",
+        JSON.stringify({
+          name: "@example/package-service",
+          scripts: {
+            bump: "./scripts/bump.sh",
+            "generate:local:ssl": "./scripts/generate_local_ssl.sh",
+          },
+        }),
+      ],
     ]),
     yarnLockPresent: false,
     pnpPresent: false,
   })
   const base = yamlObject(written(created.files, "compose.base.yaml"))
   const services = objectField(base, "services")
-  expect(services["package-service-integration-test-host"]).toBeUndefined()
+  const baseHost = objectField(
+    services,
+    "package-service-integration-test-host"
+  )
+  expect(baseHost.image).toBe(
+    "ghcr.io/example/package-service-integration-test-host:${IMAGE_TAG:?}"
+  )
+  expect(baseHost.environment).toEqual({
+    PACKAGE_SERVICE_URL: "${PACKAGE_SERVICE_URL:?}",
+  })
+  expect(baseHost.depends_on).toEqual({
+    "package-service": { condition: "service_healthy" },
+  })
+  expect(baseHost.volumes).toEqual([
+    "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro",
+  ])
+  expect(baseHost.build).toBeUndefined()
+  expect(baseHost.profiles).toBeUndefined()
   const gateway = objectField(services, "package-service")
   expect(gateway.image).toBe("ghcr.io/example/package-service:${IMAGE_TAG:?}")
   expect(JSON.stringify(gateway.healthcheck)).toContain("/healthcheck")
@@ -81,20 +115,51 @@ test("the gateway proxies health and API and the integration host stays local", 
   )
   expect(objectField(host, "build").target).toBe("integration-test-host")
   expect(host.entrypoint).toBeUndefined()
-  expect(host.command).toBeUndefined()
+  expect(host.command).toBeNull()
   expect(host.user).toBeUndefined()
-  expect(host.volumes).toContain(
-    "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro"
+  expect(host.volumes).toEqual([
+    ".:/mnt/package-service",
+    "package-service-integration-test-host-yarn:/mnt/package-service/.yarn",
+  ])
+  expect(host.environment).toBeUndefined()
+  expect(host.depends_on).toBeUndefined()
+
+  const existingFiles = new Map<string, string>()
+  for (const change of created.files) {
+    if (change.type === "write") existingFiles.set(change.path, change.contents)
+  }
+  existingFiles.set(
+    "compose.local.yaml",
+    written(created.files, "compose.local.yaml").replace(
+      "command: null",
+      "command: scripts/integration-local.sh"
+    )
   )
-  const ci = written(created.files, "scripts/test-integration-ci.sh")
-  expect(ci).toContain("docker compose -f compose.base.yaml")
-  expect(ci).toContain("up -d --wait --wait-timeout 120")
-  expect(ci).not.toContain("compose.local.yaml")
-  expect(ci).toContain(
-    "ghcr.io/example/package-service-integration-test-host:${IMAGE_TAG:?}"
+  const inherited = reconcile({
+    selection,
+    contributions,
+    prior: created.lock,
+    files: existingFiles,
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  const inheritedServices = objectField(
+    yamlObject(written(inherited.files, "compose.local.yaml")),
+    "services"
   )
+  expect(
+    objectField(inheritedServices, "package-service-integration-test-host")
+      .command
+  ).toBeNull()
+  expect(
+    created.files.find(
+      (change) => change.path === "scripts/test-integration-ci.sh"
+    )
+  ).toBeUndefined()
   const manifest = jsonObject(written(created.files, "package.json"))
   const scripts = objectField(manifest, "scripts")
+  expect(scripts.bump).toBe("bump-n-pub --bump-only")
+  expect(scripts["generate:local:ssl"]).toBe("dev-cluster certs")
   expect(scripts["test:integration:run"]).toBe(
     "vitest run --config vite.integration.config.ts"
   )
@@ -102,7 +167,7 @@ test("the gateway proxies health and API and the integration host stays local", 
     "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service-integration-test-host"
   )
   expect(scripts["test:integration:ci"]).toBe(
-    "sh scripts/test-integration-ci.sh"
+    "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host"
   )
   expect(scripts["start:containers:local"]).toBe(
     "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service"
@@ -148,9 +213,23 @@ test("an existing gateway config stays in place", () => {
 
 test("integration starters stay application-owned and deselection removes the runtime", () => {
   const contributions = collectContributions(selection, facts)
+  const legacyEntrypoint: Contribution = {
+    id: "docker:file:scripts/docker-entrypoint-httpd.sh",
+    source: "preset:docker",
+    kind: "whole-file",
+    path: "scripts/docker-entrypoint-httpd.sh",
+    contents: "#!/bin/sh\nupdate-ca-certificates\n",
+  }
+  const legacyCiScript: Contribution = {
+    id: "docker:file:scripts/test-integration-ci.sh",
+    source: "preset:docker",
+    kind: "whole-file",
+    path: "scripts/test-integration-ci.sh",
+    contents: "#!/bin/sh\nyarn test:integration:run\n",
+  }
   const created = reconcile({
     selection,
-    contributions,
+    contributions: [...contributions, legacyEntrypoint, legacyCiScript],
     prior: undefined,
     files: new Map([
       ["package.json", '{ "name": "@example/package-service" }\n'],
@@ -177,6 +256,11 @@ test("integration starters stay application-owned and deselection removes the ru
         change.type === "write" && change.path === "integration/service.test.ts"
     )
   ).toBeUndefined()
+
+  expect(kept.files).toContainEqual({
+    type: "remove",
+    path: "scripts/test-integration-ci.sh",
+  })
 
   const withoutEdge = parseSelection([
     "runtimes=#lib,#server,#client",

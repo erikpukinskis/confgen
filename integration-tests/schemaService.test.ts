@@ -1,9 +1,10 @@
-import { cp, mkdir, readFile, rm } from "node:fs/promises"
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   createSyntheticProject,
   packConfgen,
+  packDevCluster,
   packPackageService,
   readScenario,
   type PackedConfgen,
@@ -21,15 +22,18 @@ test(
   { timeout: 1_500_000 },
   async () => {
     let confgen: PackedConfgen | undefined
+    let devCluster: PackedConfgen | undefined
     let packageService: PackedPackageService | undefined
     let project: SyntheticProject | undefined
     try {
       confgen = await packConfgen()
+      devCluster = await packDevCluster()
       packageService = await packPackageService()
       project = await createSyntheticProject({
         tarball: confgen.tarball,
         fixture,
       })
+      await pinDevCluster(project, devCluster.tarball)
       const packageDirectory = join(project.directory, ".yalc")
       await mkdir(packageDirectory, { recursive: true })
       await cp(
@@ -96,6 +100,7 @@ test(
     } finally {
       await project?.cleanup()
       await packageService?.cleanup()
+      await devCluster?.cleanup()
       await confgen?.cleanup()
     }
   }
@@ -103,4 +108,37 @@ test(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+async function pinDevCluster(
+  project: SyntheticProject,
+  tarball: string
+): Promise<void> {
+  const destination = join(project.directory, ".yalc", "dev-cluster")
+  await mkdir(destination, { recursive: true })
+  await project.run("tar", [
+    "-xzf",
+    tarball,
+    "-C",
+    destination,
+    "--strip-components=1",
+  ])
+  const path = join(project.directory, "package.json")
+  const value: unknown = JSON.parse(await readFile(path, "utf8"))
+  if (!isRecord(value)) throw new Error("package.json must be an object")
+  const resolutions = isRecord(value.resolutions) ? value.resolutions : {}
+  await writeFile(
+    path,
+    `${JSON.stringify(
+      {
+        ...value,
+        resolutions: {
+          ...resolutions,
+          "dev-cluster": "file:.yalc/dev-cluster",
+        },
+      },
+      null,
+      2
+    )}\n`
+  )
 }

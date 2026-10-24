@@ -79,6 +79,13 @@ test("the package selection publishes a root and client workspace", () => {
     pnpPresent: false,
   })
   const files = writtenFiles(created.files)
+  const rootManifest = parseObject(files.get("package.json"))
+  expect(rootManifest.scripts).toMatchObject({
+    bump: "bump-n-pub --bump-only",
+  })
+  expect(rootManifest.devDependencies).toMatchObject({
+    "bump-n-pub": "0.30.0",
+  })
   const codegen = files.get("codegen.yml")
   expect(codegen).toContain("gql/_generated/resolvers.ts")
   expect(codegen).toContain("preset: client")

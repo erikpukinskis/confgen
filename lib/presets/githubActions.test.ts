@@ -175,14 +175,14 @@ test("preserves Schema Service's no-release artifacts policy", () => {
       ...root,
       name: "@example/schema-service",
       workspaces: [],
-      dependencies: [],
+      dependencies: ["@multiplayerdb/package-service"],
     },
     packages: [
       {
         ...root,
         name: "@example/schema-service",
         workspaces: [],
-        dependencies: [],
+        dependencies: ["@multiplayerdb/package-service"],
       },
     ],
     integrationWorkflowPath: ".github/workflows/integration-tests.yml",
@@ -201,6 +201,18 @@ test("preserves Schema Service's no-release artifacts policy", () => {
     "githubPackage",
   ])
   const workflows = workflowTexts(schemaSelection, schemaFacts)
+  const integration = parseWorkflow(
+    required(workflows, ".github/workflows/integration-tests.yml")
+  )
+  const integrationJob = requiredWorkflow(record(integration.jobs), "run")
+  const locate = stepWithName(integrationJob, "Locate Package Service")
+  expect(locate.run).toContain('require("pnpapi")')
+  expect(locate.run).toContain('>> "$GITHUB_ENV"')
+  expect(jobSteps(integrationJob).indexOf(locate)).toBeLessThan(
+    jobSteps(integrationJob).findIndex(
+      (step) => step.run === "yarn test:integration:ci"
+    )
+  )
   const jobs = record(
     parseWorkflow(required(workflows, ".github/workflows/artifacts.yml")).jobs
   )

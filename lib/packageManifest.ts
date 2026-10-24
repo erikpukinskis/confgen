@@ -41,6 +41,8 @@ export function packageManifestContributions(
   if (publishable(selection)) {
     produced.push(
       dependency("yalc", "1.0.0-pre.53"),
+      dependency("bump-n-pub", "0.30.0"),
+      script("bump", "bump-n-pub --bump-only"),
       script("inspect:pack", inspectCommand(selection, facts)),
       script("yalc:publish", yalcPublishCommand(selection))
     )
@@ -224,7 +226,10 @@ function integrationScripts(
         "test:integration:local",
         `docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies ${identity.integrationServiceName}`
       ),
-      script("test:integration:ci", "sh scripts/test-integration-ci.sh"),
+      script(
+        "test:integration:ci",
+        `docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from ${identity.integrationServiceName} ${identity.integrationServiceName}`
+      ),
       script(
         "shell:integration",
         `SSL_PATH="\${SSL_PATH:?}" docker compose -f compose.base.yaml -f compose.local.yaml run --rm -it --entrypoint /bin/bash ${identity.integrationServiceName}`
