@@ -66,7 +66,13 @@ test(
       await pinTool(project, bumpNPub.tarball, "bump-n-pub")
       await project.run("yarn", ["confgen", ...args], 180_000)
       await project.run("yarn", ["install"], 180_000)
-      await proveGraphqlSource(project)
+      await runDevCluster(
+        project,
+        { SSL_PATH: sslDirectory },
+        ["certs"],
+        60_000
+      )
+      await proveGraphqlSource(project, sslDirectory)
       await expectRuntimeScopes(project)
       await withoutLocalFileDependencies(project, async () => {
         await proveContainer(project, composeEnv)
@@ -204,7 +210,10 @@ async function writeRegistry(path: string, registry: string): Promise<void> {
   await writeFile(path, `${JSON.stringify(next, null, 2)}\n`)
 }
 
-async function proveGraphqlSource(project: SyntheticProject): Promise<void> {
+async function proveGraphqlSource(
+  project: SyntheticProject,
+  sslDirectory: string
+): Promise<void> {
   const checkPath = join(project.directory, "gql/checkSchema.ts")
   await writeFile(
     checkPath,
@@ -224,14 +233,21 @@ console.log("schema-loaded")
     ])
     expect(loaded.stdout).toContain("schema-loaded")
     const server = await project.start("yarn", ["start:server"], {
-      ready: (output) => output.includes("ready http://127.0.0.1:"),
+      ready: (output) => output.includes("ready https://127.0.0.1:"),
       timeoutMs: 60_000,
-      env: { PORT: "3017" },
+      env: { PORT: "3017", SSL_PATH: sslDirectory },
     })
     try {
-      const response = await fetch("http://127.0.0.1:3017/healthcheck")
-      expect(response.status).toBe(200)
-      expect(await response.text()).toContain("ok")
+      const response = await project.run("curl", [
+        "--fail",
+        "--silent",
+        "--cacert",
+        join(sslDirectory, "local.multiplayerdb.dev.crt"),
+        "--resolve",
+        "package-service.local.multiplayerdb.dev:3017:127.0.0.1",
+        "https://package-service.local.multiplayerdb.dev:3017/healthcheck",
+      ])
+      expect(response.stdout).toContain("ok")
     } finally {
       await server.stop()
     }
@@ -357,7 +373,7 @@ async function proveContainer(
         "curl",
         "--fail",
         "--silent",
-        "http://127.0.0.1:7001/",
+        "https://package-api-server.local.multiplayerdb.dev:7001/",
       ],
       30_000,
       env
@@ -375,7 +391,7 @@ async function proveContainer(
         "curl",
         "--fail",
         "--silent",
-        "http://127.0.0.1:7001/healthcheck",
+        "https://package-api-server.local.multiplayerdb.dev:7001/healthcheck",
       ],
       30_000,
       env

@@ -75,7 +75,7 @@ test("the gateway proxies health and API and shares the integration host across 
         JSON.stringify({
           name: "@example/package-service",
           scripts: {
-            bump: "./scripts/bump.sh",
+            "bump": "./scripts/bump.sh",
             "generate:local:ssl": "./scripts/generate_local_ssl.sh",
           },
         }),

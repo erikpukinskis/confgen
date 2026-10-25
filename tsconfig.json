@@ -16,6 +16,5 @@
     "test/**/*.ts",
     "vitest.config.ts",
     "integration-tests/**/*.ts"
-  ],
-  "exclude": ["integration-tests/fixtures/**"]
+  ]
 }

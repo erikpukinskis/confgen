@@ -10,9 +10,9 @@ import {
   requiredReference,
   SERVICE_PORT,
 } from "./docker.js"
+import * as ts from "typescript"
 import { expect, test } from "vitest"
 import { parseDocument } from "yaml"
-import * as ts from "typescript"
 
 const root = {
   path: "package.json",

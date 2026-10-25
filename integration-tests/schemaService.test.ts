@@ -63,7 +63,7 @@ test(
       if (!isRecord(manifest)) throw new Error("package.json must be an object")
       expect(manifest.dependenciesMeta).toMatchObject({
         "@multiplayerdb/package-service": { unplugged: true },
-        bcrypt: { unplugged: true },
+        "bcrypt": { unplugged: true },
         "sql.js": { unplugged: true },
       })
       const baseCompose = await readFile(

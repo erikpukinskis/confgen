@@ -1,3 +1,4 @@
+import { diff3Merge } from "node-diff3"
 import type {
   Contribution,
   JsonValue,
@@ -15,7 +16,6 @@ import {
 import { reconcileViteConfig } from "./reconcileViteConfig.js"
 import type { Selection } from "./selection.js"
 import { parseDocument, isMap, isSeq } from "yaml"
-import { diff3Merge } from "node-diff3"
 
 export type FileChange =
   | { type: "write"; path: string; contents: string }

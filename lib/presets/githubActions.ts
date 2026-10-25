@@ -106,11 +106,11 @@ function checkDocument(
   return {
     name,
     on: "workflow_call",
-    concurrency: { group: concurrency, "cancel-in-progress": true },
+    concurrency: { "group": concurrency, "cancel-in-progress": true },
     jobs: {
       [jobName]: {
         "runs-on": STANDARD_RUNNER,
-        steps: [...setupSteps(), ...commands.map((run) => ({ run }))],
+        "steps": [...setupSteps(), ...commands.map((run) => ({ run }))],
       },
     },
   }
@@ -141,7 +141,7 @@ function integrationDocument(
     permissions: { contents: "read" },
     env,
     concurrency: {
-      group: "run-integration-tests-${{ github.ref }}",
+      "group": "run-integration-tests-${{ github.ref }}",
       "cancel-in-progress":
         "${{ !contains(fromJSON(vars.PUBLISHING_BRANCHES), github.ref_name) }}",
     },
@@ -238,10 +238,10 @@ function artifactsDocument(
   }
   if (publishesClientPackage && publishesClient(selection)) {
     steps.push({
-      name: "Publish client package",
-      if: STEP_SHOULD_PUBLISH,
+      "name": "Publish client package",
+      "if": STEP_SHOULD_PUBLISH,
       "working-directory": "client",
-      run: PUBLISH_COMMAND,
+      "run": PUBLISH_COMMAND,
     })
   }
   if (releases && publishesPackages(selection)) {
@@ -264,13 +264,13 @@ function artifactsDocument(
     },
     env: { IMAGE_TAG: "${{ github.sha }}" },
     concurrency: {
-      group: "package-${{ github.ref }}",
+      "group": "package-${{ github.ref }}",
       "cancel-in-progress": true,
     },
     jobs: {
       package: {
         "runs-on": DOCKER_RUNNER,
-        env: {
+        "env": {
           NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}",
           ...(preparesRelease(selection)
             ? { PUBLISHING_BRANCHES: "${{ vars.PUBLISHING_BRANCHES }}" }
@@ -424,7 +424,7 @@ process.stdout.write("PACKAGE_SERVICE_PATH=" + getPackageInformation(locator).pa
   )
   return {
     "runs-on": DOCKER_RUNNER,
-    env: { NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
+    "env": { NODE_AUTH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
     steps,
   }
 }
@@ -443,8 +443,8 @@ function imageBuild(input: {
   if?: string
 }): JsonValue {
   const withValue: { [key: string]: JsonValue } = {
-    "context": ".",
-    "file": input.file,
+    context: ".",
+    file: input.file,
   }
   if (input.target !== undefined) withValue.target = input.target
   withValue.tags = input.tags
