@@ -19,12 +19,15 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/index.js",
+    "build:fixtures": "cd integration-tests/fixtures/package-service && yarn build",
     "check:format": "prettier --check .",
     "check:lint": "eslint --no-error-on-unmatched-pattern .",
     "check:types": "tsc --noEmit -p tsconfig.json",
     "fix": "yarn fix:lint && yarn fix:format",
     "fix:format": "prettier --write .",
     "fix:lint": "eslint --no-error-on-unmatched-pattern . --fix",
+    "install:sdks": "sdks vscode",
+    "postinstall": "yarn install:sdks",
     "prepack": "yarn build",
     "test": "vitest run",
     "test:integration": "vitest run --config integration-tests/vitest.config.ts"
@@ -40,6 +43,7 @@
     "@types/node": "^24.10.0",
     "@typescript-eslint/eslint-plugin": "8.70.0",
     "@typescript-eslint/parser": "8.70.0",
+    "@yarnpkg/sdks": "2",
     "eslint": "8.57.1",
     "eslint-plugin-import": "^2.31.0",
     "prettier": "2.8.1",

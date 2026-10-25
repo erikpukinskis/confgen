@@ -9,7 +9,7 @@ import type { Selection } from "../selection.js"
 
 /** Yarn owns package-manager configuration. */
 export const contributions: ProduceContributions = (
-  _selection: Selection,
+  selection: Selection,
   facts: ProjectFacts
 ) => {
   const packages = facts.root.dependencies.filter((name) =>
@@ -30,8 +30,7 @@ export const contributions: ProduceContributions = (
       ? [json("yarn:module-type", ["type"], "module")]
       : []),
     json("yarn:engines-node", ["engines", "node"], "^24.0.0"),
-    vscodeSetting("typescript.tsdk", ".yarn/sdks/typescript/lib"),
-    vscodeSetting("typescript.enablePromptUseWorkspaceTsdk", true),
+    ...(selection.presets.includes("vscode") ? sdkContributions() : []),
     ...packages.map((name) =>
       json(`yarn:unplugged:${name}`, ["dependenciesMeta", name], {
         unplugged: true,
@@ -80,15 +79,31 @@ function json(
   }
 }
 
-function vscodeSetting(name: string, value: JsonValue): Contribution {
-  return {
-    id: `yarn:vscode:${name}`,
-    source: "preset:yarn",
-    kind: "structured",
-    path: ".vscode/settings.json",
-    format: "json",
-    address: [name],
-    value,
-    update: "replace",
-  }
+function sdkContributions(): Contribution[] {
+  return [
+    {
+      id: "yarn:dependency:@yarnpkg/sdks",
+      source: "preset:yarn",
+      kind: "dependency",
+      manifest: "package.json",
+      section: "devDependencies",
+      package: "@yarnpkg/sdks",
+      range: "2",
+    },
+    ...(
+      [
+        ["install:sdks", "sdks vscode"],
+        ["postinstall", "yarn install:sdks"],
+      ] satisfies [string, string][]
+    ).map(
+      ([name, command]): Contribution => ({
+        id: `yarn:script:${name}`,
+        source: "preset:yarn",
+        kind: "package-script",
+        manifest: "package.json",
+        name,
+        command,
+      })
+    ),
+  ]
 }

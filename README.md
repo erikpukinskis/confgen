@@ -102,7 +102,7 @@ arbitrary multi-application monorepo generator.
 
 Presets select tools or coherent optional capabilities. Examples include Yarn,
 TypeScript, Vite, Vitest, ESLint, Prettier, React, GraphQL, Docker, HTTPD, SQL,
-codedocs, Git, GitHub Actions, and GitHub Packages. Run `confgen --help` for the
+codedocs, Git, GitHub Actions, GitHub Packages, and VS Code. Run `confgen --help` for the
 presets supported by the installed release.
 
 A preset owns the Understory decisions for its area and accounts for the full
@@ -113,6 +113,10 @@ runtime and preset selection. For example:
 - Vite creates the build and development configurations required by the
   selected runtimes and capabilities.
 - Vitest configures the runtime boundaries under test.
+- VS Code configures the editor to use workspace TypeScript. Select `vscode`
+  together with `yarn` to add `@yarnpkg/sdks@2` as a dev dependency and generate
+  the editor SDKs after every install. Run `yarn install:sdks` to regenerate them
+  manually.
 - Docker configures images and Compose contracts for runnable and integration
   runtimes.
 - GitHub Actions assembles checks, packages, containers, and release workflows

@@ -119,7 +119,9 @@ test("a new service gets a URL example and an environment-based integration test
   expect(paths(contributions)).not.toContain("integration/setup.ts")
   expect(byId(contributions, "runtime:integration:service-test")).toMatchObject(
     {
-      contents: expect.stringContaining("process.env.PACKAGE_SERVICE_URL"),
+      contents: expect.stringContaining(
+        "process.env.PACKAGE_SERVICE_URL"
+      ) as string,
     }
   )
   expect(

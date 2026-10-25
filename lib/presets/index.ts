@@ -16,10 +16,12 @@ import * as sql from "./sql.js"
 import * as typescript from "./typescript.js"
 import * as vite from "./vite.js"
 import * as vitest from "./vitest.js"
+import * as vscode from "./vscode.js"
 import * as yarn from "./yarn.js"
 
 const producers = {
   yarn: yarn.contributions,
+  vscode: vscode.contributions,
   typescript: typescript.contributions,
   vite: vite.contributions,
   vitest: vitest.contributions,

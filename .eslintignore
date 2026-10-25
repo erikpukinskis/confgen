@@ -4,3 +4,4 @@ vendor
 .yarn
 coverage
 README.old.md
+integration-tests/fixtures

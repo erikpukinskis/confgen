@@ -8,7 +8,6 @@ import {
   containerIdentity,
   githubRepositoryOwner,
   requiredReference,
-  SERVICE_PORT,
 } from "./docker.js"
 import * as ts from "typescript"
 import { expect, test } from "vitest"

@@ -53,8 +53,11 @@ test("adds workspace TypeScript settings without removing existing VS Code setti
   }
   const facts: ProjectFacts = { root, packages: [root] }
   const result = reconcile({
-    selection,
-    contributions: collectContributions(selection, facts),
+    selection: parseSelection(["runtimes=#server", "yarn", "vscode"]),
+    contributions: collectContributions(
+      parseSelection(["runtimes=#server", "yarn", "vscode"]),
+      facts
+    ),
     prior: undefined,
     files: new Map([
       ["package.json", '{"name":"@example/service"}\n'],
@@ -73,4 +76,43 @@ test("adds workspace TypeScript settings without removing existing VS Code setti
     "typescript.tsdk": ".yarn/sdks/typescript/lib",
     "typescript.enablePromptUseWorkspaceTsdk": true,
   })
+  const manifest = result.files.find(
+    (change) => change.type === "write" && change.path === "package.json"
+  )
+  if (manifest?.type !== "write") throw new Error("manifest was not written")
+  expect(JSON.parse(manifest.contents)).toMatchObject({
+    devDependencies: { "@yarnpkg/sdks": "2" },
+    scripts: {
+      "install:sdks": "sdks vscode",
+      "postinstall": "yarn install:sdks",
+    },
+  })
 })
+
+test.each([["yarn"], ["vscode"]])(
+  "does not configure SDKs with only the %s preset",
+  (preset) => {
+    const root = {
+      path: "package.json",
+      name: "@example/service",
+      workspaces: [],
+      dependencies: [],
+    }
+    const contributions = collectContributions(
+      parseSelection(["runtimes=#server", preset]),
+      { root, packages: [root] }
+    )
+    expect(contributions).not.toContainEqual(
+      expect.objectContaining({ package: "@yarnpkg/sdks" })
+    )
+    expect(contributions).not.toContainEqual(
+      expect.objectContaining({ name: "install:sdks" })
+    )
+    expect(contributions).not.toContainEqual(
+      expect.objectContaining({ name: "postinstall" })
+    )
+    expect(contributions).not.toContainEqual(
+      expect.objectContaining({ path: ".vscode/settings.json" })
+    )
+  }
+)

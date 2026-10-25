@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "lib": ["es2021"],
+    "target": "es2021",
+    "esModuleInterop": true,
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "downlevelIteration": true,
+    "rootDir": ".",
+    "outDir": "dist",
+    "noEmit": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": false,
+    "types": ["node", "vite/client"],
+    "verbatimModuleSyntax": true
+  },
+  "include": ["gql"],
+  "exclude": ["client", "client/dist"]
+}

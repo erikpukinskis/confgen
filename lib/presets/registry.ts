@@ -1,5 +1,6 @@
 export type PresetName =
   | "yarn"
+  | "vscode"
   | "typescript"
   | "vite"
   | "vitest"
@@ -18,6 +19,7 @@ export type PresetName =
 /** Canonical preset order. CLI order does not override this. */
 export const PRESET_NAMES = [
   "yarn",
+  "vscode",
   "typescript",
   "vite",
   "vitest",

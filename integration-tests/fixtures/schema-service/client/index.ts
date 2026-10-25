@@ -1,4 +1,4 @@
-import { graphql } from "../gql/client/index.js"
+import { graphql } from "#gql"
 
 export const Greeting = graphql(`
   query Greeting {
