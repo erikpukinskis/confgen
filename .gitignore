@@ -1,9 +1,10 @@
 yarn-error.log
+.yarn-global-cache-for-tests/
 node_modules
 .DS_Store
 dist
 vendor
-gql
+/gql
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -13,3 +14,5 @@ gql
 !.yarn/versions
 coverage
 .yarn
+integration-tests/fixtures/*/.yalc
+integration-tests/fixtures/*/yalc.lock

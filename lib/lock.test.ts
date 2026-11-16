@@ -1,8 +1,8 @@
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import type { Contribution } from "./contributions.js"
-import { ConfgenError } from "./errors.js"
+import type { Contribution } from "./contributions"
+import { ConfgenError } from "./errors"
 import {
   LOCK_PATH,
   LOCK_TEMPORARY_PATH,
@@ -12,9 +12,9 @@ import {
   serializeLock,
   textHash,
   writeLockFile,
-} from "./lock.js"
-import type { Selection } from "./selection.js"
-import { createSystem } from "./system.js"
+} from "./lock"
+import type { Selection } from "./selection"
+import { createSystem } from "./system"
 import { expect, test } from "vitest"
 
 const selection: Selection = {

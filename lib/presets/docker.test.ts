@@ -1,16 +1,16 @@
-import { collectContributions, type Contribution } from "../contributions.js"
-import { ConfgenError } from "../errors.js"
-import type { ProjectFacts } from "../facts.js"
-import { reconcile } from "../reconcile.js"
-import { parseSelection } from "../selection.js"
+import { collectContributions, type Contribution } from "../contributions"
+import { ConfgenError } from "../errors"
+import type { ProjectFacts } from "../facts"
+import { reconcile } from "../reconcile"
+import { parseSelection } from "../selection"
 import {
   assertHttpsOrigin,
   containerIdentity,
   githubRepositoryOwner,
   requiredReference,
-} from "./docker.js"
-import * as ts from "typescript"
-import { expect, test } from "vitest"
+} from "./docker"
+import ts from "typescript"
+import { expect, test, vi } from "vitest"
 import { parseDocument } from "yaml"
 
 const root = {
@@ -46,7 +46,7 @@ test("container contributions describe the ordinary service image", () => {
     command: "vite-node --watch --config vite.server.config.ts server/index.ts",
   })
   const dockerfile = text(contributions, "Dockerfile")
-  expect(dockerfile).toContain("FROM node:24-bookworm-slim AS base")
+  expect(dockerfile).toContain("FROM node:24.22.1-bookworm-slim AS base")
   expect(dockerfile).toContain("FROM base AS dev")
   expect(dockerfile).toContain("FROM base AS prod")
   expect(dockerfile).toContain("gosu www-data yarn install --immutable")
@@ -81,7 +81,7 @@ test("container contributions describe the ordinary service image", () => {
         id: "property:build-entry-file",
         value: '"index.mjs"',
       }),
-    ]),
+    ]) as string,
   })
   expect(byId(contributions, "runtime:server:start")).toMatchObject({
     command: "node dist/server/index.mjs",
@@ -184,13 +184,13 @@ test("gateway Compose serves HTTPS and verifies the Node API on port 7001", () =
   expect(api.healthcheck).toMatchObject({
     test: expect.stringContaining(
       "https://package-api-server.local.multiplayerdb.dev:7001/healthcheck"
-    ),
+    ) as string,
   })
   const gateway = objectField(services, "package-service")
   expect(gateway.healthcheck).toMatchObject({
     test: expect.stringContaining(
       "https://package-service.local.multiplayerdb.dev/healthcheck"
-    ),
+    ) as string,
   })
   expect(written(created.files, "Dockerfile")).toContain("EXPOSE 7001")
   const gatewayDockerfile = written(created.files, "gateway/Dockerfile")
@@ -331,6 +331,33 @@ test("replaces the local yalc dev-cluster link with its published version", () =
   expect(dependency).toMatchObject({ kind: "dependency", range: "0.2.0" })
 })
 
+test("DEV_CLUSTER_VERSION overrides an existing published dependency", () => {
+  const packageWithDevCluster = {
+    ...root,
+    dependencyRanges: {
+      dependencies: {},
+      devDependencies: { "dev-cluster": "0.1.0" },
+      peerDependencies: {},
+    },
+  }
+  vi.stubEnv("DEV_CLUSTER_VERSION", "file:.yalc/dev-cluster")
+  try {
+    const contributions = collectContributions(selection, {
+      root: packageWithDevCluster,
+      packages: [packageWithDevCluster],
+    })
+    expect(
+      contributions.find(
+        (contribution) =>
+          contribution.kind === "dependency" &&
+          contribution.package === "dev-cluster"
+      )
+    ).toMatchObject({ range: "file:.yalc/dev-cluster" })
+  } finally {
+    vi.unstubAllEnvs()
+  }
+})
+
 test("compose layers merge and keep unrelated services", () => {
   const identity = containerIdentity(facts.root.name)
   expect(identity.serviceName).toBe("package-api-server")
@@ -371,7 +398,7 @@ test("compose layers merge and keep unrelated services", () => {
   expect(service.healthcheck).toMatchObject({
     test: expect.stringContaining(
       "https://package-service.local.multiplayerdb.dev:443"
-    ),
+    ) as string,
   })
   expect(service.volumes).toEqual([
     "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro",
@@ -519,7 +546,9 @@ test("composes the installed Package Service dependency", () => {
         contribution.name === "test:integration:local"
     )
   ).toMatchObject({
-    command: expect.stringContaining("schema-service-integration-test-host"),
+    command: expect.stringContaining(
+      "schema-service-integration-test-host"
+    ) as string,
   })
 })
 

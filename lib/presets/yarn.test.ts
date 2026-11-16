@@ -1,7 +1,7 @@
-import { collectContributions } from "../contributions.js"
-import type { ProjectFacts } from "../facts.js"
-import { reconcile } from "../reconcile.js"
-import { parseSelection } from "../selection.js"
+import { collectContributions } from "../contributions"
+import type { ProjectFacts } from "../facts"
+import { reconcile } from "../reconcile"
+import { parseSelection } from "../selection"
 import { expect, test } from "vitest"
 
 const selection = parseSelection(["runtimes=#server", "yarn"])
@@ -81,6 +81,8 @@ test("adds workspace TypeScript settings without removing existing VS Code setti
   )
   if (manifest?.type !== "write") throw new Error("manifest was not written")
   expect(JSON.parse(manifest.contents)).toMatchObject({
+    engines: { node: "24.22.1", yarn: "4.18.1" },
+    packageManager: "yarn@4.18.1",
     devDependencies: { "@yarnpkg/sdks": "2" },
     scripts: {
       "install:sdks": "sdks vscode",

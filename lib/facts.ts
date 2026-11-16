@@ -1,6 +1,6 @@
-import { ConfgenError } from "./errors.js"
-import type { LockData } from "./lock.js"
-import type { System } from "./system.js"
+import { ConfgenError } from "./errors"
+import type { LockData } from "./lock"
+import type { System } from "./system"
 import { z } from "zod"
 
 export type RepositoryFacts = {

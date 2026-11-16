@@ -1,16 +1,15 @@
-import { cp, mkdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
+  confgenExecutable,
   createSyntheticProject,
-  packConfgen,
   packDevCluster,
   packPackageService,
-  readScenario,
-  type PackedConfgen,
   type PackedPackageService,
+  type PackedTool,
   type SyntheticProject,
-} from "./helpers.js"
+} from "./helpers"
 import { expect, test } from "vitest"
 
 const fixture = fileURLToPath(
@@ -21,36 +20,43 @@ test(
   "the synthetic schema service composes the packed Package Service packages",
   { timeout: 1_500_000 },
   async () => {
-    let confgen: PackedConfgen | undefined
-    let devCluster: PackedConfgen | undefined
+    let devCluster: PackedTool | undefined
     let packageService: PackedPackageService | undefined
     let project: SyntheticProject | undefined
     try {
-      confgen = await packConfgen()
-      devCluster = await packDevCluster()
       packageService = await packPackageService()
-      project = await createSyntheticProject({
-        tarball: confgen.tarball,
-        fixture,
-      })
-      await pinDevCluster(project, devCluster.tarball)
-      const packageDirectory = join(project.directory, ".yalc")
-      await mkdir(packageDirectory, { recursive: true })
-      await cp(
-        packageService.rootTarball,
-        join(packageDirectory, "package-service.tgz")
-      )
-      await cp(
-        packageService.clientTarball,
-        join(packageDirectory, "package-service-client.tgz")
-      )
+      devCluster = await packDevCluster()
+      project = await createSyntheticProject(fixture)
+      const devClusterDirectory = join(project.directory, ".yalc/dev-cluster")
+      await mkdir(devClusterDirectory, { recursive: true })
+      await project.run("tar", [
+        "-xzf",
+        devCluster.tarball,
+        "-C",
+        devClusterDirectory,
+        "--strip-components=1",
+      ])
       await project.run("yarn", [
         "add",
-        "@multiplayerdb/package-service@file:.yalc/package-service.tgz",
-        "@multiplayerdb/package-service-client@file:.yalc/package-service-client.tgz",
+        `@multiplayerdb/package-service@file:${packageService.rootTarball}`,
+        `@multiplayerdb/package-service-client@file:${packageService.clientTarball}`,
       ])
 
-      await project.run("yarn", ["confgen", ...(await readScenario(fixture))])
+      await project.run("yarn", ["all", "the", "things!"], 180_000)
+
+      const selection = [
+        "runtimes=#lib,#server,#client,#integration",
+        "yarn",
+        "typescript",
+        "vite",
+        "vitest",
+        "prettier",
+        "graphql",
+        "docker",
+        "sql",
+      ]
+
+      await project.run(confgenExecutable, selection)
       await project.run("yarn", ["install", "--immutable"])
       await project.run("yarn", ["build:generate"])
       await project.run("yarn", ["build"])
@@ -94,51 +100,17 @@ test(
         "-m",
         "synthetic schema service",
       ])
-      await project.run("yarn", ["confgen"])
+      await project.run(confgenExecutable, selection)
       const status = await project.run("git", ["status", "--porcelain"])
       expect(status.stdout).toBe("")
     } finally {
       await project?.cleanup()
       await packageService?.cleanup()
       await devCluster?.cleanup()
-      await confgen?.cleanup()
     }
   }
 )
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-async function pinDevCluster(
-  project: SyntheticProject,
-  tarball: string
-): Promise<void> {
-  const destination = join(project.directory, ".yalc", "dev-cluster")
-  await mkdir(destination, { recursive: true })
-  await project.run("tar", [
-    "-xzf",
-    tarball,
-    "-C",
-    destination,
-    "--strip-components=1",
-  ])
-  const path = join(project.directory, "package.json")
-  const value: unknown = JSON.parse(await readFile(path, "utf8"))
-  if (!isRecord(value)) throw new Error("package.json must be an object")
-  const resolutions = isRecord(value.resolutions) ? value.resolutions : {}
-  await writeFile(
-    path,
-    `${JSON.stringify(
-      {
-        ...value,
-        resolutions: {
-          ...resolutions,
-          "dev-cluster": "file:.yalc/dev-cluster",
-        },
-      },
-      null,
-      2
-    )}\n`
-  )
 }

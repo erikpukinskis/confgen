@@ -3,8 +3,8 @@ import type {
   JsonValue,
   ProduceContributions,
   StructuredAddress,
-} from "../contributions.js"
-import type { Selection } from "../selection.js"
+} from "../contributions"
+import type { Selection } from "../selection"
 
 /** ESLint owns lint configuration for TypeScript sources. */
 export const contributions: ProduceContributions = (selection) => [

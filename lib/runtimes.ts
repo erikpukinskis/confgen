@@ -1,7 +1,7 @@
-import type { Contribution, ProduceContributions } from "./contributions.js"
-import type { ProjectFacts } from "./facts.js"
-import { containerIdentity } from "./presets/docker.js"
-import type { Selection } from "./selection.js"
+import type { Contribution, ProduceContributions } from "./contributions"
+import type { ProjectFacts } from "./facts"
+import { containerIdentity } from "./presets/docker"
+import type { Selection } from "./selection"
 
 export type RuntimeName =
   | "lib"
@@ -278,10 +278,14 @@ function graphqlIntegrationTest(urlName: string): string {
 
 test("reaches the service GraphQL API", async () => {
   const url = new URL("/api", process.env.${urlName})
-  url.searchParams.set("query", '{ greeting(name: "baseline") }')
-  const response = await fetch(url)
-  expect(response.status).toBe(200)
-  expect(await response.text()).toContain("Hello, baseline")
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query: '{ greeting(name: "baseline") }' }),
+  })
+  const body = await response.text()
+  expect(response.status, body).toBe(200)
+  expect(body).toContain("Hello, baseline")
 })
 `
 }

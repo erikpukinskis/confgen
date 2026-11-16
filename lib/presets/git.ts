@@ -1,4 +1,4 @@
-import type { Contribution, ProduceContributions } from "../contributions.js"
+import type { Contribution, ProduceContributions } from "../contributions"
 
 /** Git owns repository exclusions. */
 export const contributions: ProduceContributions = (selection) => {

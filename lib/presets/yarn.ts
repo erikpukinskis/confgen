@@ -3,9 +3,10 @@ import type {
   JsonValue,
   ProduceContributions,
   StructuredAddress,
-} from "../contributions.js"
-import type { ProjectFacts } from "../facts.js"
-import type { Selection } from "../selection.js"
+} from "../contributions"
+import type { ProjectFacts } from "../facts"
+import type { Selection } from "../selection"
+import { NODE_VERSION, YARN_VERSION } from "../toolchain"
 
 /** Yarn owns package-manager configuration. */
 export const contributions: ProduceContributions = (
@@ -23,13 +24,14 @@ export const contributions: ProduceContributions = (
       source: "preset:yarn",
       kind: "whole-file",
       path: ".nvmrc",
-      contents: "24\n",
+      contents: `${NODE_VERSION}\n`,
     },
-    json("yarn:package-manager", ["packageManager"], "yarn@4.11.0"),
+    json("yarn:package-manager", ["packageManager"], `yarn@${YARN_VERSION}`),
     ...(facts.root.type === "module"
       ? [json("yarn:module-type", ["type"], "module")]
       : []),
-    json("yarn:engines-node", ["engines", "node"], "^24.0.0"),
+    json("yarn:engines-node", ["engines", "node"], NODE_VERSION),
+    json("yarn:engines-yarn", ["engines", "yarn"], YARN_VERSION),
     ...(selection.presets.includes("vscode") ? sdkContributions() : []),
     ...packages.map((name) =>
       json(`yarn:unplugged:${name}`, ["dependenciesMeta", name], {

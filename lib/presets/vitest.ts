@@ -2,9 +2,9 @@ import type {
   Contribution,
   ProduceContributions,
   ViteConfigItem,
-} from "../contributions.js"
-import { runtimePath } from "../runtimes.js"
-import type { Selection } from "../selection.js"
+} from "../contributions"
+import { runtimePath } from "../runtimes"
+import type { Selection } from "../selection"
 
 /** Vitest owns test-runner configuration for the selected runtimes. */
 export const contributions: ProduceContributions = (selection, facts) => {
@@ -21,7 +21,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
     produced.push(libTest())
   }
   if (selection.runtimes.includes("integration")) {
-    produced.push(integrationConfig(selection))
+    produced.push(integrationConfig())
   }
   return produced
 }
@@ -44,14 +44,13 @@ function libTest(): Contribution {
   }
 }
 
-function integrationConfig(selection: Selection): Contribution {
+function integrationConfig(): Contribution {
   return {
     id: "vitest:config:vite.integration.config.ts",
     source: "preset:vitest",
     kind: "vite-config",
     path: "vite.integration.config.ts",
     items: [
-      ...sqlPlugin(selection),
       {
         id: "property:test-include",
         source: "preset:vitest",
@@ -70,7 +69,6 @@ function testConfig(selection: Selection): Contribution {
   })
   if (selection.presets.includes("graphql")) patterns.push("gql/**/*.test.ts")
   const items: ViteConfigItem[] = [
-    ...sqlPlugin(selection),
     {
       id: "property:test-include",
       source: "preset:vitest",
@@ -86,27 +84,6 @@ function testConfig(selection: Selection): Contribution {
     path: "vite.test.config.ts",
     items,
   }
-}
-
-function sqlPlugin(selection: Selection): ViteConfigItem[] {
-  if (!selection.presets.includes("sql")) return []
-  return [
-    {
-      id: "import:sql",
-      source: "preset:vitest",
-      kind: "import",
-      module: "vite-plugin-sql",
-      imported: { kind: "default" },
-      preferredLocal: "sql",
-    },
-    {
-      id: "plugin:sql",
-      source: "preset:vitest",
-      kind: "plugin",
-      importId: "import:sql",
-      arguments: [],
-    },
-  ]
 }
 
 function includeValue(patterns: readonly string[]): string {

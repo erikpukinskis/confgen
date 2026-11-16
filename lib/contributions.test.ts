@@ -3,8 +3,8 @@ import {
   type Contribution,
   type ContributionSource,
   type ViteConfigItem,
-} from "./contributions.js"
-import { ConfgenError } from "./errors.js"
+} from "./contributions"
+import { ConfgenError } from "./errors"
 import { expect, test } from "vitest"
 
 test("orders contributions by the runtime and preset registries", () => {

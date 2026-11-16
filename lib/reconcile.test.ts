@@ -1,8 +1,8 @@
-import type { Contribution, JsonValue } from "./contributions.js"
-import { ConfgenError } from "./errors.js"
-import { textHash, type LockData } from "./lock.js"
-import { reconcile } from "./reconcile.js"
-import type { Selection } from "./selection.js"
+import type { Contribution, JsonValue } from "./contributions"
+import { ConfgenError } from "./errors"
+import { textHash, type LockData } from "./lock"
+import { reconcile } from "./reconcile"
+import type { Selection } from "./selection"
 import { expect, test } from "vitest"
 
 const selection: Selection = {

@@ -1,7 +1,7 @@
-import { ConfgenError } from "./errors.js"
-import { PRESET_NAMES } from "./presets/registry.js"
-import { RUNTIME_NAMES } from "./runtimes.js"
-import { parseSelection } from "./selection.js"
+import { ConfgenError } from "./errors"
+import { PRESET_NAMES } from "./presets/registry"
+import { RUNTIME_NAMES } from "./runtimes"
+import { parseSelection } from "./selection"
 import { describe, expect, test } from "vitest"
 
 const documented = [

@@ -4,17 +4,17 @@ import type {
   JsonValue,
   StructuredAddress,
   ViteConfigItem,
-} from "./contributions.js"
-import { ConfgenError } from "./errors.js"
+} from "./contributions"
+import { ConfgenError } from "./errors"
 import {
   lockFromContributions,
   textHash,
   viteItemsFromLock,
   type LockContribution,
   type LockData,
-} from "./lock.js"
-import { reconcileViteConfig } from "./reconcileViteConfig.js"
-import type { Selection } from "./selection.js"
+} from "./lock"
+import { reconcileViteConfig } from "./reconcileViteConfig"
+import type { Selection } from "./selection"
 import { parseDocument, isMap, isSeq } from "yaml"
 
 export type FileChange =

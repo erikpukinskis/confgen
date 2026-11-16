@@ -1,5 +1,5 @@
-import type { ViteConfigItem } from "./contributions.js"
-import { reconcileViteConfig } from "./reconcileViteConfig.js"
+import type { ViteConfigItem } from "./contributions"
+import { reconcileViteConfig } from "./reconcileViteConfig"
 import { expect, test } from "vitest"
 
 const reactImport: ViteConfigItem = {

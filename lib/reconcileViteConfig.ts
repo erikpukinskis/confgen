@@ -1,4 +1,4 @@
-import type { ViteConfigItem } from "./contributions.js"
+import type { ViteConfigItem } from "./contributions"
 import ts from "typescript"
 
 export type ViteReconciliation = {

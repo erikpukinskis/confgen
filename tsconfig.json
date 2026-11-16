@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2024",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -15,6 +15,7 @@
     "lib/**/*.ts",
     "test/**/*.ts",
     "vitest.config.ts",
+    "vite.config.ts",
     "integration-tests/**/*.ts"
   ],
   "exclude": ["integration-tests/fixtures"]

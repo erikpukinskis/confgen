@@ -1,23 +1,22 @@
-import type { Contribution, ProduceContributions } from "../contributions.js"
-import type { ProjectFacts } from "../facts.js"
-import type { Selection } from "../selection.js"
-import * as codedocs from "./codedocs.js"
-import * as docker from "./docker.js"
-import * as eslint from "./eslint.js"
-import * as git from "./git.js"
-import * as githubActions from "./githubActions.js"
-import * as githubPackage from "./githubPackage.js"
-import * as graphql from "./graphql.js"
-import * as httpd from "./httpd.js"
-import * as prettier from "./prettier.js"
-import * as react from "./react.js"
-import type { PresetName } from "./registry.js"
-import * as sql from "./sql.js"
-import * as typescript from "./typescript.js"
-import * as vite from "./vite.js"
-import * as vitest from "./vitest.js"
-import * as vscode from "./vscode.js"
-import * as yarn from "./yarn.js"
+import type { Contribution, ProduceContributions } from "../contributions"
+import type { ProjectFacts } from "../facts"
+import type { Selection } from "../selection"
+import * as codedocs from "./codedocs"
+import * as docker from "./docker"
+import * as eslint from "./eslint"
+import * as git from "./git"
+import * as githubActions from "./githubActions"
+import * as githubPackage from "./githubPackage"
+import * as graphql from "./graphql"
+import * as httpd from "./httpd"
+import * as prettier from "./prettier"
+import * as react from "./react"
+import type { PresetName } from "./registry"
+import * as typescript from "./typescript"
+import * as vite from "./vite"
+import * as vitest from "./vitest"
+import * as vscode from "./vscode"
+import * as yarn from "./yarn"
 
 const producers = {
   yarn: yarn.contributions,
@@ -31,7 +30,8 @@ const producers = {
   graphql: graphql.contributions,
   docker: docker.contributions,
   httpd: httpd.contributions,
-  sql: sql.contributions,
+  // Prettier supplies SQL formatting when both presets are selected.
+  sql: () => [],
   codedocs: codedocs.contributions,
   git: git.contributions,
   githubActions: githubActions.contributions,

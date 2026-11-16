@@ -3,7 +3,7 @@ import type {
   JsonValue,
   ProduceContributions,
   StructuredAddress,
-} from "../contributions.js"
+} from "../contributions"
 
 /** Prettier owns formatting configuration. */
 export const contributions: ProduceContributions = (selection, facts) => {

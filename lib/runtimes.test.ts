@@ -1,4 +1,4 @@
-import { RUNTIME_NAMES, RUNTIME_PATHS } from "./runtimes.js"
+import { RUNTIME_NAMES, RUNTIME_PATHS } from "./runtimes"
 import { expect, test } from "vitest"
 
 test("runtimes use their standard directories", () => {

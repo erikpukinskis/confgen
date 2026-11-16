@@ -1,6 +1,7 @@
 {
   "name": "@example/schema-service",
   "version": "0.1.0",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/example/schema-service.git"
@@ -9,10 +10,41 @@
     "client"
   ],
   "imports": {
-    "#gql": "./gql/index.ts"
+    "#gql": "./gql/index.ts",
+    "#lib/*": "./lib/*.ts",
+    "#server/*": "./server/*.ts"
+  },
+  "scripts": {
+    "all": "yarn install --immutable && yarn build && yarn check:format && yarn check:types && yarn test && echo 'Ran all'",
+    "build": "rm -rf dist client/dist && yarn build:generate && yarn build:lib && yarn build:test-kit && yarn build:server && yarn build:client",
+    "build:generate": "graphql-codegen",
+    "build:lib": "vite build --config vite.lib.config.ts",
+    "build:test-kit": "vite build --config vite.test-kit.config.ts",
+    "build:server": "vite build --config vite.server.config.ts",
+    "build:client": "vite build --config vite.client.config.ts",
+    "check:format": "prettier --check .",
+    "check:types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.client.json",
+    "test": "vitest run --config vite.test.config.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
+    "graphql": "16.11.0",
     "sql.js": "^1.12.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/add": "7.1.1",
+    "@graphql-codegen/cli": "7.4.6",
+    "@graphql-codegen/client-preset": "6.2.3",
+    "@graphql-codegen/typescript": "6.1.2",
+    "@graphql-codegen/typescript-resolvers": "6.1.1",
+    "@graphql-typed-document-node/core": "3.2.0",
+    "@microsoft/api-extractor": "7.59.4",
+    "@types/node": "24.19.2",
+    "dev-cluster": "file:.yalc/dev-cluster",
+    "prettier": "2.8.1",
+    "typescript": "5.9.3",
+    "unplugin-dts": "1.1.2",
+    "vite": "8.3.4",
+    "vitest": "4.1.11"
   }
 }

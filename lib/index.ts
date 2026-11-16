@@ -2,11 +2,11 @@
 import { readFileSync, realpathSync } from "node:fs"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
-import { compile, type CompilationProgress } from "./compile.js"
-import { ConfgenError } from "./errors.js"
-import { PRESET_NAMES } from "./presets/registry.js"
-import { RUNTIME_NAMES, runtimePath } from "./runtimes.js"
-import { createSystem } from "./system.js"
+import { compile, type CompilationProgress } from "./compile"
+import { ConfgenError } from "./errors"
+import { PRESET_NAMES } from "./presets/registry"
+import { RUNTIME_NAMES, runtimePath } from "./runtimes"
+import { createSystem } from "./system"
 import { Command, CommanderError } from "commander"
 
 type TextWriter = {

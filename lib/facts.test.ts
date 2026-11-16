@@ -1,9 +1,9 @@
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { ConfgenError } from "./errors.js"
-import { readProjectFacts } from "./facts.js"
-import { createSystem, type System } from "./system.js"
+import { ConfgenError } from "./errors"
+import { readProjectFacts } from "./facts"
+import { createSystem, type System } from "./system"
 import { expect, test } from "vitest"
 
 test("reads identity, workspaces, repository, and registry from manifests", async () => {

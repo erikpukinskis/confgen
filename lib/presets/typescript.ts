@@ -3,9 +3,9 @@ import type {
   JsonValue,
   ProduceContributions,
   StructuredAddress,
-} from "../contributions.js"
-import { runtimePath, type RuntimeName } from "../runtimes.js"
-import type { Selection } from "../selection.js"
+} from "../contributions"
+import { runtimePath, type RuntimeName } from "../runtimes"
+import type { Selection } from "../selection"
 
 /**
  * TypeScript owns TypeScript configuration for every selected runtime,

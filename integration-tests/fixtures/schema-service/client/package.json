@@ -1,4 +1,11 @@
 {
   "name": "@example/schema-service-client",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@graphql-typed-document-node/core": "3.2.0"
+  },
+  "peerDependencies": {
+    "graphql": "^16.11.0"
+  }
 }

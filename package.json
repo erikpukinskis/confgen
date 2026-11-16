@@ -10,15 +10,16 @@
     "README.md"
   ],
   "engines": {
-    "node": "^24.0.0"
+    "node": "24.22.1",
+    "yarn": "4.18.1"
   },
-  "packageManager": "yarn@4.11.0",
+  "packageManager": "yarn@4.18.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/erikpukinskis/confgen.git"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/index.js",
+    "build": "vite build && chmod +x dist/index.js",
     "build:fixtures": "cd integration-tests/fixtures/package-service && yarn build",
     "check:format": "prettier --check .",
     "check:lint": "eslint --no-error-on-unmatched-pattern .",
@@ -29,8 +30,9 @@
     "install:sdks": "sdks vscode",
     "postinstall": "yarn install:sdks",
     "prepack": "yarn build",
-    "test": "vitest run",
-    "test:integration": "vitest run --config integration-tests/vitest.config.ts"
+    "test": "yarn build && vitest run",
+    "test:integration": "yarn test --config integration-tests/vitest.config.ts",
+    "watch:types": "tsc --noEmit --watch -p tsconfig.json "
   },
   "dependencies": {
     "commander": "^15.0.0",
@@ -47,6 +49,7 @@
     "eslint": "8.57.1",
     "eslint-plugin-import": "^2.31.0",
     "prettier": "2.8.1",
+    "vite": "8.3.4",
     "vitest": "^4.0.7"
   }
 }

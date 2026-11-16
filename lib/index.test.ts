@@ -1,8 +1,8 @@
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createSystem } from "./system.js"
-import { main } from "./index.js"
+import { createSystem } from "./system"
+import { main } from "./index"
 import { expect, test } from "vitest"
 
 test("a file-writing selection exits successfully", async () => {

@@ -1,7 +1,7 @@
-import { graphql } from "#gql"
+import { graphql } from "#gql/client"
 
 export const Greeting = graphql(`
-  query Greeting {
-    greeting
+  query Greeting($name: String!) {
+    greeting(name: $name)
   }
 `)

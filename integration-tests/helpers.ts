@@ -1,13 +1,12 @@
 import { spawn, type ChildProcess } from "node:child_process"
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { z } from "zod"
 
-const confgenRoot = fileURLToPath(new URL("..", import.meta.url))
-const devClusterRoot = fileURLToPath(
-  new URL("../../dev-cluster/", import.meta.url)
+export const confgenExecutable = fileURLToPath(
+  new URL("../dist/index.js", import.meta.url)
 )
 const bumpNPubRoot = fileURLToPath(
   new URL("../../bump-n-pub/", import.meta.url)
@@ -55,7 +54,7 @@ export class CommandError extends Error {
   }
 }
 
-export type PackedConfgen = {
+export type PackedTool = {
   tarball: string
   cleanup(): Promise<void>
 }
@@ -97,22 +96,21 @@ export type SyntheticProject = {
   cleanup(): Promise<void>
 }
 
-/** Builds and packs the local dev-cluster revision for the harness only. */
-export async function packDevCluster(): Promise<PackedConfgen> {
-  return packTool({
-    cwd: devClusterRoot,
-    directoryPrefix: "dev-cluster-pack-",
-    tarballName: "dev-cluster.tgz",
-    extraEnv: { DEV_CLUSTER_PACKING: "1" },
-  })
-}
-
 /** Builds and packs the local bump-n-pub revision for the harness only. */
-export async function packBumpNPub(): Promise<PackedConfgen> {
+export async function packBumpNPub(): Promise<PackedTool> {
   return packTool({
     cwd: bumpNPubRoot,
     directoryPrefix: "bump-n-pub-pack-",
     tarballName: "bump-n-pub.tgz",
+  })
+}
+
+/** Packs the local dev-cluster dependency used by the Schema Service fixture. */
+export async function packDevCluster(): Promise<PackedTool> {
+  return packTool({
+    cwd: fileURLToPath(new URL("../../dev-cluster/", import.meta.url)),
+    directoryPrefix: "dev-cluster-pack-",
+    tarballName: "dev-cluster.tgz",
   })
 }
 
@@ -166,8 +164,7 @@ async function packTool(input: {
   cwd: string
   directoryPrefix: string
   tarballName: string
-  extraEnv?: Readonly<Record<string, string>>
-}): Promise<PackedConfgen> {
+}): Promise<PackedTool> {
   const directory = await mkdtemp(join(tmpdir(), input.directoryPrefix))
   const tarball = join(directory, input.tarballName)
   await runCollected({
@@ -176,7 +173,6 @@ async function packTool(input: {
     args: ["pack", "--out", tarball],
     timeoutMs: 180_000,
     children: [],
-    ...(input.extraEnv === undefined ? {} : { extraEnv: input.extraEnv }),
   })
   return {
     tarball,
@@ -186,53 +182,15 @@ async function packTool(input: {
   }
 }
 
-/** Builds and packs Confgen once for the integration suite. */
-export async function packConfgen(): Promise<PackedConfgen> {
-  const directory = await mkdtemp(join(tmpdir(), "confgen-pack-"))
-  const tarball = join(directory, "confgen.tgz")
-  await runCollected({
-    cwd: confgenRoot,
-    executable: "yarn",
-    args: ["pack", "--out", tarball],
-    timeoutMs: 120_000,
-    children: [],
-  })
-  return {
-    tarball,
-    async cleanup() {
-      await rm(directory, { recursive: true, force: true })
-    },
-  }
-}
-
-/** Reads the fixture's scenario declaration. */
-export async function readScenario(
-  fixtureDirectory: string
-): Promise<readonly string[]> {
-  const text = await readFile(join(fixtureDirectory, "scenario.json"), "utf8")
-  return scenarioSchema.parse(jsonUnknown(JSON.parse(text))).args
-}
-
-/**
- * Copies a fixture into a temporary Yarn 4 Plug'n'Play project and installs
- * the packed Confgen tarball.
- */
-export async function createSyntheticProject(input: {
-  tarball: string
+/** Copies a fixture into a temporary Yarn 4 Plug'n'Play project. */
+export async function createSyntheticProject(
   fixture: string
-}): Promise<SyntheticProject> {
+): Promise<SyntheticProject> {
   const directory = await mkdtemp(join(tmpdir(), "confgen-synthetic-"))
   const project = openProject(directory)
   try {
-    await cp(input.fixture, directory, { recursive: true })
+    await cp(fixture, directory, { recursive: true })
     await ensurePackageManager(directory)
-    await mkdir(join(directory, ".yalc"), { recursive: true })
-    await cp(input.tarball, join(directory, ".yalc", "confgen.tgz"))
-    await project.run(
-      "yarn",
-      ["add", "--dev", "confgen@file:./.yalc/confgen.tgz"],
-      180_000
-    )
     return project
   } catch (error) {
     await project.cleanup()
@@ -299,7 +257,7 @@ async function ensurePackageManager(directory: string): Promise<void> {
   if (!isRecord(value)) throw new Error("package.json must be an object")
   const next: Record<string, unknown> = {
     ...value,
-    packageManager: "yarn@4.11.0",
+    packageManager: "yarn@4.18.1",
   }
   await writeFile(path, `${JSON.stringify(next, null, 2)}\n`)
 }
@@ -479,6 +437,9 @@ function commandEnv(
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env }
   env.YARN_ENABLE_GLOBAL_CACHE = "true"
+  env.YARN_GLOBAL_FOLDER = fileURLToPath(
+    new URL("../.yarn-global-cache-for-tests/", import.meta.url)
+  )
   env.COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"
   if (extra === undefined) return env
   for (const key of Object.keys(extra)) {

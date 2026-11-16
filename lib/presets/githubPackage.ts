@@ -1,4 +1,4 @@
-import type { ProduceContributions } from "../contributions.js"
+import type { ProduceContributions } from "../contributions"
 
 /**
  * GitHub Packages selects npm publication. The target registry stays

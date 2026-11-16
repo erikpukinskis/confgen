@@ -3,10 +3,10 @@ import type {
   JsonValue,
   ProduceContributions,
   StructuredAddress,
-} from "../contributions.js"
-import type { ProjectFacts } from "../facts.js"
-import type { Selection } from "../selection.js"
-import { requireContainerIdentity, type ContainerIdentity } from "./docker.js"
+} from "../contributions"
+import type { ProjectFacts } from "../facts"
+import type { Selection } from "../selection"
+import { requireContainerIdentity, type ContainerIdentity } from "./docker"
 import { stringify } from "yaml"
 
 /**

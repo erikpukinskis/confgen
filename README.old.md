@@ -237,7 +237,7 @@ yarn test -t "should not clobber existing build commands"
 
 - **Convention over configuration** — Like Rails, Confgen supports composing together many different pieces of functionality from a vast catalog of presets. In order for this to be a tractable problem, we rely on strict conventions for folder structure, the location of configuration files, etc. It will never support arbitrary module structures.
 
-## The Future
+## Todo
 
 I'm still not sure whether confgen is a good idea or a horrible idea.
 
@@ -334,8 +334,10 @@ Higher priority:
 
 - [x] Add dotenv preset
 - [x] Add GraphQL Codegen Watch task
-- [x] Add TypeScript Watch task
-- [x] Update args on Debug Current Test File
+- [ ] Add TypeScript Watch task
+- [ ] Add Dev Server task
+- [ ] Add
+- [ ] Add Debug Current Test File
 - [x] node-version: "18"?
 - [x] "@typescript-eslint/no-explicit-any": should not have an array around ["error"]
 - [x] source.fixAll.eslint and source.formatDocument should be "explicit" not true
@@ -375,6 +377,7 @@ Higher priority:
 - [ ] Remove .eslintignore?
 - [ ] Add https://www.npmjs.com/package/validate-peer-dependencies as a preinstall hook
 - [ ] Use https://github.com/lukeed/resolve.exports (or however Vite exposes to use it?) to add package.json exports
+- [ ] Pin to exact package versions
 
 Later:
 

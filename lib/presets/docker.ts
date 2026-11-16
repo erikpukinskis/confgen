@@ -3,15 +3,15 @@ import type {
   JsonValue,
   ProduceContributions,
   StructuredAddress,
-} from "../contributions.js"
-import { ConfgenError } from "../errors.js"
-import type { ProjectFacts } from "../facts.js"
-import type { Selection } from "../selection.js"
+} from "../contributions"
+import { ConfgenError } from "../errors"
+import type { ProjectFacts } from "../facts"
+import type { Selection } from "../selection"
+import { NODE_VERSION, YARN_VERSION } from "../toolchain"
 
 /** Node API containers listen on this port inside their own network namespace. */
 export const SERVICE_PORT = 7001
 
-const YARN_VERSION = "4.11.0"
 const DEV_CLUSTER_VERSION = "0.2.0"
 const SERVER_ENTRYPOINT = [
   "sh",
@@ -31,7 +31,10 @@ export const contributions: ProduceContributions = (selection, facts) => {
     ? identity.gatewayServiceName
     : identity.serviceName
   const produced: Contribution[] = [
-    dependency("dev-cluster", DEV_CLUSTER_VERSION),
+    dependency(
+      "dev-cluster",
+      process.env.DEV_CLUSTER_VERSION ?? DEV_CLUSTER_VERSION
+    ),
     script("dev-cluster", "dev-cluster"),
     script("generate:local:ssl", "dev-cluster certs"),
     script(
@@ -355,7 +358,7 @@ function dockerfile(
 ): string {
   const manifests = manifestCopies(selection, facts, true)
   return `##################################
-FROM node:24-bookworm-slim AS base
+FROM node:${NODE_VERSION}-bookworm-slim AS base
 
 RUN apt-get update \\
   && apt-get install -y git curl gosu ca-certificates \\

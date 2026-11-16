@@ -11,15 +11,13 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import {
+  confgenExecutable,
   createSyntheticProject,
   packBumpNPub,
-  packConfgen,
-  packDevCluster,
   readScenario,
-  type PackedConfgen,
   type SyntheticProject,
-} from "./helpers.js"
-import { afterAll, beforeAll, expect, test } from "vitest"
+} from "./helpers"
+import { expect, test } from "vitest"
 
 const fixture = fileURLToPath(
   new URL("./fixtures/package-service/", import.meta.url)
@@ -27,29 +25,27 @@ const fixture = fileURLToPath(
 const rootName = "@example/package-service"
 const clientName = "@example/package-service-client"
 
-let packed: PackedConfgen | undefined
-
-beforeAll(async () => {
-  packed = await packConfgen()
-})
-
-afterAll(async () => {
-  await packed?.cleanup()
-})
-
 test(
   "the packed package service builds, publishes, and reruns cleanly",
   { timeout: 1_500_000 },
   async () => {
-    const bundle = packed
-    if (bundle === undefined) throw new Error("Confgen was not packed")
-    const args = await readScenario(fixture)
-    const devCluster = await packDevCluster()
+    const args = [
+      "runtimes=#lib,#server,#client,#integration,#gateway",
+      "yarn",
+      "typescript",
+      "vite",
+      "vitest",
+      "eslint",
+      "prettier",
+      "git",
+      "graphql",
+      "docker",
+      "httpd",
+      "githubActions",
+      "githubPackage",
+    ]
     const bumpNPub = await packBumpNPub()
-    const project = await createSyntheticProject({
-      tarball: bundle.tarball,
-      fixture,
-    })
+    const project = await createSyntheticProject(fixture)
     const consumerDirectory = await mkdtemp(join(tmpdir(), "confgen-consumer-"))
     const sslDirectory = await mkdtemp(join(tmpdir(), "confgen-ssl-"))
     const composeProject = `confgen-package-${process.pid}`
@@ -62,9 +58,8 @@ test(
       DEV_CLUSTER_HTTPS_PORT: "18443",
     }
     try {
-      await pinTool(project, devCluster.tarball, "dev-cluster")
       await pinTool(project, bumpNPub.tarball, "bump-n-pub")
-      await project.run("yarn", ["confgen", ...args], 180_000)
+      await project.run(confgenExecutable, args, 180_000)
       await project.run("yarn", ["install"], 180_000)
       await runDevCluster(
         project,
@@ -113,14 +108,13 @@ test(
         "--dry-run",
       ])
       expect(bumped.stdout).toContain("Version would be 0.1.1")
-      await project.run("yarn", ["confgen"], 180_000)
+      await project.run(confgenExecutable, args, 180_000)
       const status = await project.run("git", ["status", "--porcelain"])
       expect(status.stdout).toBe("")
     } finally {
       await stopContainers(project, composeEnv)
       await rm(consumerDirectory, { recursive: true, force: true })
       await rm(sslDirectory, { recursive: true, force: true })
-      await devCluster.cleanup()
       await bumpNPub.cleanup()
       await project.cleanup()
     }
@@ -425,9 +419,14 @@ async function proveContainer(
         "-T",
         "package-service",
         "curl",
-        "--fail",
+        "--fail-with-body",
         "--silent",
-        "https://package-service.local.multiplayerdb.dev/api?query=%7Bgreeting(name%3A%22baseline%22)%7D",
+        "--show-error",
+        "--header",
+        "Content-Type: application/json",
+        "--data",
+        JSON.stringify({ query: '{ greeting(name: "baseline") }' }),
+        "https://package-service.local.multiplayerdb.dev/api",
       ],
       30_000,
       env
@@ -518,18 +517,8 @@ async function proveLocalIntegration(
   env: Readonly<Record<string, string>>
 ): Promise<void> {
   try {
-    await runDevCluster(
-      project,
-      env,
-      ["up", "package-service-integration-test-host"],
-      900_000
-    )
+    await project.run("yarn", ["test:integration:local"], 900_000, env)
   } finally {
-    try {
-      await runDevCluster(project, env, ["down"], 120_000)
-    } catch {
-      // The local project may not be up.
-    }
     await stopContainers(project, env)
   }
 }
@@ -682,7 +671,7 @@ async function consumePublishedPackages(
         name: "package-consumer",
         version: "0.0.0",
         type: "module",
-        packageManager: "yarn@4.11.0",
+        packageManager: "yarn@4.18.1",
         dependencies: { graphql: "16.11.0" },
       },
       null,

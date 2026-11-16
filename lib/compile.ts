@@ -2,13 +2,13 @@ import {
   collectContributions,
   normalizeContributions,
   type Contribution,
-} from "./contributions.js"
-import { ConfgenError } from "./errors.js"
-import { readProjectFacts, type ProjectFacts } from "./facts.js"
-import { readLock, writeLockFile, type LockData } from "./lock.js"
-import { reconcile, type ChangeSet, type FileChange } from "./reconcile.js"
-import { parseSelection, type Selection } from "./selection.js"
-import { isMissingFile, type System } from "./system.js"
+} from "./contributions"
+import { ConfgenError } from "./errors"
+import { readProjectFacts, type ProjectFacts } from "./facts"
+import { readLock, writeLockFile, type LockData } from "./lock"
+import { reconcile, type ChangeSet, type FileChange } from "./reconcile"
+import { parseSelection, type Selection } from "./selection"
+import { isMissingFile, type System } from "./system"
 
 export type Compilation = {
   selection: Selection
@@ -73,12 +73,19 @@ export async function compileCollected(input: {
   input.onWarnings?.(changeSet.warnings)
   await applyChanges(input.system, changeSet.files, input.onProgress)
   if (changeSet.runYarnInstall) {
+    const executable = input.selection.presets.includes("yarn") ? "bash" : "yarn"
+    const args = input.selection.presets.includes("yarn")
+      ? [
+          "-c",
+          'source "${NVM_DIR:-$HOME/.nvm}/nvm.sh" && { nvm use || nvm install; } && corepack enable && corepack install && corepack yarn install',
+        ]
+      : ["install"]
     input.onProgress?.({
       type: "run",
-      executable: "yarn",
-      args: ["install"],
+      executable,
+      args,
     })
-    const result = await input.system.run("yarn", ["install"])
+    const result = await input.system.run(executable, args)
     if (result.status !== 0) {
       const detail =
         result.stderr.trim() || result.stdout.trim() || `exit ${result.status}`

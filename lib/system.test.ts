@@ -1,7 +1,7 @@
 import { mkdtemp, readdir } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createSystem } from "./system.js"
+import { createSystem } from "./system"
 import { expect, test } from "vitest"
 
 test("reads and writes files in the project directory", async () => {

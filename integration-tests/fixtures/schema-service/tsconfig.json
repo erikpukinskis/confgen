@@ -17,6 +17,11 @@
     "types": ["node", "vite/client"],
     "verbatimModuleSyntax": true
   },
-  "include": ["gql"],
+  "include": [
+    "gql/*.ts",
+    "gql/_generated/**/*.ts",
+    "lib/**/*.ts",
+    "server/**/*.ts"
+  ],
   "exclude": ["client", "client/dist"]
 }

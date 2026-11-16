@@ -1,5 +1,5 @@
-import type { ProduceContributions } from "../contributions.js"
-import { assertHttpsOrigin, containerIdentity, SERVICE_PORT } from "./docker.js"
+import type { ProduceContributions } from "../contributions"
+import { assertHttpsOrigin, containerIdentity, SERVICE_PORT } from "./docker"
 
 /**
  * HTTPD owns the concrete gateway server: public health, static files, and

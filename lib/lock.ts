@@ -7,12 +7,12 @@ import type {
   JsonValue,
   StructuredAddress,
   ViteConfigItem,
-} from "./contributions.js"
-import { ConfgenError } from "./errors.js"
-import { isPresetName, type PresetName } from "./presets/registry.js"
-import { isRuntimeName, type RuntimeName } from "./runtimes.js"
-import type { Selection } from "./selection.js"
-import { isMissingFile, type System } from "./system.js"
+} from "./contributions"
+import { ConfgenError } from "./errors"
+import { isPresetName, type PresetName } from "./presets/registry"
+import { isRuntimeName, type RuntimeName } from "./runtimes"
+import type { Selection } from "./selection"
+import { isMissingFile, type System } from "./system"
 import { z } from "zod"
 
 /** Committed reconciliation evidence. Applications do not read this file. */

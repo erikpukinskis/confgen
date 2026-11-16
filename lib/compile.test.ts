@@ -2,20 +2,20 @@ import { createHash } from "node:crypto"
 import { mkdtemp, stat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { compile, compileCollected } from "./compile.js"
-import { collectContributions, type Contribution } from "./contributions.js"
-import { ConfgenError } from "./errors.js"
-import { readProjectFacts } from "./facts.js"
+import { compile, compileCollected } from "./compile"
+import { collectContributions, type Contribution } from "./contributions"
+import { ConfgenError } from "./errors"
+import { readProjectFacts } from "./facts"
 import {
   LOCK_PATH,
   lockFromContributions,
   serializeLock,
   textHash,
-} from "./lock.js"
-import { PRESET_NAMES } from "./presets/registry.js"
-import { RUNTIME_NAMES } from "./runtimes.js"
-import { parseSelection } from "./selection.js"
-import { createSystem, type RunResult, type System } from "./system.js"
+} from "./lock"
+import { PRESET_NAMES } from "./presets/registry"
+import { RUNTIME_NAMES } from "./runtimes"
+import { parseSelection } from "./selection"
+import { createSystem, type RunResult, type System } from "./system"
 import { expect, test } from "vitest"
 
 const documented = [

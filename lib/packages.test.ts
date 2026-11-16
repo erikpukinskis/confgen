@@ -1,7 +1,7 @@
-import { collectContributions, type Contribution } from "./contributions.js"
-import type { ProjectFacts } from "./facts.js"
-import { reconcile } from "./reconcile.js"
-import { parseSelection } from "./selection.js"
+import { collectContributions, type Contribution } from "./contributions"
+import type { ProjectFacts } from "./facts"
+import { reconcile } from "./reconcile"
+import { parseSelection } from "./selection"
 import { expect, test } from "vitest"
 
 const root = {

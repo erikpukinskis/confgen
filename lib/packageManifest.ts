@@ -1,8 +1,9 @@
-import type { Contribution, JsonValue } from "./contributions.js"
-import type { ProjectFacts } from "./facts.js"
-import { containerIdentity } from "./presets/docker.js"
-import type { RuntimeName } from "./runtimes.js"
-import type { Selection } from "./selection.js"
+import type { Contribution, JsonValue } from "./contributions"
+import type { ProjectFacts } from "./facts"
+import { containerIdentity } from "./presets/docker"
+import type { RuntimeName } from "./runtimes"
+import type { Selection } from "./selection"
+import { NODE_VERSION } from "./toolchain"
 
 /**
  * Package-manifest owner for workspaces, exports, dependency publication
@@ -159,7 +160,7 @@ function clientManifest(facts: ProjectFacts): Contribution[] {
         },
       },
     }),
-    clientJson("engines", ["engines", "node"], "^24.0.0"),
+    clientJson("engines", ["engines", "node"], NODE_VERSION),
   ]
   if (facts.root.version !== undefined) {
     produced.push(clientJson("version", ["version"], facts.root.version))

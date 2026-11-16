@@ -4,6 +4,16 @@ Confgen applies shared conventions; applications keep their own behavior.
 The aim is to make ordinary configuration sufficient, with fewer paths and
 startup decisions for each project to maintain.
 
+## Benefits
+
+- The Understory org evaluates both major releases and minor releases of the
+  underlying modules, tracks critical vulnerabilities, and automatically applies
+  patches. Over the long term we evaluate changes in the broader ecosystem,
+  providing a kind of "LTS for the JavaScript ecosystem".
+- Don't waste time setting toolchains for all of the basic runtimes: server
+  deployment, library packaging, integration testing, app bundling, load
+  balancing, etc.
+
 ## SSL
 
 Require verified HTTPS between Package Service containers, including the hop

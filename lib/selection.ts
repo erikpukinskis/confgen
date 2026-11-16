@@ -1,10 +1,6 @@
-import { ConfgenError } from "./errors.js"
-import {
-  isPresetName,
-  PRESET_NAMES,
-  type PresetName,
-} from "./presets/registry.js"
-import { isRuntimeName, RUNTIME_NAMES, type RuntimeName } from "./runtimes.js"
+import { ConfgenError } from "./errors"
+import { isPresetName, PRESET_NAMES, type PresetName } from "./presets/registry"
+import { isRuntimeName, RUNTIME_NAMES, type RuntimeName } from "./runtimes"
 
 export type Selection = {
   runtimes: readonly RuntimeName[]

@@ -2,10 +2,10 @@ import type {
   Contribution,
   ProduceContributions,
   ViteConfigItem,
-} from "../contributions.js"
-import type { ProjectFacts } from "../facts.js"
-import { clientPackageName } from "../packageManifest.js"
-import type { Selection } from "../selection.js"
+} from "../contributions"
+import type { ProjectFacts } from "../facts"
+import { clientPackageName } from "../packageManifest"
+import type { Selection } from "../selection"
 
 /** Vite owns the standalone build config for each selected runtime. */
 export const contributions: ProduceContributions = (selection, facts) => {
@@ -28,7 +28,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
   if (selection.runtimes.includes("lib")) {
     produced.push(
       script("build:lib", "vite build --config vite.lib.config.ts"),
-      libConfig(facts, selection)
+      libConfig(facts)
     )
     if (selection.presets.includes("graphql")) {
       if (serverScaffold) {
@@ -46,7 +46,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
     produced.push(
       dependency("vite-node", "6.0.0"),
       script("build:server", "vite build --config vite.server.config.ts"),
-      serverConfig(selection)
+      serverConfig()
     )
   }
   if (selection.runtimes.includes("client")) {
@@ -58,10 +58,9 @@ export const contributions: ProduceContributions = (selection, facts) => {
   return produced
 }
 
-function libConfig(facts: ProjectFacts, selection: Selection): Contribution {
+function libConfig(facts: ProjectFacts): Contribution {
   return viteConfig("vite.lib.config.ts", [
     resolveImport(),
-    ...sqlPlugin(selection),
     ...dtsPlugin(`{
       tsconfigPath: resolve("tsconfig.json"),
       bundleTypes: true,
@@ -128,10 +127,9 @@ function testKitConfig(facts: ProjectFacts): Contribution {
   ])
 }
 
-function serverConfig(selection: Selection): Contribution {
+function serverConfig(): Contribution {
   return viteConfig("vite.server.config.ts", [
     resolveImport(),
-    ...sqlPlugin(selection),
     property("app-type", ["appType"], '"custom"'),
     property("public-dir", ["publicDir"], "false"),
     property("build-ssr", ["build", "ssr"], 'resolve("server/index.ts")'),
@@ -155,7 +153,6 @@ function serverConfig(selection: Selection): Contribution {
 function clientConfig(selection: Selection, facts: ProjectFacts): Contribution {
   const items: ViteConfigItem[] = [
     resolveImport(),
-    ...sqlPlugin(selection),
     ...dtsPlugin(`{
       tsconfigPath: resolve("tsconfig.client.json"),
     }`),
@@ -181,7 +178,9 @@ function clientConfig(selection: Selection, facts: ProjectFacts): Contribution {
       property(
         "graphql-client-alias",
         ["resolve", "alias"],
-        '[{ find: "#gql/client", replacement: resolve("gql/client/index.ts") }]'
+        `[
+      { find: "#gql/client", replacement: resolve("gql/client/index.ts") },
+    ]`
       ),
       property(
         "build-external",
@@ -191,27 +190,6 @@ function clientConfig(selection: Selection, facts: ProjectFacts): Contribution {
     )
   }
   return viteConfig("vite.client.config.ts", items)
-}
-
-function sqlPlugin(selection: Selection): ViteConfigItem[] {
-  if (!selection.presets.includes("sql")) return []
-  return [
-    {
-      id: "import:sql",
-      source: "preset:vite",
-      kind: "import",
-      module: "vite-plugin-sql",
-      imported: { kind: "default" },
-      preferredLocal: "sql",
-    },
-    {
-      id: "plugin:sql",
-      source: "preset:vite",
-      kind: "plugin",
-      importId: "import:sql",
-      arguments: [],
-    },
-  ]
 }
 
 function viteConfig(

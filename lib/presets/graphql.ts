@@ -1,5 +1,5 @@
-import type { Contribution, ProduceContributions } from "../contributions.js"
-import type { Selection } from "../selection.js"
+import type { Contribution, ProduceContributions } from "../contributions"
+import type { Selection } from "../selection"
 
 const GRAPHQL_VERSION = "16.11.0"
 
@@ -125,7 +125,7 @@ const SCHEMA = `type Query {
 }
 `
 
-const QUERY_BARREL = `export { greeting } from "./greeting.js"
+const QUERY_BARREL = `export { greeting } from "./greeting"
 `
 
 const EMPTY_BARREL = `export {}
@@ -179,7 +179,7 @@ export async function initServer() {
     cors(),
     express.json(),
     expressMiddleware(apolloServer, {
-      context: async () => ({}),
+      context: () => Promise.resolve({}),
     }) as unknown as express.RequestHandler
   )
 
@@ -190,7 +190,7 @@ export async function initServer() {
 const GRAPHQL_MODULE = `import schema from "./schema.graphql?raw"
 
 export { schema }
-export type { QueryResolvers } from "./_generated/resolvers.js"
+export type { QueryResolvers } from "./_generated/resolvers"
 `
 
 const RAW_MODULE = `declare module "*.graphql?raw" {
@@ -235,10 +235,10 @@ export async function load(url, context, nextLoad) {
 }
 `
 
-const CLIENT_MODULE = `export { graphql } from "./_generated/gql.js"
+const CLIENT_MODULE = `export { graphql } from "./_generated/gql"
 `
 
-const CLIENT_OPERATIONS = `import { graphql } from "../gql/client/index.js"
+const CLIENT_OPERATIONS = `import { graphql } from "../gql/client/index"
 
 export const Greeting = graphql(\`
   query Greeting($name: String!) {

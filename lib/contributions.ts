@@ -1,19 +1,15 @@
-import { ConfgenError } from "./errors.js"
-import type { ProjectFacts } from "./facts.js"
-import { packageManifestContributions } from "./packageManifest.js"
-import { presetContributions } from "./presets/index.js"
-import {
-  isPresetName,
-  PRESET_NAMES,
-  type PresetName,
-} from "./presets/registry.js"
+import { ConfgenError } from "./errors"
+import type { ProjectFacts } from "./facts"
+import { packageManifestContributions } from "./packageManifest"
+import { presetContributions } from "./presets/index"
+import { isPresetName, PRESET_NAMES, type PresetName } from "./presets/registry"
 import {
   isRuntimeName,
   RUNTIME_NAMES,
   runtimeContributions,
   type RuntimeName,
-} from "./runtimes.js"
-import type { Selection } from "./selection.js"
+} from "./runtimes"
+import type { Selection } from "./selection"
 
 export type ContributionSource =
   | `runtime:${RuntimeName}`
@@ -140,7 +136,10 @@ export function collectContributions(
       const isLocalYalcDevCluster =
         contribution.package === "dev-cluster" &&
         existingRange?.startsWith("file:.yalc/dev-cluster")
-      return existingRange === undefined || isLocalYalcDevCluster
+      return existingRange === undefined ||
+        isLocalYalcDevCluster ||
+        (contribution.package === "dev-cluster" &&
+          process.env.DEV_CLUSTER_VERSION !== undefined)
         ? contribution
         : { ...contribution, range: existingRange }
     })

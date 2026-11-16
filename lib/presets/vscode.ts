@@ -2,7 +2,7 @@ import type {
   Contribution,
   JsonValue,
   ProduceContributions,
-} from "../contributions.js"
+} from "../contributions"
 
 /** VS Code owns editor configuration. */
 export const contributions: ProduceContributions = (selection) =>
