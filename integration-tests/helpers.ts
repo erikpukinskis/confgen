@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process"
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { cp, mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -14,16 +14,6 @@ const bumpNPubRoot = fileURLToPath(
 const packageServiceRoot = fileURLToPath(
   new URL("../../package-service/", import.meta.url)
 )
-
-const scenarioSchema = z.object({
-  args: z.array(z.string().min(1)).min(1),
-})
-
-const manifestSchema = z
-  .object({
-    name: z.string().min(1),
-  })
-  .loose()
 
 export type CommandResult = {
   status: number
@@ -190,7 +180,6 @@ export async function createSyntheticProject(
   const project = openProject(directory)
   try {
     await cp(fixture, directory, { recursive: true })
-    await ensurePackageManager(directory)
     return project
   } catch (error) {
     await project.cleanup()
@@ -247,19 +236,6 @@ function openProject(directory: string): SyntheticProject {
       await rm(directory, { recursive: true, force: true })
     },
   }
-}
-
-async function ensurePackageManager(directory: string): Promise<void> {
-  const path = join(directory, "package.json")
-  const text = await readFile(path, "utf8")
-  manifestSchema.parse(jsonUnknown(JSON.parse(text)))
-  const value = jsonUnknown(JSON.parse(text))
-  if (!isRecord(value)) throw new Error("package.json must be an object")
-  const next: Record<string, unknown> = {
-    ...value,
-    packageManager: "yarn@4.18.1",
-  }
-  await writeFile(path, `${JSON.stringify(next, null, 2)}\n`)
 }
 
 async function runCollected(input: {
@@ -503,12 +479,4 @@ function textChunk(chunk: unknown): string {
   if (typeof chunk === "string") return chunk
   if (chunk instanceof Uint8Array) return Buffer.from(chunk).toString("utf8")
   return String(chunk)
-}
-
-function jsonUnknown(value: unknown): unknown {
-  return value
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
 }

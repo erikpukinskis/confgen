@@ -14,7 +14,6 @@ import {
   confgenExecutable,
   createSyntheticProject,
   packBumpNPub,
-  readScenario,
   type SyntheticProject,
 } from "./helpers"
 import { expect, test } from "vitest"
