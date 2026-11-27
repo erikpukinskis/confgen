@@ -27,7 +27,7 @@ const root = {
 const facts: ProjectFacts = { root, packages: [root] }
 
 const selection = parseSelection([
-  "runtimes=#lib,#server,#client",
+  "runtimes=#lib:universal,#server,#client",
   "yarn",
   "typescript",
   "vite",
@@ -40,8 +40,8 @@ test("container contributions describe the ordinary service image", () => {
     contributions.find(
       (contribution) =>
         contribution.kind === "package-script" &&
-        contribution.name === "start:server"
-    )
+        contribution.name === "start:server",
+    ),
   ).toMatchObject({
     command: "vite-node --watch --config vite.server.config.ts server/index.ts",
   })
@@ -61,7 +61,7 @@ test("container contributions describe the ordinary service image", () => {
         "-c",
         'update-ca-certificates && install -D -o root -g www-data -m 0440 /run/secrets/local.multiplayerdb.dev.key "${SSL_PATH:?}/local.multiplayerdb.dev.key" && exec gosu www-data "$@"',
         "--",
-      ])
+      ]),
   )
   const serverEntrypoint = dockerfile
     .split("\n")
@@ -73,7 +73,7 @@ test("container contributions describe the ordinary service image", () => {
   expect(dockerfile).toContain("COPY client/package.json client/package.json")
   expect(dockerfile).not.toContain(".yalc")
   expect(
-    byId(contributions, "vite:config:vite.server.config.ts")
+    byId(contributions, "vite:config:vite.server.config.ts"),
   ).toMatchObject({
     kind: "vite-config",
     items: expect.arrayContaining([
@@ -96,60 +96,60 @@ test("container contributions describe the ordinary service image", () => {
     contributions.some(
       (contribution) =>
         contribution.kind === "whole-file" &&
-        contribution.path === "scripts/docker-entrypoint-node.sh"
-    )
+        contribution.path === "scripts/docker-entrypoint-node.sh",
+    ),
   ).toBe(false)
   expect(
     contributions.some(
       (contribution) =>
         contribution.kind === "line" &&
         contribution.path === ".dockerignore" &&
-        contribution.value === ".yarn"
-    )
+        contribution.value === ".yarn",
+    ),
   ).toBe(true)
   expect(byId(contributions, "docker:script:dev-cluster")).toMatchObject({
     command: "dev-cluster",
   })
   expect(
-    byId(contributions, "docker:script:start:containers:local")
+    byId(contributions, "docker:script:start:containers:local"),
   ).toMatchObject({
     command:
       "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-api-server",
   })
   expect(
-    byId(contributions, "docker:script:stop:containers:local")
+    byId(contributions, "docker:script:stop:containers:local"),
   ).toMatchObject({
     command: "docker compose -f compose.base.yaml -f compose.local.yaml down",
   })
   expect(text(contributions, "Caddyfile.local")).toContain(
-    "tls_trust_pool file /certs/local.multiplayerdb.dev.crt"
+    "tls_trust_pool file /certs/local.multiplayerdb.dev.crt",
   )
   const server = contributions.find(
-    (contribution) => contribution.id === "runtime:server:index"
+    (contribution) => contribution.id === "runtime:server:index",
   )
   expect(server).toMatchObject({ kind: "starter-file" })
   if (server?.kind !== "starter-file") throw new Error("missing server starter")
   expect(server.contents).toContain('path === "/healthcheck"')
   expect(server.contents).toContain(
-    'join(SSL_PATH, "local.multiplayerdb.dev.crt")'
+    'join(SSL_PATH, "local.multiplayerdb.dev.crt")',
   )
   expect(server.contents).toContain(
-    'join(SSL_PATH, "local.multiplayerdb.dev.key")'
+    'join(SSL_PATH, "local.multiplayerdb.dev.key")',
   )
   expect(server.contents).toContain(
-    'throw new Error("SSL_PATH must be an absolute path")'
+    'throw new Error("SSL_PATH must be an absolute path")',
   )
   expect(
     ts.transpileModule(server.contents, {
       reportDiagnostics: true,
       compilerOptions: { target: ts.ScriptTarget.ES2024 },
-    }).diagnostics
+    }).diagnostics,
   ).toEqual([])
 })
 
 test("gateway Compose serves HTTPS and verifies the Node API on port 7001", () => {
   const gatewaySelection = parseSelection([
-    "runtimes=#lib,#server,#integration,#gateway",
+    "runtimes=#lib:universal,#server,#integration,#gateway",
     "yarn",
     "typescript",
     "vite",
@@ -183,37 +183,37 @@ test("gateway Compose serves HTTPS and verifies the Node API on port 7001", () =
   })
   expect(api.healthcheck).toMatchObject({
     test: expect.stringContaining(
-      "https://package-api-server.local.multiplayerdb.dev:7001/healthcheck"
+      "https://package-api-server.local.multiplayerdb.dev:7001/healthcheck",
     ) as string,
   })
   const gateway = objectField(services, "package-service")
   expect(gateway.healthcheck).toMatchObject({
     test: expect.stringContaining(
-      "https://package-service.local.multiplayerdb.dev/healthcheck"
+      "https://package-service.local.multiplayerdb.dev/healthcheck",
     ) as string,
   })
   expect(written(created.files, "Dockerfile")).toContain("EXPOSE 7001")
   const gatewayDockerfile = written(created.files, "gateway/Dockerfile")
   expect(gatewayDockerfile).toContain(
-    String.raw`ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \"$@\"", "--"]`
+    String.raw`ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \"$@\"", "--"]`,
   )
   expect(gatewayDockerfile).not.toContain("docker-entrypoint-httpd.sh")
   expect(text(contributions, "gateway/httpd.conf")).toContain(
-    'SSLCertificateFile "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"'
+    'SSLCertificateFile "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"',
   )
   expect(text(contributions, "gateway/Dockerfile")).toContain(
-    "update-ca-certificates"
+    "update-ca-certificates",
   )
   const integration = objectField(
     services,
-    "package-service-integration-test-host"
+    "package-service-integration-test-host",
   )
   expect(integration.volumes).toEqual([
     "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro",
   ])
   expect(objectField(base, "services")).not.toHaveProperty("caddy")
   expect(text(contributions, "Caddyfile.local")).toContain(
-    "reverse_proxy {labels.3}:443"
+    "reverse_proxy {labels.3}:443",
   )
 })
 
@@ -221,20 +221,23 @@ test("selected runtimes change the image and omit a service without a server", (
   const serverOnly = parseSelection(["runtimes=#server", "docker"])
   const serverDockerfile = text(
     collectContributions(serverOnly, facts),
-    "Dockerfile"
+    "Dockerfile",
   )
   expect(serverDockerfile).not.toContain("client/package.json")
   expect(serverDockerfile).toContain("/mnt/package-service")
 
-  const library = parseSelection(["runtimes=#lib", "docker"])
+  const library = parseSelection(["runtimes=#lib:universal", "docker"])
   const produced = collectContributions(library, facts).filter(
-    (contribution) => contribution.source === "preset:docker"
+    (contribution) => contribution.source === "preset:docker",
   )
   expect(produced).toEqual([])
 
-  const plainServer = parseSelection(["runtimes=#lib,#server", "vite"])
+  const plainServer = parseSelection([
+    "runtimes=#lib:universal,#server",
+    "vite",
+  ])
   const starter = collectContributions(plainServer, facts).find(
-    (contribution) => contribution.id === "runtime:server:index"
+    (contribution) => contribution.id === "runtime:server:index",
   )
   if (starter?.kind !== "starter-file")
     throw new Error("missing server starter")
@@ -264,7 +267,7 @@ test("Docker includes only a local Confgen dependency before dependency install"
   const ignored = generated.flatMap((contribution) =>
     contribution.kind === "line" && contribution.path === ".dockerignore"
       ? [contribution.value]
-      : []
+      : [],
   )
   expect(ignored).toEqual(
     expect.arrayContaining([
@@ -273,7 +276,7 @@ test("Docker includes only a local Confgen dependency before dependency install"
       ".yalc/*",
       "!.yalc/confgen/",
       "!.yalc/confgen/**",
-    ])
+    ]),
   )
 
   const withPublishedConfgen: ProjectFacts = {
@@ -294,8 +297,8 @@ test("Docker includes only a local Confgen dependency before dependency install"
       (contribution) =>
         contribution.kind === "line" &&
         contribution.path === ".dockerignore" &&
-        contribution.value.startsWith("!.yalc")
-    )
+        contribution.value.startsWith("!.yalc"),
+    ),
   ).toBe(false)
 })
 
@@ -322,11 +325,11 @@ test("replaces the local yalc dev-cluster link with its published version", () =
   }
   const dependency = collectContributions(
     selection,
-    packageWithLocalDevCluster
+    packageWithLocalDevCluster,
   ).find(
     (contribution) =>
       contribution.kind === "dependency" &&
-      contribution.package === "dev-cluster"
+      contribution.package === "dev-cluster",
   )
   expect(dependency).toMatchObject({ kind: "dependency", range: "0.2.0" })
 })
@@ -350,8 +353,8 @@ test("DEV_CLUSTER_VERSION overrides an existing published dependency", () => {
       contributions.find(
         (contribution) =>
           contribution.kind === "dependency" &&
-          contribution.package === "dev-cluster"
-      )
+          contribution.package === "dev-cluster",
+      ),
     ).toMatchObject({ range: "file:.yalc/dev-cluster" })
   } finally {
     vi.unstubAllEnvs()
@@ -384,7 +387,7 @@ test("compose layers merge and keep unrelated services", () => {
   })
   const service = objectField(services, "package-api-server")
   expect(service.image).toBe(
-    "ghcr.io/example/package-api-server:${IMAGE_TAG:?}"
+    "ghcr.io/example/package-api-server:${IMAGE_TAG:?}",
   )
   expect(service.environment).toMatchObject({
     PORT: "443",
@@ -397,7 +400,7 @@ test("compose layers merge and keep unrelated services", () => {
   })
   expect(service.healthcheck).toMatchObject({
     test: expect.stringContaining(
-      "https://package-service.local.multiplayerdb.dev:443"
+      "https://package-service.local.multiplayerdb.dev:443",
     ) as string,
   })
   expect(service.volumes).toEqual([
@@ -408,7 +411,7 @@ test("compose layers merge and keep unrelated services", () => {
   const local = yamlObject(written(created.files, "compose.local.yaml"))
   const localService = objectField(
     objectField(local, "services"),
-    "package-api-server"
+    "package-api-server",
   )
   expect(objectField(localService, "build")).toMatchObject({ target: "dev" })
   expect(localService.volumes).toEqual([
@@ -433,9 +436,9 @@ test("compose layers merge and keep unrelated services", () => {
   const mounted = objectField(
     objectField(
       yamlObject(written(withMount.files, "compose.base.yaml")),
-      "services"
+      "services",
     ),
-    "package-api-server"
+    "package-api-server",
   )
   expect(mounted.volumes).toEqual([
     "git-repos:/srv/git",
@@ -473,7 +476,7 @@ test("composes the installed Package Service dependency", () => {
     packages: [schemaRoot],
   }
   const packageSelection = parseSelection([
-    "runtimes=#lib,#server,#integration",
+    "runtimes=#lib:universal,#server,#integration",
     "yarn",
     "typescript",
     "vite",
@@ -503,7 +506,7 @@ test("composes the installed Package Service dependency", () => {
   ])
   const service = objectField(
     objectField(base, "services"),
-    "schema-api-server"
+    "schema-api-server",
   )
   expect(service.environment).toMatchObject({
     PACKAGE_SERVICE_URL: "${PACKAGE_SERVICE_URL:?}",
@@ -520,7 +523,7 @@ test("composes the installed Package Service dependency", () => {
   ])
   const integration = objectField(
     objectField(base, "services"),
-    "schema-service-integration-test-host"
+    "schema-service-integration-test-host",
   )
   expect(integration.environment).toMatchObject({
     PACKAGE_SERVICE_URL: "${PACKAGE_SERVICE_URL:?}",
@@ -529,13 +532,13 @@ test("composes the installed Package Service dependency", () => {
     "package-service": { condition: "service_healthy" },
   })
   expect(integration.volumes).toContain(
-    "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro"
+    "${SSL_PATH:?}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro",
   )
   const integrationDockerfile = text(contributions, "Dockerfile").split(
-    "FROM source AS integration-test-host"
+    "FROM source AS integration-test-host",
   )[1]
   expect(integrationDockerfile).toContain(
-    String.raw`ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec gosu www-data \"$@\"", "--"]`
+    String.raw`ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec gosu www-data \"$@\"", "--"]`,
   )
   expect(integration.entrypoint).toBeUndefined()
   expect(integration.user).toBeUndefined()
@@ -543,11 +546,11 @@ test("composes the installed Package Service dependency", () => {
     contributions.find(
       (contribution) =>
         contribution.kind === "package-script" &&
-        contribution.name === "test:integration:local"
-    )
+        contribution.name === "test:integration:local",
+    ),
   ).toMatchObject({
     command: expect.stringContaining(
-      "schema-service-integration-test-host"
+      "schema-service-integration-test-host",
     ) as string,
   })
 })
@@ -577,27 +580,27 @@ test("environment contracts accept origins and reject paths", () => {
   expect(
     assertHttpsOrigin(
       "PACKAGE_SERVICE_URL",
-      "https://package-service.local.multiplayerdb.dev"
-    )
+      "https://package-service.local.multiplayerdb.dev",
+    ),
   ).toBe("https://package-service.local.multiplayerdb.dev")
   expect(() =>
     assertHttpsOrigin(
       "PACKAGE_SERVICE_URL",
-      "https://package-service.local.multiplayerdb.dev/api"
-    )
+      "https://package-service.local.multiplayerdb.dev/api",
+    ),
   ).toThrow(ConfgenError)
   expect(() =>
-    assertHttpsOrigin("PACKAGE_SERVICE_URL", "http://package-service.local")
+    assertHttpsOrigin("PACKAGE_SERVICE_URL", "http://package-service.local"),
   ).toThrow(ConfgenError)
   expect(requiredReference("SSL_PATH")).toBe("${SSL_PATH:?}")
   expect(
-    githubRepositoryOwner("git://github.com/multiplayerdb/package-service.git")
+    githubRepositoryOwner("git://github.com/multiplayerdb/package-service.git"),
   ).toBe("multiplayerdb")
   expect(() =>
-    githubRepositoryOwner("https://gitlab.com/example/service.git")
+    githubRepositoryOwner("https://gitlab.com/example/service.git"),
   ).toThrow(ConfgenError)
   expect(requiredReference("PACKAGE_SERVICE_URL")).toBe(
-    "${PACKAGE_SERVICE_URL:?}"
+    "${PACKAGE_SERVICE_URL:?}",
   )
   expect(() => requiredReference("NODE_AUTH_TOKEN")).toThrow(ConfgenError)
 })
@@ -637,7 +640,7 @@ test("deselecting docker removes its container assets", () => {
     [".dockerignore", written(created.files, ".dockerignore")],
   ])
   const withoutDocker = parseSelection([
-    "runtimes=#lib,#server,#client",
+    "runtimes=#lib:universal,#server,#client",
     "yarn",
     "typescript",
     "vite",
@@ -654,7 +657,7 @@ test("deselecting docker removes its container assets", () => {
     expect.arrayContaining([
       { type: "remove", path: "Dockerfile" },
       { type: "remove", path: "scripts/docker-entrypoint-node.sh" },
-    ])
+    ]),
   )
   const base = yamlObject(written(removed.files, "compose.base.yaml"))
   const services = objectField(base, "services")
@@ -663,17 +666,17 @@ test("deselecting docker removes its container assets", () => {
   const manifest = jsonObject(written(removed.files, "package.json"))
   const scripts = manifest.scripts
   expect(
-    isRecord(scripts) ? scripts["start:containers:local"] : undefined
+    isRecord(scripts) ? scripts["start:containers:local"] : undefined,
   ).toBe(undefined)
   const devDependencies = manifest.devDependencies
   expect(
-    isRecord(devDependencies) ? devDependencies["dev-cluster"] : undefined
+    isRecord(devDependencies) ? devDependencies["dev-cluster"] : undefined,
   ).toBeUndefined()
 })
 
 function byId(
   contributions: readonly Contribution[],
-  id: string
+  id: string,
 ): Contribution {
   const found = contributions.find((contribution) => contribution.id === id)
   if (found === undefined) throw new Error(`missing contribution ${id}`)
@@ -686,7 +689,7 @@ function text(contributions: readonly Contribution[], path: string): string {
       (contribution.kind === "whole-file" ||
         contribution.kind === "dockerfile" ||
         contribution.kind === "starter-file") &&
-      contribution.path === path
+      contribution.path === path,
   )
   if (
     found === undefined ||
@@ -701,10 +704,10 @@ function text(contributions: readonly Contribution[], path: string): string {
 
 function written(
   changes: ReturnType<typeof reconcile>["files"],
-  path: string
+  path: string,
 ): string {
   const found = changes.find(
-    (change) => change.type === "write" && change.path === path
+    (change) => change.type === "write" && change.path === path,
   )
   if (found === undefined || found.type !== "write") {
     throw new Error(`missing write ${path}`)
@@ -723,7 +726,7 @@ function jsonObject(contents: string): Record<string, unknown> {
 
 function objectField(
   value: Record<string, unknown>,
-  key: string
+  key: string,
 ): Record<string, unknown> {
   return asRecord(value[key])
 }

@@ -46,7 +46,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
     integrationPath,
     integration !== undefined,
     hasArtifacts,
-    releases
+    releases,
   )
   const produced: Contribution[] = []
   for (const [path, document] of workflows)
@@ -58,8 +58,8 @@ export const contributions: ProduceContributions = (selection, facts) => {
     produced.push(
       wholeFile(
         ARTIFACTS_WORKFLOW,
-        renderWorkflow(artifactsDocument(selection, facts))
-      )
+        renderWorkflow(artifactsDocument(selection, facts)),
+      ),
     )
   }
   if (Object.keys(jobs).length > 0) produced.push(...ciDocument(jobs))
@@ -72,17 +72,17 @@ function checkDocuments(selection: Selection): Map<string, JsonValue> {
   if (selection.presets.includes("prettier"))
     docs.set(
       FORMAT_WORKFLOW,
-      checkDocument("code format", "check-code-format", ["yarn check:format"])
+      checkDocument("code format", "check-code-format", ["yarn check:format"]),
     )
   if (selection.presets.includes("eslint"))
     docs.set(
       LINT_WORKFLOW,
-      checkDocument("lint", "check-lint", lintCommands(selection))
+      checkDocument("lint", "check-lint", lintCommands(selection)),
     )
   if (selection.presets.includes("typescript"))
     docs.set(
       TYPES_WORKFLOW,
-      checkDocument("types", "check-types", typecheckCommands(selection))
+      checkDocument("types", "check-types", typecheckCommands(selection)),
     )
   if (selection.presets.includes("vitest"))
     docs.set(
@@ -91,8 +91,8 @@ function checkDocuments(selection: Selection): Map<string, JsonValue> {
         "unit tests",
         "run-unit-tests",
         testCommands(selection),
-        "run"
-      )
+        "run",
+      ),
     )
   return docs
 }
@@ -101,7 +101,7 @@ function checkDocument(
   name: string,
   concurrency: string,
   commands: readonly string[],
-  jobName = "check"
+  jobName = "check",
 ): JsonValue {
   return {
     name,
@@ -118,7 +118,7 @@ function checkDocument(
 
 function integrationDocument(
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): JsonValue | undefined {
   if (!publishesContainers(selection)) return undefined
   if (!selection.runtimes.includes("integration")) return undefined
@@ -150,7 +150,7 @@ function integrationDocument(
         selection,
         identity,
         facts.publishGitHubRelease === false,
-        facts.root.dependencies.includes("@multiplayerdb/package-service")
+        facts.root.dependencies.includes("@multiplayerdb/package-service"),
       ),
     },
   }
@@ -161,7 +161,7 @@ function ciCallJobs(
   integrationPath: string,
   integration: boolean,
   artifacts: boolean,
-  releases: boolean
+  releases: boolean,
 ): { [key: string]: JsonValue } {
   const jobs: { [key: string]: JsonValue } = {}
   if (selection.presets.includes("typescript"))
@@ -191,7 +191,7 @@ function ciCallJobs(
 
 function artifactsDocument(
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): JsonValue {
   const releases = facts.publishGitHubRelease ?? publishesPackages(selection)
   const publishesClientPackage =
@@ -284,7 +284,7 @@ function artifactsDocument(
 
 function containerPublishSteps(
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): JsonValue[] {
   if (!publishesContainers(selection)) return []
   const identity = requireContainerIdentity(facts)
@@ -326,7 +326,7 @@ function containerPublishSteps(
         push: true,
         cacheScope: `${identity.directoryName}-httpd-v1`,
         if: STEP_SHOULD_PUBLISH,
-      })
+      }),
     )
   }
   return steps
@@ -356,7 +356,7 @@ function integrationJob(
   selection: Selection,
   identity: ContainerIdentity,
   cacheIntegrationHost: boolean,
-  includesPackageService: boolean
+  includesPackageService: boolean,
 ): JsonValue {
   const steps: JsonValue[] = [
     ...setupSteps(),
@@ -405,7 +405,7 @@ process.stdout.write("PACKAGE_SERVICE_PATH=" + getPackageInformation(locator).pa
         push: false,
         cacheScope: `${identity.directoryName}-httpd-v1`,
         cacheMode: "min",
-      })
+      }),
     )
   }
   steps.push(
@@ -420,7 +420,7 @@ process.stdout.write("PACKAGE_SERVICE_PATH=" + getPackageInformation(locator).pa
         : identity.serviceName,
       ...(cacheIntegrationHost ? { cacheMode: "max" as const } : {}),
     }),
-    { run: "yarn test:integration:ci" }
+    { run: "yarn test:integration:ci" },
   )
   return {
     "runs-on": DOCKER_RUNNER,
@@ -455,14 +455,12 @@ function imageBuild(input: {
   }
   withValue["cache-from"] = `type=gha,scope=${input.cacheScope}`
   if (!input.push && input.cacheMode !== undefined) {
-    withValue[
-      "cache-to"
-    ] = `type=gha,mode=${input.cacheMode},scope=${input.cacheScope}`
+    withValue["cache-to"] =
+      `type=gha,mode=${input.cacheMode},scope=${input.cacheScope}`
   }
   if (input.push && input.cacheMode !== undefined) {
-    withValue[
-      "cache-to"
-    ] = `type=gha,mode=${input.cacheMode},scope=${input.cacheScope}`
+    withValue["cache-to"] =
+      `type=gha,mode=${input.cacheMode},scope=${input.cacheScope}`
   }
   withValue.secrets = "NODE_AUTH_TOKEN=${{ github.token }}"
   return {
@@ -514,7 +512,7 @@ function testCommands(selection: Selection): string[] {
 
 function ghcrBuildTag(
   identity: ContainerIdentity,
-  serviceName: string
+  serviceName: string,
 ): string {
   return `ghcr.io/${identity.owner}/${serviceName}:\${{ env.IMAGE_TAG }}`
 }
@@ -585,7 +583,7 @@ function wholeFile(path: string, contents: string): Contribution {
 function structured(
   id: string,
   address: StructuredAddress,
-  value: JsonValue
+  value: JsonValue,
 ): Contribution {
   return {
     id: `github-actions:${id}`,

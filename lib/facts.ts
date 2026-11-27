@@ -32,6 +32,7 @@ export type ProjectFacts = {
   hasApplicationIntegrationTest?: true
   gitignore?: string
   hasApplicationServerInitServer?: true
+  hasLibraryTestEntry?: true
   integrationWorkflowPath?:
     | ".github/workflows/integration-tests.yml"
     | ".github/workflows/integration-tests.yaml"
@@ -77,7 +78,7 @@ type Manifest = z.infer<typeof ManifestSchema>
 /** Reads package metadata and existing files that affect contribution choices. */
 export async function readProjectFacts(
   system: System,
-  prior?: LockData
+  prior?: LockData,
 ): Promise<ProjectFacts> {
   const root = await readManifest(system, "package.json")
   const problems = [...root.problems]
@@ -111,32 +112,37 @@ export async function readProjectFacts(
   const libFiles = await system.listFiles("lib")
   const integrationFiles = await system.listFiles("integration")
   const publishedLibFiles = exportTargets(
-    isRecord(root.source) ? root.source.exports : undefined
+    isRecord(root.source) ? root.source.exports : undefined,
   )
+  const generatedLibFiles = new Set<string>()
+  if (prior?.contributions.some((entry) => entry.id === "runtime:lib:index")) {
+    generatedLibFiles.add("index.ts")
+  }
+  const hasLibraryTestEntry = libFiles.includes("test-kit.ts")
   const hasPublishedLibFile = libFiles.some(
     (file) =>
       file.endsWith(".ts") &&
       !file.endsWith(".test.ts") &&
-      (file !== "index.ts" ||
-        !prior?.contributions.some(
-          (entry) => entry.id === "runtime:lib:index"
-        )) &&
-      publishedLibFiles.includes(`./dist/lib/${file.replace(/\.ts$/, ".d.ts")}`)
+      file !== "test-kit.ts" &&
+      !generatedLibFiles.has(file) &&
+      publishedLibFiles.includes(
+        `./dist/lib/${file.replace(/\.ts$/, ".d.ts")}`,
+      ),
   )
   const hasApplicationIntegrationTest = integrationFiles.some(
     (file) =>
       file.endsWith(".test.ts") &&
       (file !== "service.test.ts" ||
         !prior?.contributions.some(
-          (entry) => entry.id === "runtime:integration:service-test"
-        ))
+          (entry) => entry.id === "runtime:integration:service-test",
+        )),
   )
   const gitignore = await optionalText(system, ".gitignore")
   const serverInitServerWasDelivered =
     prior?.contributions.some(
       (entry) =>
         entry.strategy === "starter-file" &&
-        entry.path === "server/initServer.ts"
+        entry.path === "server/initServer.ts",
     ) ?? false
   return {
     root: rootFacts,
@@ -149,6 +155,7 @@ export async function readProjectFacts(
     ...(hasServerInitServer && !serverInitServerWasDelivered
       ? { hasApplicationServerInitServer: true }
       : {}),
+    ...(hasLibraryTestEntry ? { hasLibraryTestEntry: true } : {}),
     ...(integrationWorkflowPath === undefined
       ? {}
       : { integrationWorkflowPath }),
@@ -165,7 +172,7 @@ function exportTargets(value: unknown): string[] {
 
 async function optionalText(
   system: System,
-  path: string
+  path: string,
 ): Promise<string | undefined> {
   try {
     return await system.readFile(path)
@@ -186,7 +193,7 @@ async function existingFile(system: System, path: string): Promise<boolean> {
 }
 
 async function existingIntegrationWorkflow(
-  system: System
+  system: System,
 ): Promise<ProjectFacts["integrationWorkflowPath"]> {
   const integrationWorkflowPaths: readonly NonNullable<
     ProjectFacts["integrationWorkflowPath"]
@@ -206,7 +213,7 @@ async function existingIntegrationWorkflow(
 }
 
 async function existingArtifactPolicy(
-  system: System
+  system: System,
 ): Promise<
   | Pick<ProjectFacts, "publishClientPackage" | "publishGitHubRelease">
   | undefined
@@ -231,7 +238,7 @@ type ManifestRead = {
 
 async function readManifest(
   system: System,
-  path: string
+  path: string,
 ): Promise<ManifestRead> {
   let text: string
   try {
@@ -274,7 +281,7 @@ function workspaceList(source: unknown): string[] | undefined {
 
 function workspacePathProblem(
   entry: string,
-  index: number
+  index: number,
 ): string | undefined {
   if (
     entry.includes("*") ||
@@ -321,7 +328,7 @@ function workspaceNames(workspaces: Manifest["workspaces"]): string[] {
 }
 
 function repositoryFacts(
-  repository: Manifest["repository"]
+  repository: Manifest["repository"],
 ): RepositoryFacts | undefined {
   if (repository === undefined) return undefined
   if (typeof repository === "string") return { type: "git", url: repository }
@@ -336,7 +343,7 @@ type ManifestIssue = z.core.$ZodIssue
  */
 function describeIssues(
   file: string,
-  issues: readonly ManifestIssue[]
+  issues: readonly ManifestIssue[],
 ): string[] {
   return issues.flatMap((issue) => describeIssue(file, issue, []))
 }
@@ -344,7 +351,7 @@ function describeIssues(
 function describeIssue(
   file: string,
   issue: ManifestIssue,
-  prefix: readonly PropertyKey[]
+  prefix: readonly PropertyKey[],
 ): string[] {
   const path = [...prefix, ...issue.path]
   if (issue.code !== "invalid_union") {
@@ -354,14 +361,14 @@ function describeIssue(
   const chosen = bestUnionBranches(issue.errors)
   if (chosen.length > 0) {
     return chosen.flatMap((branch) =>
-      branch.flatMap((entry) => describeIssue(file, entry, path))
+      branch.flatMap((entry) => describeIssue(file, entry, path)),
     )
   }
   return [`${file}: ${fieldPath(path)}: ${unionFallback(issue)}`]
 }
 
 function bestUnionBranches(
-  branches: readonly (readonly ManifestIssue[])[]
+  branches: readonly (readonly ManifestIssue[])[],
 ): (readonly ManifestIssue[])[] {
   let bestScore = 0
   const scored = branches.map((branch) => {
@@ -371,7 +378,7 @@ function bestUnionBranches(
   })
   if (bestScore === 0) return []
   return scored.flatMap((entry) =>
-    entry.score === bestScore ? [entry.branch] : []
+    entry.score === bestScore ? [entry.branch] : [],
   )
 }
 

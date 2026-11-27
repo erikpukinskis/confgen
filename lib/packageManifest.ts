@@ -14,10 +14,10 @@ import { NODE_VERSION } from "./toolchain"
  */
 export function packageManifestContributions(
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): readonly Contribution[] {
   const produced: Contribution[] = []
-  const build = aggregateBuild(selection, facts)
+  const build = aggregateBuild(selection)
   if (build !== undefined) produced.push(script("build", build))
   const fix = aggregateFix(selection)
   if (fix !== undefined) produced.push(script("fix", fix))
@@ -30,13 +30,13 @@ export function packageManifestContributions(
   ) {
     produced.push(
       json("files", ["files"], ["dist"], "merge"),
-      json("exports", ["exports"], rootExports(selection, facts))
+      json("exports", ["exports"], rootExports(selection)),
     )
   }
   if (selection.runtimes.includes("client")) {
     produced.push(
       json("workspaces", ["workspaces"], ["client"]),
-      ...clientManifest(facts)
+      ...clientManifest(facts),
     )
   }
   if (publishable(selection)) {
@@ -45,7 +45,7 @@ export function packageManifestContributions(
       dependency("bump-n-pub", "0.30.0"),
       script("bump", "bump-n-pub --bump-only"),
       script("inspect:pack", inspectCommand(selection, facts)),
-      script("yalc:publish", yalcPublishCommand(selection))
+      script("yalc:publish", yalcPublishCommand(selection)),
     )
   }
   produced.push(...integrationScripts(selection, facts))
@@ -63,10 +63,7 @@ const BUILD_SCRIPTS: Partial<Record<RuntimeName, string>> = {
   client: "build:client",
 }
 
-function aggregateBuild(
-  selection: Selection,
-  facts: ProjectFacts
-): string | undefined {
+function aggregateBuild(selection: Selection): string | undefined {
   const commands: string[] = []
   const clean = cleanOutput(selection)
   if (clean.length > 0) commands.push(`rm -rf ${clean.join(" ")}`)
@@ -76,14 +73,6 @@ function aggregateBuild(
     for (const runtime of selection.runtimes) {
       const name = BUILD_SCRIPTS[runtime]
       if (name !== undefined) commands.push(`yarn ${name}`)
-      if (
-        runtime === "lib" &&
-        selection.presets.includes("graphql") &&
-        selection.runtimes.includes("server") &&
-        facts.hasApplicationServerInitServer !== true
-      ) {
-        commands.push("yarn build:test-kit")
-      }
     }
   }
   if (commands.length === 0) return undefined
@@ -122,7 +111,7 @@ function aggregateCheck(selection: Selection): string | undefined {
   return commands.join(" && ")
 }
 
-function rootExports(selection: Selection, facts: ProjectFacts): JsonValue {
+function rootExports(selection: Selection): JsonValue {
   const value: { [key: string]: JsonValue } = {
     ".": {
       import: {
@@ -131,15 +120,11 @@ function rootExports(selection: Selection, facts: ProjectFacts): JsonValue {
       },
     },
   }
-  if (
-    selection.presets.includes("graphql") &&
-    selection.runtimes.includes("server") &&
-    facts.hasApplicationServerInitServer !== true
-  ) {
-    value["./test"] = {
+  if (selection.libraryTestKit === true) {
+    value["./test-kit"] = {
       import: {
-        types: "./dist/test/index.d.ts",
-        default: "./dist/test/index.js",
+        types: "./dist/lib/test-kit.d.ts",
+        default: "./dist/lib/test-kit.js",
       },
     }
   }
@@ -170,12 +155,16 @@ function clientManifest(facts: ProjectFacts): Contribution[] {
       clientJson("repository", ["repository"], {
         type: facts.root.repository.type,
         url: facts.root.repository.url,
-      })
+      }),
     )
   }
   if (facts.root.registry !== undefined) {
     produced.push(
-      clientJson("registry", ["publishConfig", "registry"], facts.root.registry)
+      clientJson(
+        "registry",
+        ["publishConfig", "registry"],
+        facts.root.registry,
+      ),
     )
   }
   return produced
@@ -186,7 +175,7 @@ function inspectCommand(selection: Selection, facts: ProjectFacts): string {
   if (selection.runtimes.includes("lib")) commands.push("yarn pack --dry-run")
   if (selection.runtimes.includes("client")) {
     commands.push(
-      `yarn workspace ${clientPackageName(facts.root.name)} pack --dry-run`
+      `yarn workspace ${clientPackageName(facts.root.name)} pack --dry-run`,
     )
   }
   return commands.join(" && ")
@@ -205,7 +194,7 @@ function yalcPublishCommand(selection: Selection): string {
 
 function integrationScripts(
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): Contribution[] {
   if (!selection.runtimes.includes("integration")) return []
   const produced: Contribution[] = []
@@ -213,8 +202,8 @@ function integrationScripts(
     produced.push(
       script(
         "test:integration:run",
-        "vitest run --config vite.integration.config.ts"
-      )
+        "vitest run --config vite.integration.config.ts",
+      ),
     )
   }
   if (
@@ -225,16 +214,16 @@ function integrationScripts(
     produced.push(
       script(
         "test:integration:local",
-        `docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies ${identity.integrationServiceName}`
+        `docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies ${identity.integrationServiceName}`,
       ),
       script(
         "test:integration:ci",
-        `docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from ${identity.integrationServiceName} ${identity.integrationServiceName}`
+        `docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from ${identity.integrationServiceName} ${identity.integrationServiceName}`,
       ),
       script(
         "shell:integration",
-        `SSL_PATH="\${SSL_PATH:?}" docker compose -f compose.base.yaml -f compose.local.yaml run --rm -it --entrypoint /bin/bash ${identity.integrationServiceName}`
-      )
+        `SSL_PATH="\${SSL_PATH:?}" docker compose -f compose.base.yaml -f compose.local.yaml run --rm -it --entrypoint /bin/bash ${identity.integrationServiceName}`,
+      ),
     )
   }
   return produced
@@ -263,7 +252,7 @@ function json(
   id: string,
   address: readonly (string | number)[],
   value: JsonValue,
-  update: "merge" | "replace" = "replace"
+  update: "merge" | "replace" = "replace",
 ): Contribution {
   return {
     id: `package-manifest:${id}`,
@@ -281,7 +270,7 @@ function clientJson(
   id: string,
   address: readonly (string | number)[],
   value: JsonValue,
-  update: "merge" | "replace" = "replace"
+  update: "merge" | "replace" = "replace",
 ): Contribution {
   return {
     id: `package-manifest:client:${id}`,

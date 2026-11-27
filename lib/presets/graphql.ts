@@ -11,25 +11,25 @@ export const contributions: ProduceContributions = (selection, facts) => {
       "package.json",
       "devDependencies",
       "@graphql-codegen/cli",
-      "7.4.6"
+      "7.4.6",
     ),
     dependency(
       "package.json",
       "devDependencies",
       "@graphql-codegen/typescript",
-      "6.1.2"
+      "6.1.2",
     ),
     dependency(
       "package.json",
       "devDependencies",
       "@graphql-codegen/typescript-resolvers",
-      "6.1.1"
+      "6.1.1",
     ),
     dependency(
       "package.json",
       "devDependencies",
       "@graphql-codegen/add",
-      "7.1.1"
+      "7.1.1",
     ),
     script("build:generate", "graphql-codegen"),
     starter("codegen", "codegen.yml", codegenYaml(selection)),
@@ -43,12 +43,12 @@ export const contributions: ProduceContributions = (selection, facts) => {
           wholeFile(
             "raw-register",
             "gql/registerGraphqlRaw.mjs",
-            REGISTER_GRAPHQL_RAW
+            REGISTER_GRAPHQL_RAW,
           ),
           wholeFile(
             "raw-loader",
             "gql/graphqlRawLoader.mjs",
-            GRAPHQL_RAW_LOADER
+            GRAPHQL_RAW_LOADER,
           ),
         ]
       : []),
@@ -65,22 +65,22 @@ export const contributions: ProduceContributions = (selection, facts) => {
       dependency("package.json", "devDependencies", "@types/express", "5.0.0"),
       starter("server-queries", "server/queries/index.ts", QUERY_BARREL),
       starter("server-mutations", "server/mutations/index.ts", EMPTY_BARREL),
-      starter("server-init", "server/initServer.ts", SERVER_INIT)
+      starter("server-init", "server/initServer.ts", SERVER_INIT),
     )
     produced.push(
       starter(
         "server-greeting",
         "server/queries/greeting.ts",
-        GREETING_RESOLVER
-      )
+        GREETING_RESOLVER,
+      ),
     )
     if (selection.presets.includes("vitest")) {
       produced.push(
         starter(
           "server-greeting-test",
           "server/queries/greeting.test.ts",
-          GREETING_RESOLVER_TEST
-        )
+          GREETING_RESOLVER_TEST,
+        ),
       )
     }
   }
@@ -90,32 +90,29 @@ export const contributions: ProduceContributions = (selection, facts) => {
         "package.json",
         "devDependencies",
         "@graphql-codegen/client-preset",
-        "6.2.3"
+        "6.2.3",
       ),
       dependency(
         "package.json",
         "devDependencies",
         "@graphql-typed-document-node/core",
-        "3.2.0"
+        "3.2.0",
       ),
       dependency(
         "client/package.json",
         "dependencies",
         "@graphql-typed-document-node/core",
-        "3.2.0"
+        "3.2.0",
       ),
       dependency(
         "client/package.json",
         "peerDependencies",
         "graphql",
-        `^${GRAPHQL_VERSION}`
+        `^${GRAPHQL_VERSION}`,
       ),
       starter("client-module", "gql/client/index.ts", CLIENT_MODULE),
-      starter("client-operations", "client/index.ts", CLIENT_OPERATIONS)
+      starter("client-operations", "client/index.ts", CLIENT_OPERATIONS),
     )
-  }
-  if (serverScaffold && selection.runtimes.includes("lib")) {
-    produced.push(starter("test-kit", "lib/test.ts", TEST_KIT))
   }
   return produced
 }
@@ -238,24 +235,13 @@ export async function load(url, context, nextLoad) {
 const CLIENT_MODULE = `export { graphql } from "./_generated/gql"
 `
 
-const CLIENT_OPERATIONS = `import { graphql } from "../gql/client/index"
+const CLIENT_OPERATIONS = `import { graphql } from "#gql/client"
 
 export const Greeting = graphql(\`
   query Greeting($name: String!) {
     greeting(name: $name)
   }
 \`)
-`
-
-const TEST_KIT = `import { schema } from "#gql/index"
-import { greeting } from "#server/queries/index"
-
-export function serviceTestKit(): {
-  schema: string
-  greeting: typeof greeting
-} {
-  return { schema, greeting }
-}
 `
 
 const GREETING_RESOLVER_TEST = `import { expect, test } from "vitest"
@@ -293,7 +279,7 @@ function codegenYaml(selection: Selection): string {
       "    preset: client",
       "    config:",
       "      enumsAsTypes: true",
-      "      useTypeImports: true"
+      "      useTypeImports: true",
     )
   }
   return `${lines.join("\n")}\n`
@@ -334,7 +320,7 @@ function dependency(
   manifest: string,
   section: "dependencies" | "devDependencies" | "peerDependencies",
   name: string,
-  range: string
+  range: string,
 ): Contribution {
   return {
     id: `graphql:dependency:${manifest}:${section}:${name}`,

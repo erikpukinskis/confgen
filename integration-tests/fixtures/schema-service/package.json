@@ -10,17 +10,31 @@
   "workspaces": [
     "client"
   ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/lib/index.d.ts",
+        "default": "./dist/lib/index.js"
+      }
+    },
+    "./test-kit": {
+      "import": {
+        "types": "./dist/lib/test-kit.d.ts",
+        "default": "./dist/lib/test-kit.js"
+      }
+    }
+  },
   "imports": {
     "#gql": "./gql/index.ts",
+    "#gql/*": "./gql/*.ts",
     "#lib/*": "./lib/*.ts",
     "#server/*": "./server/*.ts"
   },
   "scripts": {
     "all": "yarn install --immutable && yarn build && yarn check:format && yarn check:types && yarn test && echo 'Ran all'",
-    "build": "rm -rf dist client/dist && yarn build:generate && yarn build:lib && yarn build:test-kit && yarn build:server && yarn build:client",
+    "build": "rm -rf dist client/dist && yarn build:generate && yarn build:lib && yarn build:server && yarn build:client",
     "build:generate": "graphql-codegen",
     "build:lib": "vite build --config vite.lib.config.ts",
-    "build:test-kit": "vite build --config vite.test-kit.config.ts",
     "build:server": "vite build --config vite.server.config.ts",
     "build:client": "vite build --config vite.client.config.ts",
     "check:format": "prettier --check .",
@@ -28,11 +42,23 @@
     "test": "vitest run --config vite.test.config.ts"
   },
   "dependencies": {
+    "@apollo/server": "^4.9.5",
     "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "express": "^5.0.0",
     "graphql": "16.11.0",
+    "graphql-dev-kit": "0.3.0",
+    "msw": "^2.7.0",
     "sql.js": "^1.12.0"
   },
+  "dependenciesMeta": {
+    "graphql-dev-kit": {
+      "unplugged": true
+    }
+  },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "5.0.0",
     "@graphql-codegen/add": "7.1.1",
     "@graphql-codegen/cli": "7.4.6",
     "@graphql-codegen/client-preset": "6.2.3",

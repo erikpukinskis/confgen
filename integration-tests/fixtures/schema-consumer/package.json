@@ -1,0 +1,15 @@
+{
+  "name": "schema-consumer",
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "yarn@4.18.1",
+  "dependencies": {
+    "@example/schema-service": "0.1.0",
+    "@example/schema-service-client": "0.1.0",
+    "graphql": "16.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3"
+  }
+}

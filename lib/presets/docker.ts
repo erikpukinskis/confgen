@@ -33,22 +33,22 @@ export const contributions: ProduceContributions = (selection, facts) => {
   const produced: Contribution[] = [
     dependency(
       "dev-cluster",
-      process.env.DEV_CLUSTER_VERSION ?? DEV_CLUSTER_VERSION
+      process.env.DEV_CLUSTER_VERSION ?? DEV_CLUSTER_VERSION,
     ),
     script("dev-cluster", "dev-cluster"),
     script("generate:local:ssl", "dev-cluster certs"),
     script(
       "start:containers:local",
-      `docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies ${corner}`
+      `docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies ${corner}`,
     ),
     script(
       "stop:containers:local",
-      "docker compose -f compose.base.yaml -f compose.local.yaml down"
+      "docker compose -f compose.base.yaml -f compose.local.yaml down",
     ),
     script("start:server", startServerCommand(selection)),
     dockerfileContribution(
       "Dockerfile",
-      dockerfile(selection, identity, facts)
+      dockerfile(selection, identity, facts),
     ),
     wholeFile("Caddyfile.local", LOCAL_CADDYFILE),
     ...dockerignoreLines(facts),
@@ -61,7 +61,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
   }
   if (gatewaySelected(selection)) {
     produced.push(
-      dockerfileContribution("gateway/Dockerfile", GATEWAY_DOCKERFILE)
+      dockerfileContribution("gateway/Dockerfile", GATEWAY_DOCKERFILE),
     )
   }
   return produced
@@ -79,12 +79,12 @@ function packageServiceCompose(facts: ProjectFacts): Contribution[] {
       [
         {
           path: `${requiredReference(
-            "PACKAGE_SERVICE_PATH"
+            "PACKAGE_SERVICE_PATH",
           )}/compose.base.yaml`,
           project_directory: "${PACKAGE_SERVICE_PATH}",
         },
       ],
-      "merge"
+      "merge",
     ),
     yaml(
       "package-service-local-include",
@@ -93,12 +93,12 @@ function packageServiceCompose(facts: ProjectFacts): Contribution[] {
       [
         {
           path: `${requiredReference(
-            "PACKAGE_SERVICE_PATH"
+            "PACKAGE_SERVICE_PATH",
           )}/compose.local.yaml`,
           project_directory: "${PACKAGE_SERVICE_PATH}",
         },
       ],
-      "merge"
+      "merge",
     ),
   ]
 }
@@ -133,7 +133,7 @@ export type ContainerIdentity = {
  * repository URL so Compose refers to the images the publication workflow pushes.
  */
 export function requireContainerIdentity(
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): ContainerIdentity {
   const repository = facts.root.repository
   if (repository === undefined) {
@@ -176,7 +176,7 @@ export function githubRepositoryOwner(repositoryUrl: string): string {
 /** Globally distinctive service names derived from the root package name. */
 export function containerIdentity(
   packageName: string,
-  repositoryUrl?: string
+  repositoryUrl?: string,
 ): ContainerIdentity {
   const slash = packageName.lastIndexOf("/")
   const directoryName = slash < 0 ? packageName : packageName.slice(slash + 1)
@@ -296,7 +296,7 @@ function dockerignoreLines(facts: ProjectFacts): Contribution[] {
       line("yalc-a-open", "!.yalc/"),
       line("yalc-b-hide-others", ".yalc/*"),
       line("yalc-c-open-confgen", "!.yalc/confgen/"),
-      line("yalc-d-open-confgen-files", "!.yalc/confgen/**")
+      line("yalc-d-open-confgen-files", "!.yalc/confgen/**"),
     )
   } else {
     lines.push(line("yalc", ".yalc"))
@@ -307,7 +307,7 @@ function dockerignoreLines(facts: ProjectFacts): Contribution[] {
 function publishedImage(
   owner: string,
   serviceName: string,
-  tag: string
+  tag: string,
 ): string {
   if (owner.length === 0) return `${serviceName}:${tag}`
   return `ghcr.io/${owner}/${serviceName}:${tag}`
@@ -317,7 +317,7 @@ function publishedImage(
 function manifestCopies(
   selection: Selection,
   facts: ProjectFacts,
-  includeLocalConfgen = false
+  includeLocalConfgen = false,
 ): string {
   const workspaces = new Set(facts.root.workspaces)
   if (selection.runtimes.includes("client")) workspaces.add("client")
@@ -354,7 +354,7 @@ function startServerCommand(selection: Selection): string {
 function dockerfile(
   selection: Selection,
   identity: ContainerIdentity,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): string {
   const manifests = manifestCopies(selection, facts, true)
   return `##################################
@@ -423,10 +423,10 @@ CMD ["sh", "-c", "yarn install --immutable && exec yarn test:integration:run"]
 function baseCompose(
   selection: Selection,
   identity: ContainerIdentity,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): Contribution[] {
   const includesPackageService = facts.root.dependencies.includes(
-    "@multiplayerdb/package-service"
+    "@multiplayerdb/package-service",
   )
   const port = gatewaySelected(selection) ? SERVICE_PORT : 443
   const publicAlias = `${identity.gatewayServiceName}.local.multiplayerdb.dev`
@@ -448,10 +448,10 @@ function baseCompose(
       : {}),
     volumes: [
       `${requiredReference(
-        "SSL_PATH"
+        "SSL_PATH",
       )}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
       `${requiredReference(
-        "SSL_PATH"
+        "SSL_PATH",
       )}/local.multiplayerdb.dev.key:/run/secrets/local.multiplayerdb.dev.key:ro`,
     ],
     networks: {
@@ -479,14 +479,14 @@ function baseCompose(
       "compose.base.yaml",
       ["name"],
       "multiplayerdb",
-      "replace"
+      "replace",
     ),
     yaml(
       "base-service",
       "compose.base.yaml",
       ["services", identity.serviceName],
       service,
-      "merge"
+      "merge",
     ),
     ...gatewayBase(selection, identity),
     ...integrationBase(selection, identity, facts),
@@ -495,7 +495,7 @@ function baseCompose(
 
 function localCompose(
   selection: Selection,
-  identity: ContainerIdentity
+  identity: ContainerIdentity,
 ): Contribution[] {
   const service: JsonValue = {
     build: {
@@ -514,14 +514,14 @@ function localCompose(
       "compose.local.yaml",
       ["services", identity.serviceName],
       service,
-      "merge"
+      "merge",
     ),
     yaml(
       "local-volume",
       "compose.local.yaml",
       ["volumes", identity.yarnVolume],
       {},
-      "replace"
+      "replace",
     ),
     ...gatewayLocal(selection, identity),
     ...integrationLocal(selection, identity),
@@ -530,7 +530,7 @@ function localCompose(
 
 function gatewayBase(
   selection: Selection,
-  identity: ContainerIdentity
+  identity: ContainerIdentity,
 ): Contribution[] {
   if (!gatewaySelected(selection)) return []
   const service: JsonValue = {
@@ -542,10 +542,10 @@ function gatewayBase(
     },
     volumes: [
       `${requiredReference(
-        "SSL_PATH"
+        "SSL_PATH",
       )}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
       `${requiredReference(
-        "SSL_PATH"
+        "SSL_PATH",
       )}/local.multiplayerdb.dev.key:/etc/apache2/ssl/local.multiplayerdb.dev.key:ro`,
     ],
     networks: {
@@ -567,14 +567,14 @@ function gatewayBase(
       "compose.base.yaml",
       ["services", identity.gatewayServiceName],
       service,
-      "merge"
+      "merge",
     ),
   ]
 }
 
 function gatewayLocal(
   selection: Selection,
-  identity: ContainerIdentity
+  identity: ContainerIdentity,
 ): Contribution[] {
   if (!gatewaySelected(selection)) return []
   const service: JsonValue = {
@@ -589,7 +589,7 @@ function gatewayLocal(
       "compose.local.yaml",
       ["services", identity.gatewayServiceName],
       service,
-      "merge"
+      "merge",
     ),
   ]
 }
@@ -597,7 +597,7 @@ function gatewayLocal(
 function integrationBase(
   selection: Selection,
   identity: ContainerIdentity,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): Contribution[] {
   if (!selection.runtimes.includes("integration")) return []
   const upstream = gatewaySelected(selection)
@@ -623,7 +623,7 @@ function integrationBase(
     },
     volumes: [
       `${requiredReference(
-        "SSL_PATH"
+        "SSL_PATH",
       )}/local.multiplayerdb.dev.crt:/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt:ro`,
     ],
   }
@@ -633,14 +633,14 @@ function integrationBase(
       "compose.base.yaml",
       ["services", identity.integrationServiceName],
       service,
-      "merge"
+      "merge",
     ),
   ]
 }
 
 function integrationLocal(
   selection: Selection,
-  identity: ContainerIdentity
+  identity: ContainerIdentity,
 ): Contribution[] {
   if (!selection.runtimes.includes("integration")) return []
   const service: JsonValue = {
@@ -661,14 +661,14 @@ function integrationLocal(
       "compose.local.yaml",
       ["services", identity.integrationServiceName],
       service,
-      "merge"
+      "merge",
     ),
     yaml(
       "local-integration-volume",
       "compose.local.yaml",
       ["volumes", identity.integrationYarnVolume],
       {},
-      "replace"
+      "replace",
     ),
   ]
 }
@@ -697,7 +697,7 @@ function yaml(
   path: string,
   address: StructuredAddress,
   value: JsonValue,
-  update: "merge" | "replace"
+  update: "merge" | "replace",
 ): Contribution {
   return {
     id: `docker:yaml:${id}`,

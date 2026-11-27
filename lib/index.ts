@@ -17,7 +17,7 @@ export async function main(
   argv: readonly string[],
   cwd: string,
   stderr: TextWriter = process.stderr,
-  stdout: TextWriter = process.stdout
+  stdout: TextWriter = process.stdout,
 ): Promise<number> {
   let exitCode = 0
   let warnings: readonly string[] = []
@@ -28,7 +28,7 @@ export async function main(
     .usage("runtimes=#runtime[,#runtime...] [preset...]")
     .argument(
       "[selection...]",
-      "runtimes=#runtime[,#runtime...] followed by preset names"
+      "runtimes=#runtime[,#runtime...] followed by preset names",
     )
     .allowExcessArguments(false)
     .showHelpAfterError(false)
@@ -59,8 +59,8 @@ export async function main(
           error instanceof ConfgenError
             ? error.message
             : error instanceof Error
-            ? error.message
-            : String(error)
+              ? error.message
+              : String(error)
         writeDiagnostics(stderr, message)
         exitCode = 1
       }
@@ -90,11 +90,11 @@ const separator = "————————————————————�
 
 function writeProgress(
   stdout: TextWriter,
-  progress: CompilationProgress
+  progress: CompilationProgress,
 ): void {
   if (progress.type === "start") {
     stdout.write(
-      `${separator}\n👷 Running confgen@${version()}\n${separator}\n`
+      `${separator}\n👷 Running confgen@${version()}\n${separator}\n`,
     )
     return
   }
@@ -102,8 +102,8 @@ function writeProgress(
     progress.type === "write"
       ? "Updating file"
       : progress.type === "remove"
-      ? "Removing file"
-      : "Running command"
+        ? "Removing file"
+        : "Running command"
   const detail =
     progress.type === "run"
       ? [progress.executable, ...progress.args].join(" ")
@@ -114,7 +114,7 @@ function writeProgress(
 function version(): string {
   try {
     const value: unknown = JSON.parse(
-      readFileSync(new URL("../package.json", import.meta.url), "utf8")
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
     )
     if (
       typeof value === "object" &&
@@ -132,7 +132,11 @@ function version(): string {
 function formatSupportedSelection(): string {
   const lines = ["", "Runtimes:"]
   for (const runtime of RUNTIME_NAMES) {
-    lines.push(`  #${runtime}  ${runtimePath(runtime)}/`)
+    lines.push(
+      runtime === "lib"
+        ? "  #lib:node[:test-kit]|browser|universal  lib/"
+        : `  #${runtime}  ${runtimePath(runtime)}/`,
+    )
   }
   lines.push("", "Presets:")
   for (const preset of PRESET_NAMES) {
@@ -159,7 +163,7 @@ function isDirectExecution(): boolean {
     // The entry path can be a package-manager virtual path.
   }
   return candidates.some(
-    (candidate) => import.meta.url === pathToFileURL(candidate).href
+    (candidate) => import.meta.url === pathToFileURL(candidate).href,
   )
 }
 

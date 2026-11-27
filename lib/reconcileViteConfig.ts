@@ -53,7 +53,7 @@ export function reconcileViteConfig(input: {
   const bindingProblems = importBindingProblems(
     input.path,
     parsed.sourceFile,
-    input.items
+    input.items,
   )
   if (bindingProblems.length > 0) return { problems: bindingProblems }
 
@@ -64,7 +64,7 @@ export function reconcileViteConfig(input: {
     input.items,
     removed,
     new Set(input.priorItems.filter(isPluginItem).map((item) => item.id)),
-    new Set(input.priorItems.filter(isPropertyItem).map((item) => item.id))
+    new Set(input.priorItems.filter(isPropertyItem).map((item) => item.id)),
   )
   if (planned.problems.length > 0) return { problems: planned.problems }
   if (planned.edits.length === 0 && planned.removedImports.length === 0) {
@@ -75,7 +75,7 @@ export function reconcileViteConfig(input: {
   const withoutUnused = removeUnusedImports(
     input.path,
     edited,
-    planned.removedImports
+    planned.removedImports,
   )
   if (withoutUnused.problems.length > 0)
     return { problems: withoutUnused.problems }
@@ -86,7 +86,7 @@ export function reconcileViteConfig(input: {
 
 function itemProblems(
   path: string,
-  items: readonly ViteConfigItem[]
+  items: readonly ViteConfigItem[],
 ): string[] {
   const problems: string[] = []
   const locals = new Set<string>()
@@ -100,7 +100,7 @@ function itemProblems(
       importIds.add(item.id)
       if (locals.has(item.preferredLocal)) {
         problems.push(
-          `${path}: Vite binding "${item.preferredLocal}" is declared more than once.`
+          `${path}: Vite binding "${item.preferredLocal}" is declared more than once.`,
         )
       }
       locals.add(item.preferredLocal)
@@ -108,7 +108,7 @@ function itemProblems(
       const previous = imports.get(key)
       if (previous !== undefined && previous !== item.preferredLocal) {
         problems.push(
-          `${path}: Vite import ${key} has locals "${previous}" and "${item.preferredLocal}".`
+          `${path}: Vite import ${key} has locals "${previous}" and "${item.preferredLocal}".`,
         )
       }
       imports.set(key, item.preferredLocal)
@@ -116,7 +116,7 @@ function itemProblems(
     if (item.kind === "plugin") {
       if (pluginImports.has(item.importId)) {
         problems.push(
-          `${path}: Vite plugin import "${item.importId}" is managed more than once.`
+          `${path}: Vite plugin import "${item.importId}" is managed more than once.`,
         )
       }
       pluginImports.add(item.importId)
@@ -125,7 +125,7 @@ function itemProblems(
       const key = item.path.join(".")
       if (properties.has(key)) {
         problems.push(
-          `${path}: Vite property "${key}" is managed more than once.`
+          `${path}: Vite property "${key}" is managed more than once.`,
         )
       }
       properties.add(key)
@@ -139,7 +139,7 @@ function itemProblems(
     if (item.kind !== "plugin") continue
     if (!importIds.has(item.importId)) {
       problems.push(
-        `${path}: Vite plugin "${item.id}" references unknown import "${item.importId}".`
+        `${path}: Vite plugin "${item.id}" references unknown import "${item.importId}".`,
       )
     }
   }
@@ -148,7 +148,7 @@ function itemProblems(
 
 function removedItems(
   items: readonly ViteConfigItem[],
-  priorItems: readonly ViteConfigItem[]
+  priorItems: readonly ViteConfigItem[],
 ): ViteConfigItem[] {
   const desired = new Set(items.map((item) => item.id))
   return priorItems.filter((item) => !desired.has(item.id))
@@ -156,7 +156,7 @@ function removedItems(
 
 function parseConfig(
   path: string,
-  text: string
+  text: string,
 ): {
   sourceFile?: ts.SourceFile
   root?: ts.ObjectLiteralExpression
@@ -167,7 +167,7 @@ function parseConfig(
     text,
     ts.ScriptTarget.Latest,
     true,
-    scriptKind(path)
+    scriptKind(path),
   )
   const syntax = syntaxProblems(path, sourceFile)
   if (syntax.length > 0) return { problems: syntax }
@@ -211,7 +211,7 @@ function parseConfig(
 function importBindingProblems(
   path: string,
   sourceFile: ts.SourceFile,
-  items: readonly ViteConfigItem[]
+  items: readonly ViteConfigItem[],
 ): string[] {
   const problems: string[] = []
   const bindings = collectTopLevelBindings(sourceFile)
@@ -222,7 +222,7 @@ function importBindingProblems(
       problems.push(
         `${path}: import ${importKey(item)} is bound to "${
           existing.local
-        }" but the contribution requires "${item.preferredLocal}".`
+        }" but the contribution requires "${item.preferredLocal}".`,
       )
       continue
     }
@@ -230,7 +230,7 @@ function importBindingProblems(
     const binding = bindings.get(item.preferredLocal)
     if (binding !== undefined) {
       problems.push(
-        `${path}: binding "${item.preferredLocal}" is already declared.`
+        `${path}: binding "${item.preferredLocal}" is already declared.`,
       )
     }
   }
@@ -244,7 +244,7 @@ function planEdits(
   items: readonly ViteConfigItem[],
   removed: readonly ViteConfigItem[],
   previouslyManagedPlugins: ReadonlySet<string>,
-  previouslyManagedProperties: ReadonlySet<string>
+  previouslyManagedProperties: ReadonlySet<string>,
 ): { edits: SourceEdit[]; removedImports: ImportItem[]; problems: string[] } {
   const problems: string[] = []
   const edits: SourceEdit[] = []
@@ -267,7 +267,7 @@ function planEdits(
     plugins,
     removedPlugins,
     locals,
-    previouslyManagedPlugins
+    previouslyManagedPlugins,
   )
   problems.push(...pluginPlan.problems)
   edits.push(...pluginPlan.edits)
@@ -278,7 +278,7 @@ function planEdits(
     root,
     properties,
     removedProperties,
-    previouslyManagedProperties
+    previouslyManagedProperties,
   )
   problems.push(...propertyPlan.problems)
   edits.push(...propertyPlan.edits)
@@ -302,7 +302,7 @@ function planPlugins(
   plugins: readonly PluginItem[],
   removed: readonly PluginItem[],
   locals: ReadonlyMap<string, string>,
-  previouslyManagedPlugins: ReadonlySet<string>
+  previouslyManagedPlugins: ReadonlySet<string>,
 ): { edits: SourceEdit[]; problems: string[] } {
   const problems: string[] = []
   const edits: SourceEdit[] = []
@@ -315,7 +315,7 @@ function planPlugins(
   }
   if (found.kind === "method") {
     problems.push(
-      `${path}: plugins is not a literal array, so managed plugin calls cannot be updated.`
+      `${path}: plugins is not a literal array, so managed plugin calls cannot be updated.`,
     )
     return { edits, problems }
   }
@@ -325,8 +325,8 @@ function planPlugins(
     const calls = plugins.map((plugin) =>
       pluginCall(
         locals.get(plugin.importId) ?? plugin.importId,
-        plugin.arguments
-      )
+        plugin.arguments,
+      ),
     )
     edits.push(insertProperty(root, `plugins: [${calls.join(", ")}]`))
     return { edits, problems }
@@ -335,7 +335,7 @@ function planPlugins(
   const initializer = propertyInitializer(found.property)
   if (initializer === undefined || !ts.isArrayLiteralExpression(initializer)) {
     problems.push(
-      `${path}: plugins is not a literal array, so managed plugin calls cannot be updated.`
+      `${path}: plugins is not a literal array, so managed plugin calls cannot be updated.`,
     )
     return { edits, problems }
   }
@@ -345,14 +345,14 @@ function planPlugins(
     const local = locals.get(plugin.importId)
     if (local === undefined) {
       problems.push(
-        `${path}: Vite plugin "${plugin.id}" references unknown import "${plugin.importId}".`
+        `${path}: Vite plugin "${plugin.id}" references unknown import "${plugin.importId}".`,
       )
       continue
     }
     const calls = callsNamed(initializer, local)
     if (calls.length > 1) {
       problems.push(
-        `${path}: plugin "${local}" is called more than once in plugins.`
+        `${path}: plugin "${local}" is called more than once in plugins.`,
       )
       continue
     }
@@ -381,7 +381,7 @@ function planProperties(
   root: ts.ObjectLiteralExpression,
   properties: readonly PropertyItem[],
   removed: readonly PropertyItem[],
-  previouslyManagedProperties: ReadonlySet<string>
+  previouslyManagedProperties: ReadonlySet<string>,
 ): { edits: SourceEdit[]; problems: string[] } {
   const problems: string[] = []
   const edits: SourceEdit[] = []
@@ -400,7 +400,7 @@ function planProperties(
       root,
       property.path,
       property.value,
-      previouslyManagedProperties.has(property.id)
+      previouslyManagedProperties.has(property.id),
     )
     problems.push(...result.problems)
     edits.push(...result.edits)
@@ -410,7 +410,7 @@ function planProperties(
 
 function groupMissingProperties(
   root: ts.ObjectLiteralExpression,
-  properties: readonly PropertyItem[]
+  properties: readonly PropertyItem[],
 ): { edits: SourceEdit[]; ids: ReadonlySet<string> } {
   const groups = new Map<string, PropertyItem[]>()
   for (const property of properties) {
@@ -441,7 +441,7 @@ function groupMissingProperties(
 
 function firstMissingPath(
   root: ts.ObjectLiteralExpression,
-  path: readonly string[]
+  path: readonly string[],
 ): { path: string[]; index: number } | undefined {
   let object = root
   for (let index = 0; index < path.length; index += 1) {
@@ -462,7 +462,7 @@ function firstMissingPath(
 
 function objectAtPath(
   root: ts.ObjectLiteralExpression,
-  path: readonly string[]
+  path: readonly string[],
 ): ts.ObjectLiteralExpression | undefined {
   let object = root
   for (const segment of path) {
@@ -479,7 +479,7 @@ function objectAtPath(
 function insertTree(
   tree: Map<string, unknown>,
   path: readonly string[],
-  value: string
+  value: string,
 ): void {
   const head = path[0]
   if (head === undefined) return
@@ -508,7 +508,7 @@ function propertyKey(value: string): string {
 function planPropertyRemoval(
   path: string,
   object: ts.ObjectLiteralExpression,
-  propertyPath: readonly string[]
+  propertyPath: readonly string[],
 ): { edits: SourceEdit[]; problems: string[] } {
   const head = propertyPath[0]
   if (head === undefined) return { edits: [], problems: [] }
@@ -536,7 +536,7 @@ function planPropertyRemoval(
       edits: [],
       problems: [
         `${path}: cannot remove ${propertyPath.join(
-          "."
+          ".",
         )} because ${head} is not an object.`,
       ],
     }
@@ -550,7 +550,7 @@ function planPropertyWrite(
   object: ts.ObjectLiteralExpression,
   propertyPath: readonly string[],
   value: string,
-  previouslyManaged: boolean
+  previouslyManaged: boolean,
 ): { edits: SourceEdit[]; problems: string[] } {
   const head = propertyPath[0]
   if (head === undefined) {
@@ -614,7 +614,7 @@ function planPropertyWrite(
       edits: [],
       problems: [
         `${path}: property ${head} is not an object, so ${propertyPath.join(
-          "."
+          ".",
         )} cannot be updated without removing existing behavior.`,
       ],
     }
@@ -625,16 +625,16 @@ function planPropertyWrite(
     initializer,
     propertyPath.slice(1),
     value,
-    previouslyManaged
+    previouslyManaged,
   )
 }
 
 function planImportInserts(
   sourceFile: ts.SourceFile,
-  imports: readonly ImportItem[]
+  imports: readonly ImportItem[],
 ): SourceEdit[] {
   const missing = imports.filter(
-    (item) => findImport(sourceFile, item) === undefined
+    (item) => findImport(sourceFile, item) === undefined,
   )
   if (missing.length === 0) return []
   const lines = missing.map(importLine).sort(compareText)
@@ -657,7 +657,7 @@ function planImportInserts(
 function removeUnusedImports(
   path: string,
   source: string,
-  removed: readonly ImportItem[]
+  removed: readonly ImportItem[],
 ): { contents: string; problems: string[] } {
   if (removed.length === 0) return { contents: source, problems: [] }
   const sourceFile = ts.createSourceFile(
@@ -665,7 +665,7 @@ function removeUnusedImports(
     source,
     ts.ScriptTarget.Latest,
     true,
-    scriptKind(path)
+    scriptKind(path),
   )
   const syntax = syntaxProblems(path, sourceFile)
   if (syntax.length > 0) return { contents: source, problems: syntax }
@@ -699,7 +699,7 @@ function generateConfig(items: readonly ViteConfigItem[]): string {
     .sort(compareText)
     .join("\n")
   const locals = new Map(
-    items.filter(isImportItem).map((item) => [item.id, item.preferredLocal])
+    items.filter(isImportItem).map((item) => [item.id, item.preferredLocal]),
   )
   const plugins = items.filter(isPluginItem).map((plugin) => {
     const local = locals.get(plugin.importId) ?? plugin.importId
@@ -710,7 +710,7 @@ function generateConfig(items: readonly ViteConfigItem[]): string {
   if (pluginsText.length > 0) fields.push(pluginsText)
   const properties = printPropertyTree(
     propertyTree(items.filter(isPropertyItem)),
-    1
+    1,
   )
   if (properties.length > 0) fields.push(properties)
   const body = fields.length === 0 ? "" : `\n${fields.join("\n")}\n`
@@ -723,7 +723,7 @@ type PropertyNode = {
 }
 
 function propertyTree(
-  properties: readonly PropertyItem[]
+  properties: readonly PropertyItem[],
 ): Map<string, PropertyNode> {
   const root = new Map<string, PropertyNode>()
   for (const property of properties) {
@@ -743,7 +743,7 @@ function propertyTree(
 
 function printPropertyTree(
   tree: Map<string, PropertyNode>,
-  indent: number
+  indent: number,
 ): string {
   const pad = "  ".repeat(indent)
   const lines: string[] = []
@@ -762,8 +762,8 @@ function printPropertyTree(
     lines.push(
       `${pad}${name}: {\n${printPropertyTree(
         node.children,
-        indent + 1
-      )}\n${pad}},`
+        indent + 1,
+      )}\n${pad}},`,
     )
   }
   return lines.join("\n")
@@ -830,7 +830,7 @@ function printPlugins(calls: readonly string[]): string {
 
 function nestedProperty(
   propertyPath: readonly string[],
-  value: string
+  value: string,
 ): string {
   const leaf = propertyPath[propertyPath.length - 1]
   if (leaf === undefined) return value
@@ -845,7 +845,7 @@ function nestedProperty(
 
 function insertProperty(
   object: ts.ObjectLiteralExpression,
-  text: string
+  text: string,
 ): SourceEdit {
   const close = object.end - 1
   if (object.properties.length === 0) {
@@ -857,7 +857,7 @@ function insertProperty(
 
 function insertArrayElement(
   array: ts.ArrayLiteralExpression,
-  text: string
+  text: string,
 ): SourceEdit {
   const close = array.end - 1
   if (array.elements.length === 0) {
@@ -869,7 +869,7 @@ function insertArrayElement(
 
 function removeArrayElement(
   array: ts.ArrayLiteralExpression,
-  element: ts.Expression
+  element: ts.Expression,
 ): SourceEdit {
   const index = array.elements.findIndex((entry) => entry === element)
   const next = array.elements[index + 1]
@@ -885,7 +885,7 @@ function removeArrayElement(
 
 function removeProperty(
   object: ts.ObjectLiteralExpression,
-  property: ts.ObjectLiteralElement
+  property: ts.ObjectLiteralElement,
 ): SourceEdit {
   const index = object.properties.findIndex((entry) => entry === property)
   const next = object.properties[index + 1]
@@ -901,7 +901,7 @@ function removeProperty(
 
 function removeStatement(
   sourceFile: ts.SourceFile,
-  statement: ts.Statement
+  statement: ts.Statement,
 ): SourceEdit {
   const start = statement.getFullStart()
   const end = statement.getEnd()
@@ -911,7 +911,7 @@ function removeStatement(
 
 function specifierEnd(
   declaration: ts.ImportDeclaration,
-  specifier: ts.ImportSpecifier
+  specifier: ts.ImportSpecifier,
 ): number {
   const named = declaration.importClause?.namedBindings
   if (named === undefined || !ts.isNamedImports(named))
@@ -933,7 +933,7 @@ type FoundProperty =
 
 function findProperty(
   object: ts.ObjectLiteralExpression,
-  name: string
+  name: string,
 ): FoundProperty {
   const matches: ts.ObjectLiteralElement[] = []
   for (const property of object.properties) {
@@ -969,7 +969,7 @@ function findProperty(
 }
 
 function propertyInitializer(
-  property: ts.ObjectLiteralElement
+  property: ts.ObjectLiteralElement,
 ): ts.Expression | undefined {
   if (ts.isPropertyAssignment(property))
     return unwrapExpression(property.initializer)
@@ -990,7 +990,7 @@ function propertyNameText(name: ts.PropertyName): string | undefined {
 
 function callsNamed(
   array: ts.ArrayLiteralExpression,
-  local: string
+  local: string,
 ): ts.CallExpression[] {
   const calls: ts.CallExpression[] = []
   for (const element of array.elements) {
@@ -1010,7 +1010,7 @@ type FoundImport = {
 
 function findImport(
   sourceFile: ts.SourceFile,
-  item: ImportItem
+  item: ImportItem,
 ): FoundImport | undefined {
   for (const declaration of importDeclarations(sourceFile)) {
     const moduleName = moduleSpecifierText(declaration)
@@ -1055,7 +1055,7 @@ function importDeclarations(sourceFile: ts.SourceFile): ts.ImportDeclaration[] {
 }
 
 function moduleSpecifierText(
-  declaration: ts.ImportDeclaration
+  declaration: ts.ImportDeclaration,
 ): string | undefined {
   const specifier = declaration.moduleSpecifier
   if (ts.isStringLiteral(specifier)) return specifier.text
@@ -1074,7 +1074,7 @@ function importBindingCount(declaration: ts.ImportDeclaration): number {
 }
 
 function collectTopLevelBindings(
-  sourceFile: ts.SourceFile
+  sourceFile: ts.SourceFile,
 ): Map<string, ts.Node> {
   const names = new Map<string, ts.Node>()
   for (const statement of sourceFile.statements) {
@@ -1121,7 +1121,7 @@ function collectName(name: ts.BindingName, names: Map<string, ts.Node>): void {
 
 function bindingIsReferenced(
   sourceFile: ts.SourceFile,
-  local: string
+  local: string,
 ): boolean {
   let referenced = false
   const visit = (node: ts.Node): void => {
@@ -1144,7 +1144,7 @@ function isImportLocal(node: ts.Identifier): boolean {
 }
 
 function isDefineConfigObject(
-  expression: ts.Expression
+  expression: ts.Expression,
 ): expression is ts.CallExpression {
   if (!ts.isCallExpression(expression)) return false
   const callee = unwrapExpression(expression.expression)
@@ -1246,7 +1246,7 @@ function applyEdits(source: string, edits: readonly SourceEdit[]): string {
     merged.push({ ...edit })
   }
   const ordered = merged.sort(
-    (left, right) => right.start - left.start || right.end - left.end
+    (left, right) => right.start - left.start || right.end - left.end,
   )
   let next = source
   for (const edit of ordered) {
@@ -1281,7 +1281,7 @@ function formatSource(fileName: string, source: string): string {
       start: edit.span.start,
       end: edit.span.start + edit.span.length,
       text: edit.newText,
-    }))
+    })),
   )
   if (formatted.endsWith("\n")) return formatted
   return `${formatted}\n`

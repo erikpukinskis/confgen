@@ -10,7 +10,12 @@ test("a file-writing selection exits successfully", async () => {
   const stderr = capture()
   const stdout = capture()
 
-  const status = await main(cli("runtimes=#lib", "git"), cwd, stderr, stdout)
+  const status = await main(
+    cli("runtimes=#lib:universal", "git"),
+    cwd,
+    stderr,
+    stdout,
+  )
 
   expect(status).toBe(0)
   expect(stderr.text).toBe("")
@@ -24,10 +29,15 @@ test("invalid selections exit with every diagnostic", async () => {
   const stdout = capture()
 
   const status = await main(
-    cli("runtimes=#lib,#lib,#nope", "nope", "vitest", "vitest"),
+    cli(
+      "runtimes=#lib:universal,#lib:universal,#nope",
+      "nope",
+      "vitest",
+      "vitest",
+    ),
     cwd,
     stderr,
-    stdout
+    stdout,
   )
 
   expect(status).toBe(1)
@@ -38,7 +48,7 @@ test("invalid selections exit with every diagnostic", async () => {
       'Unknown runtime "nope".',
       'Unknown preset "nope".',
       'Duplicate preset "vitest".',
-    ])
+    ]),
   )
 })
 
@@ -50,7 +60,7 @@ test("a missing runtime group exits with a diagnostic", async () => {
 
   expect(status).toBe(1)
   expect(stderr.text).toBe(
-    diagnostic(["Missing runtime group. Expected runtimes=#name[,#name...]."])
+    diagnostic(["Missing runtime group. Expected runtimes=#name[,#name...]."]),
   )
 })
 
@@ -61,17 +71,17 @@ test("manifest failures exit with the field and file", async () => {
   const stderr = capture()
 
   const status = await main(
-    cli("runtimes=#lib", "typescript"),
+    cli("runtimes=#lib:universal", "typescript"),
     cwd,
     stderr,
-    capture()
+    capture(),
   )
 
   expect(status).toBe(1)
   expect(stderr.text).toBe(
     diagnostic([
       "package.json: name: Invalid input: expected string, received undefined",
-    ])
+    ]),
   )
 })
 
@@ -97,7 +107,7 @@ async function project(): Promise<string> {
   const cwd = await mkdtemp(join(tmpdir(), "confgen-cli-"))
   await createSystem(cwd).writeFile(
     "package.json",
-    JSON.stringify({ name: "example" })
+    JSON.stringify({ name: "example" }),
   )
   return cwd
 }

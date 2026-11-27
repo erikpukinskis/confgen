@@ -73,7 +73,9 @@ export async function compileCollected(input: {
   input.onWarnings?.(changeSet.warnings)
   await applyChanges(input.system, changeSet.files, input.onProgress)
   if (changeSet.runYarnInstall) {
-    const executable = input.selection.presets.includes("yarn") ? "bash" : "yarn"
+    const executable = input.selection.presets.includes("yarn")
+      ? "bash"
+      : "yarn"
     const args = input.selection.presets.includes("yarn")
       ? [
           "-c",
@@ -104,7 +106,7 @@ export async function compileCollected(input: {
 async function readAffectedFiles(
   system: System,
   contributions: readonly Contribution[],
-  prior: Awaited<ReturnType<typeof readLock>>
+  prior: Awaited<ReturnType<typeof readLock>>,
 ): Promise<Map<string, string>> {
   const paths = new Set<string>([
     "package.json",
@@ -128,7 +130,7 @@ async function readAffectedFiles(
 async function applyChanges(
   system: System,
   changes: readonly FileChange[],
-  onProgress: ((progress: CompilationProgress) => void) | undefined
+  onProgress: ((progress: CompilationProgress) => void) | undefined,
 ): Promise<void> {
   for (const change of changes) {
     if (change.type === "write") {
@@ -144,7 +146,7 @@ async function applyChanges(
 async function verifyApplied(
   system: System,
   changeSet: ChangeSet,
-  prior: LockData | undefined
+  prior: LockData | undefined,
 ): Promise<void> {
   const problems: string[] = []
   for (const change of changeSet.files) {
@@ -172,7 +174,7 @@ async function verifyApplied(
     if (text !== undefined) continue
     const delivered = prior?.contributions.some(
       (entry) =>
-        entry.strategy === "starter-file" && entry.id === contribution.id
+        entry.strategy === "starter-file" && entry.id === contribution.id,
     )
     if (delivered) continue
     problems.push(`${contribution.path}: starter file is missing`)
@@ -193,10 +195,10 @@ function packageJsonDrift(expected: string, actual: string): string[] {
     return [
       "package.json: devDependencies changed during yarn install",
       `expected ${JSON.stringify(
-        canonical(expectedValue.devDependencies ?? null)
+        canonical(expectedValue.devDependencies ?? null),
       )}`,
       `actual ${JSON.stringify(
-        canonical(actualValue.devDependencies ?? null)
+        canonical(actualValue.devDependencies ?? null),
       )}`,
     ]
   }
@@ -212,7 +214,7 @@ function packageJsonDrift(expected: string, actual: string): string[] {
 function sameSection(
   expected: Readonly<Record<string, unknown>>,
   actual: Readonly<Record<string, unknown>>,
-  section: string
+  section: string,
 ): boolean {
   return (
     JSON.stringify(canonical(expected[section] ?? null)) ===
@@ -269,7 +271,7 @@ function contributionPath(contribution: Contribution): string {
 
 async function readOptional(
   system: System,
-  path: string
+  path: string,
 ): Promise<string | undefined> {
   try {
     return await system.readFile(path)

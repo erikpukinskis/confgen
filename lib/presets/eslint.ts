@@ -26,13 +26,13 @@ export const contributions: ProduceContributions = (selection) => [
       "plugin:@typescript-eslint/eslint-recommended",
       "plugin:@typescript-eslint/recommended",
       "plugin:@typescript-eslint/recommended-requiring-type-checking",
-    ]
+    ],
   ),
   setting(
     "eslint:ignore",
     ["ignorePatterns"],
     ignorePatterns(selection),
-    "merge"
+    "merge",
   ),
   setting("eslint:parser-options", ["parserOptions"], {
     warnOnUnsupportedTypeScriptVersion: false,
@@ -114,7 +114,7 @@ function setting(
   id: string,
   address: StructuredAddress,
   value: JsonValue,
-  update: "merge" | "replace" = "replace"
+  update: "merge" | "replace" = "replace",
 ): Contribution {
   return {
     id,

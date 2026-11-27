@@ -6,13 +6,13 @@ import { fileURLToPath } from "node:url"
 import { z } from "zod"
 
 export const confgenExecutable = fileURLToPath(
-  new URL("../dist/index.js", import.meta.url)
+  new URL("../dist/index.js", import.meta.url),
 )
 const bumpNPubRoot = fileURLToPath(
-  new URL("../../bump-n-pub/", import.meta.url)
+  new URL("../../bump-n-pub/", import.meta.url),
 )
 const packageServiceRoot = fileURLToPath(
-  new URL("../../package-service/", import.meta.url)
+  new URL("../../package-service/", import.meta.url),
 )
 
 export type CommandResult = {
@@ -34,7 +34,7 @@ export class CommandError extends Error {
         `exit status: ${result.status}`,
         `stdout:\n${result.stdout}`,
         `stderr:\n${result.stderr}`,
-      ].join("\n")
+      ].join("\n"),
     )
     this.name = "CommandError"
     this.command = command
@@ -66,13 +66,13 @@ export type SyntheticProject = {
     executable: string,
     args: readonly string[],
     timeoutMs?: number,
-    env?: Readonly<Record<string, string>>
+    env?: Readonly<Record<string, string>>,
   ): Promise<CommandResult>
   runAt(
     directory: string,
     executable: string,
     args: readonly string[],
-    timeoutMs?: number
+    timeoutMs?: number,
   ): Promise<CommandResult>
   start(
     executable: string,
@@ -81,7 +81,7 @@ export type SyntheticProject = {
       ready: (stdout: string) => boolean
       timeoutMs?: number
       env?: Readonly<Record<string, string>>
-    }
+    },
   ): Promise<RunningProcess>
   cleanup(): Promise<void>
 }
@@ -174,7 +174,7 @@ async function packTool(input: {
 
 /** Copies a fixture into a temporary Yarn 4 Plug'n'Play project. */
 export async function createSyntheticProject(
-  fixture: string
+  fixture: string,
 ): Promise<SyntheticProject> {
   const directory = await mkdtemp(join(tmpdir(), "confgen-synthetic-"))
   const project = openProject(directory)
@@ -288,7 +288,7 @@ function startCollected(input: {
           status: 124,
           stdout: stdout(),
           stderr: `${stderr()}timed out after ${input.timeoutMs}ms\n`,
-        })
+        }),
       )
     }, input.timeoutMs)
     const finishReady = () => {
@@ -320,7 +320,7 @@ function startCollected(input: {
           status: code ?? 1,
           stdout: stdout(),
           stderr: stderr(),
-        })
+        }),
       )
     })
     finishReady()
@@ -409,12 +409,12 @@ function spawnCaptured(input: {
 }
 
 function commandEnv(
-  extra: Readonly<Record<string, string>> | undefined
+  extra: Readonly<Record<string, string>> | undefined,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env }
   env.YARN_ENABLE_GLOBAL_CACHE = "true"
   env.YARN_GLOBAL_FOLDER = fileURLToPath(
-    new URL("../.yarn-global-cache-for-tests/", import.meta.url)
+    new URL("../.yarn-global-cache-for-tests/", import.meta.url),
   )
   env.COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"
   if (extra === undefined) return env

@@ -1,4 +1,4 @@
-# Confgen
+<h1>Confgen</h1>
 
 Confgen creates and maintains TypeScript projects built with the Understory
 framework.
@@ -17,6 +17,20 @@ and other standard project files. The resulting project builds and runs without
 Confgen, and using Confgen only once as a starter-project generator is a
 supported workflow.
 
+**Table of contents**
+
+- [Quick start](#quick-start)
+- [Command syntax](#command-syntax)
+- [Runtimes](#runtimes)
+  - [Different kinds of libraries](#different-kinds-of-libraries)
+- [Presets](#presets)
+- [New projects and existing projects](#new-projects-and-existing-projects)
+- [How Confgen treats your edits](#how-confgen-treats-your-edits)
+- [`confgen.lock`](#confgenlock)
+- [Ongoing use](#ongoing-use)
+- [Containers, HTTPS, and integration tests](#containers-https-and-integration-tests)
+- [Development](#development)
+
 ## Quick start
 
 Use Node 24 and Yarn 4 through Corepack. Install Confgen in the project and
@@ -31,7 +45,7 @@ Declare the project's runtimes and presets in `package.json`:
 ```json
 {
   "scripts": {
-    "confgen": "confgen runtimes=#lib,#server,#client yarn typescript vite vitest"
+    "confgen": "confgen runtimes=#lib:node,#server,#client yarn typescript vite vitest"
   }
 }
 ```
@@ -63,7 +77,7 @@ Presets are positional names following the runtime group.
 For example:
 
 ```sh
-confgen runtimes=#lib,#server,#client yarn typescript vite vitest
+confgen runtimes=#lib:node,#server,#client yarn typescript vite vitest
 ```
 
 This describes a repository with library, server, and separately published
@@ -80,15 +94,15 @@ selection.
 A runtime is an execution or packaging boundary within the repository. Runtime
 names also establish standard source locations:
 
-| Runtime        | Location       | Purpose                                         |
-| -------------- | -------------- | ----------------------------------------------- |
-| `#lib`         | `lib/`         | Publishable or internally consumed library code |
-| `#app`         | `app/`         | Browser application code                        |
-| `#server`      | `server/`      | Node service code                               |
-| `#client`      | `client/`      | Separately published client workspace           |
-| `#integration` | `integration/` | Container-backed integration tests              |
-| `#gateway`     | `gateway/`     | Independently built edge process                |
-| `#docs`        | `docs/`        | Documentation application                       |
+| Runtime           | Location       | Purpose                               |
+| ----------------- | -------------- | ------------------------------------- |
+| `#lib:<platform>` | `lib/`         | Published library                     |
+| `#app`            | `app/`         | Browser application code              |
+| `#server`         | `server/`      | Node service code                     |
+| `#client`         | `client/`      | Separately published client workspace |
+| `#integration`    | `integration/` | Container-backed integration tests    |
+| `#gateway`        | `gateway/`     | Independently built edge process      |
+| `#docs`           | `docs/`        | Documentation application             |
 
 These locations are Understory conventions and cannot be redirected through
 Confgen options.
@@ -97,6 +111,14 @@ A repository may contain several runtimes and technologies while still having
 one product purpose. A service can contain its server, published library,
 client package, integration environment, and gateway. Confgen is not an
 arbitrary multi-application monorepo generator.
+
+### Different kinds of libraries
+
+Libraries that target the browser, the backend, or both will need different configuration. So the `#lib` runtime must specify a platform:
+
+- `#lib:node` — Node library. Add `:test-kit` to publish a server test kit at `<package>/lib` as well
+- `#lib:browser` — Browser library
+- `#lib:universal` — Library that may run in Node and the browser
 
 ## Presets
 

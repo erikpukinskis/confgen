@@ -11,10 +11,10 @@ import { NODE_VERSION, YARN_VERSION } from "../toolchain"
 /** Yarn owns package-manager configuration. */
 export const contributions: ProduceContributions = (
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ) => {
   const packages = facts.root.dependencies.filter((name) =>
-    UNPLUGGED_PACKAGES.has(name)
+    UNPLUGGED_PACKAGES.has(name),
   )
   return [
     yarnrc("yarn:yarnrc:node-linker", ["nodeLinker"], "pnp"),
@@ -36,7 +36,7 @@ export const contributions: ProduceContributions = (
     ...packages.map((name) =>
       json(`yarn:unplugged:${name}`, ["dependenciesMeta", name], {
         unplugged: true,
-      })
+      }),
     ),
   ]
 }
@@ -50,7 +50,7 @@ const UNPLUGGED_PACKAGES = new Set([
 function yarnrc(
   id: string,
   address: StructuredAddress,
-  value: JsonValue
+  value: JsonValue,
 ): Contribution {
   return {
     id,
@@ -67,7 +67,7 @@ function yarnrc(
 function json(
   id: string,
   address: StructuredAddress,
-  value: JsonValue
+  value: JsonValue,
 ): Contribution {
   return {
     id,
@@ -97,15 +97,13 @@ function sdkContributions(): Contribution[] {
         ["install:sdks", "sdks vscode"],
         ["postinstall", "yarn install:sdks"],
       ] satisfies [string, string][]
-    ).map(
-      ([name, command]): Contribution => ({
-        id: `yarn:script:${name}`,
-        source: "preset:yarn",
-        kind: "package-script",
-        manifest: "package.json",
-        name,
-        command,
-      })
-    ),
+    ).map(([name, command]): Contribution => ({
+      id: `yarn:script:${name}`,
+      source: "preset:yarn",
+      kind: "package-script",
+      manifest: "package.json",
+      name,
+      command,
+    })),
   ]
 }

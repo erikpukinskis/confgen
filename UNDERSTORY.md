@@ -4,6 +4,11 @@ Confgen applies shared conventions; applications keep their own behavior.
 The aim is to make ordinary configuration sufficient, with fewer paths and
 startup decisions for each project to maintain.
 
+Note: Currently many (most?) of the decisions documented in
+~/x/multiplayerdb/PLATFORM.md are actually Understory decisions that need to be
+made application-agnostic and documented eventually in this file. But we should
+be careful to only add thoroughly discussed and vetted decisions here.
+
 ## Benefits
 
 - The Understory org evaluates both major releases and minor releases of the

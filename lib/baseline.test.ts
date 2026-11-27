@@ -14,7 +14,7 @@ const root = {
 const facts: ProjectFacts = { root, packages: [root] }
 
 const selection = parseSelection([
-  "runtimes=#lib,#server",
+  "runtimes=#lib:universal,#server",
   "yarn",
   "typescript",
   "vite",
@@ -42,7 +42,7 @@ test("the baseline selection reconciles to a stable file set", () => {
       ".eslintrc.json",
       ".prettierrc.json",
       ".gitignore",
-    ])
+    ]),
   )
 
   const created = reconcile({
@@ -77,7 +77,7 @@ test("the baseline selection reconciles to a stable file set", () => {
 
 test("existing service sources suppress duplicate starters", () => {
   const service = parseSelection([
-    "runtimes=#lib,#integration",
+    "runtimes=#lib:universal,#integration",
     "vitest",
     "prettier",
     "git",
@@ -102,10 +102,10 @@ test("existing service sources suppress duplicate starters", () => {
       path: ".env.example",
       value:
         "PACKAGE_SERVICE_URL='https://package-service.local.multiplayerdb.dev'",
-    })
+    }),
   )
   expect(contributions).not.toContainEqual(
-    expect.objectContaining({ path: ".prettierignore", value: "dist" })
+    expect.objectContaining({ path: ".prettierignore", value: "dist" }),
   )
 })
 
@@ -120,20 +120,20 @@ test("a new service gets a URL example and an environment-based integration test
   expect(byId(contributions, "runtime:integration:service-test")).toMatchObject(
     {
       contents: expect.stringContaining(
-        "process.env.PACKAGE_SERVICE_URL"
+        "process.env.PACKAGE_SERVICE_URL",
       ) as string,
-    }
+    },
   )
   expect(
     contributions
       .filter((item) => item.kind === "line" && item.path === ".prettierignore")
-      .map((item) => (item.kind === "line" ? item.value : undefined))
+      .map((item) => (item.kind === "line" ? item.value : undefined)),
   ).toEqual([".nvmrc", ".yalc", "yalc.lock", "yarn.lock"])
 })
 
 function byId(
   contributions: readonly Contribution[],
-  id: string
+  id: string,
 ): Contribution {
   const found = contributions.find((contribution) => contribution.id === id)
   if (found === undefined) throw new Error(`missing contribution ${id}`)

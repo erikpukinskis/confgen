@@ -10,9 +10,6 @@ import type { Selection } from "../selection"
 /** Vite owns the standalone build config for each selected runtime. */
 export const contributions: ProduceContributions = (selection, facts) => {
   const produced: Contribution[] = [dependency("vite", "8.3.4")]
-  const serverScaffold =
-    selection.runtimes.includes("server") &&
-    facts.hasApplicationServerInitServer !== true
   if (
     selection.runtimes.includes("lib") ||
     selection.runtimes.includes("client")
@@ -28,104 +25,95 @@ export const contributions: ProduceContributions = (selection, facts) => {
   if (selection.runtimes.includes("lib")) {
     produced.push(
       script("build:lib", "vite build --config vite.lib.config.ts"),
-      libConfig(facts)
+      libConfig(selection, facts),
     )
-    if (selection.presets.includes("graphql")) {
-      if (serverScaffold) {
-        produced.push(
-          script(
-            "build:test-kit",
-            "vite build --config vite.test-kit.config.ts"
-          ),
-          testKitConfig(facts)
-        )
-      }
-    }
   }
   if (selection.runtimes.includes("server")) {
     produced.push(
       dependency("vite-node", "6.0.0"),
       script("build:server", "vite build --config vite.server.config.ts"),
-      serverConfig()
+      serverConfig(),
     )
   }
   if (selection.runtimes.includes("client")) {
     produced.push(
       script("build:client", "vite build --config vite.client.config.ts"),
-      clientConfig(selection, facts)
+      clientConfig(selection, facts),
     )
   }
   return produced
 }
 
-function libConfig(facts: ProjectFacts): Contribution {
-  return viteConfig("vite.lib.config.ts", [
+function libConfig(selection: Selection, facts: ProjectFacts): Contribution {
+  const platform = selection.libraryPlatform
+  if (platform === undefined) {
+    throw new Error("lib runtime is missing a library platform")
+  }
+  const testKit = selection.libraryTestKit === true
+  const node = platform === "node"
+  const items: ViteConfigItem[] = [
     resolveImport(),
-    ...dtsPlugin(`{
-      tsconfigPath: resolve("tsconfig.json"),
-      bundleTypes: true,
-      include: ["lib/**/*.ts"],
-      exclude: ["**/*.test.ts", "lib/test.ts"],
-    }`),
+    ...dtsPlugin(testKit ? TEST_KIT_DTS : LIB_DTS),
+  ]
+  if (node) {
+    items.push(property("build-ssr", ["build", "ssr"], "true"))
+  }
+  items.push(
     property(
       "build-lib-entry",
       ["build", "lib", "entry"],
-      'resolve("lib/index.ts")'
+      testKit ? MULTI_ENTRY : 'resolve("lib/index.ts")',
     ),
     property(
       "build-lib-name",
       ["build", "lib", "name"],
-      JSON.stringify(facts.root.name)
+      JSON.stringify(facts.root.name),
     ),
     property("build-lib-formats", ["build", "lib", "formats"], '["es"]'),
-    property("build-lib-file", ["build", "lib", "fileName"], '"index"'),
+    property(
+      "build-lib-file",
+      ["build", "lib", "fileName"],
+      testKit ? "(_format, entryName) => `${entryName}.js`" : '"index"',
+    ),
     property("build-out", ["build", "outDir"], '"dist/lib"'),
     property("build-empty", ["build", "emptyOutDir"], "true"),
     property("build-minify", ["build", "minify"], "false"),
-    property("build-target", ["build", "target"], '"node24"'),
-  ])
+    property(
+      "build-target",
+      ["build", "target"],
+      node ? '"node24"' : '"es2024"',
+    ),
+  )
+  if (node) {
+    items.push(
+      property(
+        "build-entry-file",
+        ["build", "rolldownOptions", "output", "entryFileNames"],
+        testKit ? '"[name].js"' : '"index.js"',
+      ),
+    )
+  }
+  return viteConfig("vite.lib.config.ts", items)
 }
 
-function testKitConfig(facts: ProjectFacts): Contribution {
-  return viteConfig("vite.test-kit.config.ts", [
-    resolveImport(),
-    ...dtsPlugin(`{
-      tsconfigPath: resolve("tsconfig.json"),
-      bundleTypes: true,
-      include: ["lib/test.ts", "gql/**/*.ts", "server/queries/**/*.ts"],
-      exclude: ["**/*.test.ts", "gql/client/**"],
-    }`),
-    property(
-      "build-lib-entry",
-      ["build", "lib", "entry"],
-      'resolve("lib/test.ts")'
-    ),
-    property(
-      "build-lib-name",
-      ["build", "lib", "name"],
-      JSON.stringify(`${facts.root.name}-test`)
-    ),
-    property("build-lib-formats", ["build", "lib", "formats"], '["es"]'),
-    property("build-lib-file", ["build", "lib", "fileName"], '"index"'),
-    property("build-out", ["build", "outDir"], '"dist/test"'),
-    property("build-empty", ["build", "emptyOutDir"], "true"),
-    property("build-minify", ["build", "minify"], "false"),
-    property("build-target", ["build", "target"], '"node24"'),
-    property(
-      "build-external",
-      ["build", "rolldownOptions", "external"],
-      `(id: string) =>
-        !(
-          id.startsWith(".") ||
-          id.startsWith("#") ||
-          id.startsWith("\\0") ||
-          (id.startsWith("/") &&
-            !id.includes("/.yarn/") &&
-            !id.includes("/node_modules/"))
-        )`
-    ),
-  ])
-}
+const LIB_DTS = `{
+  tsconfigPath: resolve("tsconfig.json"),
+  bundleTypes: true,
+  include: ["lib/**/*.ts"],
+  exclude: ["**/*.test.ts", "lib/test-kit.ts"],
+}`
+
+const TEST_KIT_DTS = `{
+  tsconfigPath: resolve("tsconfig.json"),
+  bundleTypes: true,
+  include: ["lib/**/*.ts", "gql/**/*.ts", "server/**/*.ts"],
+  exclude: ["**/*.test.ts", "gql/client/**"],
+}`
+
+const MULTI_ENTRY = `{
+  index: resolve("lib/index.ts"),
+  "test-kit": resolve("lib/test-kit.ts"),
+}`
 
 function serverConfig(): Contribution {
   return viteConfig("vite.server.config.ts", [
@@ -140,12 +128,12 @@ function serverConfig(): Contribution {
     property(
       "build-format",
       ["build", "rolldownOptions", "output", "format"],
-      '"es"'
+      '"es"',
     ),
     property(
       "build-entry-file",
       ["build", "rolldownOptions", "output", "entryFileNames"],
-      '"index.mjs"'
+      '"index.mjs"',
     ),
   ])
 }
@@ -159,12 +147,12 @@ function clientConfig(selection: Selection, facts: ProjectFacts): Contribution {
     property(
       "build-lib-entry",
       ["build", "lib", "entry"],
-      'resolve("client/index.ts")'
+      'resolve("client/index.ts")',
     ),
     property(
       "build-lib-name",
       ["build", "lib", "name"],
-      JSON.stringify(clientPackageName(facts.root.name))
+      JSON.stringify(clientPackageName(facts.root.name)),
     ),
     property("build-lib-formats", ["build", "lib", "formats"], '["es"]'),
     property("build-lib-file", ["build", "lib", "fileName"], '"index"'),
@@ -180,13 +168,13 @@ function clientConfig(selection: Selection, facts: ProjectFacts): Contribution {
         ["resolve", "alias"],
         `[
       { find: "#gql/client", replacement: resolve("gql/client/index.ts") },
-    ]`
+    ]`,
       ),
       property(
         "build-external",
         ["build", "rolldownOptions", "external"],
-        '["graphql", "@graphql-typed-document-node/core"]'
-      )
+        '["graphql", "@graphql-typed-document-node/core"]',
+      ),
     )
   }
   return viteConfig("vite.client.config.ts", items)
@@ -194,7 +182,7 @@ function clientConfig(selection: Selection, facts: ProjectFacts): Contribution {
 
 function viteConfig(
   path: string,
-  items: readonly ViteConfigItem[]
+  items: readonly ViteConfigItem[],
 ): Contribution {
   return {
     id: `vite:config:${path}`,
@@ -239,7 +227,7 @@ function dtsPlugin(options: string): ViteConfigItem[] {
 function property(
   id: string,
   path: readonly string[],
-  value: string
+  value: string,
 ): ViteConfigItem {
   return {
     id: `property:${id}`,

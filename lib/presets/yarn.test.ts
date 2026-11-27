@@ -24,7 +24,7 @@ test("unplugs the native and Compose packages declared by the project", () => {
     (entry) =>
       entry.kind === "structured" &&
       entry.path === "package.json" &&
-      entry.address[0] === "dependenciesMeta"
+      entry.address[0] === "dependenciesMeta",
   )
 
   expect(metadata.map((entry) => entry.id)).toEqual([
@@ -33,14 +33,14 @@ test("unplugs the native and Compose packages declared by the project", () => {
     "yarn:unplugged:sql.js",
   ])
   expect(contributions).not.toContainEqual(
-    expect.objectContaining({ id: "yarn:module-type" })
+    expect.objectContaining({ id: "yarn:module-type" }),
   )
   const moduleRoot = { ...root, type: "module" }
   expect(
     collectContributions(selection, {
       root: moduleRoot,
       packages: [moduleRoot],
-    })
+    }),
   ).toContainEqual(expect.objectContaining({ id: "yarn:module-type" }))
 })
 
@@ -56,7 +56,7 @@ test("adds workspace TypeScript settings without removing existing VS Code setti
     selection: parseSelection(["runtimes=#server", "yarn", "vscode"]),
     contributions: collectContributions(
       parseSelection(["runtimes=#server", "yarn", "vscode"]),
-      facts
+      facts,
     ),
     prior: undefined,
     files: new Map([
@@ -68,7 +68,7 @@ test("adds workspace TypeScript settings without removing existing VS Code setti
   })
   const settings = result.files.find(
     (change) =>
-      change.type === "write" && change.path === ".vscode/settings.json"
+      change.type === "write" && change.path === ".vscode/settings.json",
   )
   if (settings?.type !== "write") throw new Error("settings were not written")
   expect(JSON.parse(settings.contents)).toEqual({
@@ -77,7 +77,7 @@ test("adds workspace TypeScript settings without removing existing VS Code setti
     "typescript.enablePromptUseWorkspaceTsdk": true,
   })
   const manifest = result.files.find(
-    (change) => change.type === "write" && change.path === "package.json"
+    (change) => change.type === "write" && change.path === "package.json",
   )
   if (manifest?.type !== "write") throw new Error("manifest was not written")
   expect(JSON.parse(manifest.contents)).toMatchObject({
@@ -102,19 +102,19 @@ test.each([["yarn"], ["vscode"]])(
     }
     const contributions = collectContributions(
       parseSelection(["runtimes=#server", preset]),
-      { root, packages: [root] }
+      { root, packages: [root] },
     )
     expect(contributions).not.toContainEqual(
-      expect.objectContaining({ package: "@yarnpkg/sdks" })
+      expect.objectContaining({ package: "@yarnpkg/sdks" }),
     )
     expect(contributions).not.toContainEqual(
-      expect.objectContaining({ name: "install:sdks" })
+      expect.objectContaining({ name: "install:sdks" }),
     )
     expect(contributions).not.toContainEqual(
-      expect.objectContaining({ name: "postinstall" })
+      expect.objectContaining({ name: "postinstall" }),
     )
     expect(contributions).not.toContainEqual(
-      expect.objectContaining({ path: ".vscode/settings.json" })
+      expect.objectContaining({ path: ".vscode/settings.json" }),
     )
-  }
+  },
 )

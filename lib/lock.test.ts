@@ -19,12 +19,17 @@ import { expect, test } from "vitest"
 
 const selection: Selection = {
   runtimes: ["server", "lib"],
+  libraryPlatform: "browser",
   presets: ["vite", "typescript"],
 }
 
 test("serializes lock evidence deterministically", () => {
   const forward = lockFromContributions({
-    selection: { runtimes: ["lib", "server"], presets: ["typescript", "vite"] },
+    selection: {
+      runtimes: ["lib", "server"],
+      libraryPlatform: "node",
+      presets: ["typescript", "vite"],
+    },
     contributions: [
       starter(),
       wholeFile(),
@@ -36,7 +41,11 @@ test("serializes lock evidence deterministically", () => {
     ],
   })
   const reversed = lockFromContributions({
-    selection: { runtimes: ["lib", "server"], presets: ["typescript", "vite"] },
+    selection: {
+      runtimes: ["lib", "server"],
+      libraryPlatform: "node",
+      presets: ["typescript", "vite"],
+    },
     contributions: [
       vite(),
       script(),
@@ -52,6 +61,7 @@ test("serializes lock evidence deterministically", () => {
   const parsed = parseLock(serializeLock(forward))
   expect(parsed.lockVersion).toBe(1)
   expect(parsed.runtimes).toEqual(["lib", "server"])
+  expect(parsed.libraryPlatform).toBe("node")
   expect(parsed.contributions.map((entry) => entry.id)).toEqual([
     "dep",
     "line",
@@ -67,7 +77,7 @@ test("serializes lock evidence deterministically", () => {
     hash: textHash("generated\n"),
   })
   const starterEntry = parsed.contributions.find(
-    (entry) => entry.id === "starter"
+    (entry) => entry.id === "starter",
   )
   expect(starterEntry).toEqual({
     id: "starter",
@@ -80,7 +90,7 @@ test("serializes lock evidence deterministically", () => {
 
 test("rejects an unsupported lock version", () => {
   expect(() => parseLock('{"lockVersion":2,"confgenVersion":"0.0.0"}')).toThrow(
-    /lock version 2 is not supported/
+    /lock version 2 is not supported/,
   )
 })
 
@@ -99,7 +109,11 @@ test("replaces the lock through a same-directory temporary file", async () => {
   const cwd = await mkdtemp(join(tmpdir(), "confgen-lock-"))
   const system = createSystem(cwd)
   const lock = lockFromContributions({
-    selection: { runtimes: ["lib"], presets: [] },
+    selection: {
+      runtimes: ["lib"],
+      libraryPlatform: "universal",
+      presets: [],
+    },
     contributions: [],
   })
 
@@ -115,6 +129,70 @@ test("selection order in the caller is preserved as given", () => {
     contributions: [],
   })
   expect(lock.runtimes).toEqual(["server", "lib"])
+  expect(lock.libraryPlatform).toBe("browser")
+})
+
+test("accepts a lib lock that omits the platform", () => {
+  const parsed = parseLock(
+    JSON.stringify({
+      lockVersion: 1,
+      confgenVersion: "0.95.0",
+      runtimes: ["lib"],
+      presets: ["git"],
+      contributions: [],
+    }),
+  )
+  expect(parsed.runtimes).toEqual(["lib"])
+  expect(parsed.libraryPlatform).toBeUndefined()
+  expect(parsed.libraryTestKit).toBeUndefined()
+})
+
+test("records an explicit library test kit", () => {
+  const lock = lockFromContributions({
+    selection: {
+      runtimes: ["lib"],
+      libraryPlatform: "node",
+      libraryTestKit: true,
+      presets: [],
+    },
+    contributions: [],
+  })
+  const parsed = parseLock(serializeLock(lock))
+  expect(parsed.libraryPlatform).toBe("node")
+  expect(parsed.libraryTestKit).toBe(true)
+})
+
+test("rejects a test kit flag without the node platform", () => {
+  const error = parseError(
+    JSON.stringify({
+      lockVersion: 1,
+      confgenVersion: "0.0.0",
+      runtimes: ["lib"],
+      libraryPlatform: "browser",
+      libraryTestKit: true,
+      presets: [],
+      contributions: [],
+    }),
+  )
+  expect(error.problems).toEqual([
+    'confgen.lock: libraryTestKit requires libraryPlatform "node".',
+  ])
+})
+
+test("rejects a platform stored without the lib runtime", () => {
+  const error = parseError(
+    JSON.stringify({
+      lockVersion: 1,
+      confgenVersion: "0.0.0",
+      runtimes: ["server"],
+      libraryPlatform: "node",
+      presets: [],
+      contributions: [],
+    }),
+  )
+  expect(error.problems).toEqual([
+    "confgen.lock: libraryPlatform is set without the lib runtime.",
+  ])
 })
 
 function parseError(text: string): ConfgenError {

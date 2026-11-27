@@ -28,14 +28,47 @@ export const contributions: ProduceContributions = (selection) => [
   dependency("@types/node", "24.19.2"),
   script("check:types", typecheckCommand(selection)),
   ...COMPILER_OPTIONS.map(([name, value]) => option(name, value)),
-  option("types", compilerTypes(selection)),
+  option(
+    "types",
+    rootCompilerTypes(selection),
+    !libraryOwnsTypecheck(selection),
+  ),
+  ...(libraryOwnsTypecheck(selection)
+    ? [option("lib", platformLib(selection), false)]
+    : []),
   tsconfig("typescript:include", ["include"], includePaths(selection), "merge"),
   ...importMaps(selection),
   ...clientProject(selection),
 ]
 
-function compilerTypes(selection: Selection): string[] {
+/**
+ * The root tsconfig belongs to the library when no other non-client runtime
+ * shares it. Client code keeps its own project.
+ */
+function libraryOwnsTypecheck(selection: Selection): boolean {
+  return (
+    selection.runtimes.includes("lib") &&
+    selection.libraryPlatform !== undefined &&
+    selection.runtimes.every(
+      (runtime) => runtime === "lib" || runtime === "client",
+    )
+  )
+}
+
+function defaultTypes(selection: Selection): string[] {
   return selection.presets.includes("vite") ? ["node", "vite/client"] : ["node"]
+}
+
+function rootCompilerTypes(selection: Selection): string[] {
+  if (!libraryOwnsTypecheck(selection)) return defaultTypes(selection)
+  const viteTypes = selection.presets.includes("vite") ? ["vite/client"] : []
+  if (selection.libraryPlatform === "browser") return viteTypes
+  return ["node", ...viteTypes]
+}
+
+function platformLib(selection: Selection): string[] {
+  if (selection.libraryPlatform === "node") return ["ES2024"]
+  return ["ES2024", "DOM", "DOM.Iterable"]
 }
 
 function typecheckCommand(selection: Selection): string {
@@ -66,14 +99,14 @@ function importMaps(selection: Selection): Contribution[] {
       "typescript:import:gql",
       ["imports", "#gql"],
       "./gql/index.ts",
-      "replace"
+      "replace",
     ),
     json(
       "typescript:import:gql-star",
       ["imports", "#gql/*"],
       "./gql/*.ts",
-      "replace"
-    )
+      "replace",
+    ),
   )
   return maps
 }
@@ -83,7 +116,7 @@ function importMap(runtime: RuntimeName): Contribution {
     `typescript:import:${runtime}`,
     ["imports", `#${runtime}/*`],
     `./${runtimePath(runtime)}/*.ts`,
-    "replace"
+    "replace",
   )
 }
 
@@ -94,24 +127,34 @@ function clientProject(selection: Selection): Contribution[] {
       `typescript:client:${name}`,
       ["compilerOptions", name],
       value,
-      "merge"
-    )
+      "merge",
+    ),
   )
   options.push(
     clientTsconfig(
       "typescript:client:types",
       ["compilerOptions", "types"],
-      compilerTypes(selection),
-      "merge"
-    )
+      defaultTypes(selection),
+      "merge",
+    ),
   )
+  if (selection.presets.includes("graphql")) {
+    options.push(
+      clientTsconfig(
+        "typescript:client:gql-client",
+        ["compilerOptions", "paths", "#gql/client"],
+        ["./gql/client/index.ts"],
+        "replace",
+      ),
+    )
+  }
   return [
     ...options,
     clientTsconfig(
       "typescript:client:include",
       ["include"],
       clientInclude(selection),
-      "merge"
+      "merge",
     ),
   ]
 }
@@ -125,13 +168,13 @@ function clientInclude(selection: Selection): string[] {
 function option(
   name: string,
   value: JsonValue,
-  preserveExisting = true
+  preserveExisting = true,
 ): Contribution {
   return tsconfig(
     `typescript:compiler:${name}`,
     ["compilerOptions", name],
     value,
-    preserveExisting ? "merge" : "replace"
+    preserveExisting ? "merge" : "replace",
   )
 }
 
@@ -139,7 +182,7 @@ function tsconfig(
   id: string,
   address: StructuredAddress,
   value: JsonValue,
-  update: "merge" | "replace"
+  update: "merge" | "replace",
 ): Contribution {
   return {
     id,
@@ -157,7 +200,7 @@ function clientTsconfig(
   id: string,
   address: StructuredAddress,
   value: JsonValue,
-  update: "merge" | "replace"
+  update: "merge" | "replace",
 ): Contribution {
   return {
     id,
@@ -175,7 +218,7 @@ function json(
   id: string,
   address: StructuredAddress,
   value: JsonValue,
-  update: "merge" | "replace"
+  update: "merge" | "replace",
 ): Contribution {
   return {
     id,

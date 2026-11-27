@@ -41,7 +41,7 @@ const producers = {
 export function presetContributions(
   preset: PresetName,
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): readonly Contribution[] {
   const produce = producers[preset]
   if (produce === undefined) {

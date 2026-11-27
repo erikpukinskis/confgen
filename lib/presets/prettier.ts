@@ -22,7 +22,7 @@ export const contributions: ProduceContributions = (selection, facts) => {
       selection.runtimes.includes("client")
         ? [".yalc", "yalc.lock"]
         : []),
-      ...(selection.presets.includes("graphql") ? ["gql/**/_generated"] : [])
+      ...(selection.presets.includes("graphql") ? ["gql/**/_generated"] : []),
     )
   }
   const needed = ignores.filter(([, value]) => !ignoredByGit(value, gitignore))
@@ -40,19 +40,17 @@ export const contributions: ProduceContributions = (selection, facts) => {
             "prettier:sql-plugin",
             ["plugins"],
             ["prettier-plugin-sql-cst"],
-            "merge"
+            "merge",
           ),
         ]
       : []),
-    ...needed.map(
-      ([id, value]): Contribution => ({
-        id: `prettier:ignore:${id}`,
-        source: "preset:prettier",
-        kind: "line",
-        path: ".prettierignore",
-        value,
-      })
-    ),
+    ...needed.map(([id, value]): Contribution => ({
+      id: `prettier:ignore:${id}`,
+      source: "preset:prettier",
+      kind: "line",
+      path: ".prettierignore",
+      value,
+    })),
   ]
 }
 
@@ -88,7 +86,7 @@ function setting(
   id: string,
   address: StructuredAddress,
   value: JsonValue,
-  update: "merge" | "replace" = "replace"
+  update: "merge" | "replace" = "replace",
 ): Contribution {
   return {
     id,

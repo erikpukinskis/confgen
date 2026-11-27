@@ -12,8 +12,7 @@ import {
 import type { Selection } from "./selection"
 
 export type ContributionSource =
-  | `runtime:${RuntimeName}`
-  | `preset:${PresetName}`
+  `runtime:${RuntimeName}` | `preset:${PresetName}`
 
 export type JsonValue =
   | null
@@ -102,7 +101,7 @@ export type Contribution =
 
 export type ProduceContributions = (
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ) => readonly Contribution[]
 
 /**
@@ -111,8 +110,13 @@ export type ProduceContributions = (
  */
 export function collectContributions(
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): readonly Contribution[] {
+  if (selection.libraryTestKit === true && facts.hasLibraryTestEntry !== true) {
+    throw new ConfgenError([
+      "lib/test-kit.ts is missing. #lib:node:test-kit publishes that file at ./test-kit.",
+    ])
+  }
   const collected: Contribution[] = []
   for (const runtime of selection.runtimes) {
     collected.push(...runtimeContributions(runtime, selection, facts))
@@ -125,7 +129,7 @@ export function collectContributions(
     collected.map((contribution) => {
       if (contribution.kind !== "dependency") return contribution
       const manifest = facts.packages.find(
-        (packageFacts) => packageFacts.path === contribution.manifest
+        (packageFacts) => packageFacts.path === contribution.manifest,
       )
       const ranges = manifest?.dependencyRanges
       const existingRange =
@@ -142,7 +146,7 @@ export function collectContributions(
           process.env.DEV_CLUSTER_VERSION !== undefined)
         ? contribution
         : { ...contribution, range: existingRange }
-    })
+    }),
   )
 }
 
@@ -152,7 +156,7 @@ export function collectContributions(
  * incompatible overlaps.
  */
 export function normalizeContributions(
-  contributions: readonly Contribution[]
+  contributions: readonly Contribution[],
 ): Contribution[] {
   const sorted = contributions.slice().sort(compareContributions)
   const problems = [...duplicateIdProblems(sorted)]
@@ -161,7 +165,7 @@ export function normalizeContributions(
     ...duplicateIdProblems(aggregated),
     ...exclusivePathProblems(aggregated),
     ...structuredProblems(aggregated),
-    ...viteItemProblems(aggregated)
+    ...viteItemProblems(aggregated),
   )
   const uniqueProblems = unique(problems)
   if (uniqueProblems.length > 0) throw new ConfgenError(uniqueProblems)
@@ -170,7 +174,7 @@ export function normalizeContributions(
 
 function aggregate(
   contributions: readonly Contribution[],
-  problems: string[]
+  problems: string[],
 ): Contribution[] {
   const result: Contribution[] = []
   const dependencyIndex = new Map<string, number>()
@@ -193,7 +197,7 @@ function aggregate(
         existing.range !== contribution.range
       ) {
         problems.push(
-          `Dependency "${contribution.package}" in ${contribution.manifest} ${contribution.section} has ranges "${existing.range}" and "${contribution.range}".`
+          `Dependency "${contribution.package}" in ${contribution.manifest} ${contribution.section} has ranges "${existing.range}" and "${contribution.range}".`,
         )
       }
       continue
@@ -214,7 +218,7 @@ function aggregate(
         existing.command !== contribution.command
       ) {
         problems.push(
-          `Package script "${contribution.name}" in ${contribution.manifest} has commands "${existing.command}" and "${contribution.command}".`
+          `Package script "${contribution.name}" in ${contribution.manifest} has commands "${existing.command}" and "${contribution.command}".`,
         )
       }
       continue
@@ -263,7 +267,7 @@ function duplicateIdProblems(contributions: readonly Contribution[]): string[] {
 }
 
 function exclusivePathProblems(
-  contributions: readonly Contribution[]
+  contributions: readonly Contribution[],
 ): string[] {
   const problems: string[] = []
   for (const group of groupsByPath(contributions)) {
@@ -282,7 +286,7 @@ function exclusivePathProblems(
         if (left === undefined || right === undefined) continue
         if (!isExclusive(left) && !isExclusive(right)) continue
         problems.push(
-          `${left.kind} and ${right.kind} cannot share "${group.path}".`
+          `${left.kind} and ${right.kind} cannot share "${group.path}".`,
         )
       }
     }
@@ -294,7 +298,7 @@ function structuredProblems(contributions: readonly Contribution[]): string[] {
   const problems: string[] = []
   for (const group of groupsByPath(contributions)) {
     const structured = group.contributions.filter(
-      (contribution) => contribution.kind === "structured"
+      (contribution) => contribution.kind === "structured",
     )
     for (let leftIndex = 0; leftIndex < structured.length; leftIndex += 1) {
       for (
@@ -308,14 +312,14 @@ function structuredProblems(contributions: readonly Contribution[]): string[] {
         if (left.kind !== "structured" || right.kind !== "structured") continue
         if (left.format !== right.format) {
           problems.push(
-            `Structured formats differ in "${group.path}": ${left.format} and ${right.format}.`
+            `Structured formats differ in "${group.path}": ${left.format} and ${right.format}.`,
           )
         }
         if (addressesOverlap(left.address, right.address)) {
           problems.push(
             `Structured addresses overlap in "${group.path}": ${formatAddress(
-              left.address
-            )} and ${formatAddress(right.address)}.`
+              left.address,
+            )} and ${formatAddress(right.address)}.`,
           )
         }
       }
@@ -338,7 +342,7 @@ function viteItemProblems(contributions: readonly Contribution[]): string[] {
       if (reported.has(item.id)) continue
       reported.add(item.id)
       problems.push(
-        `Duplicate Vite configuration item "${item.id}" in ${contribution.path}.`
+        `Duplicate Vite configuration item "${item.id}" in ${contribution.path}.`,
       )
     }
   }
@@ -346,7 +350,7 @@ function viteItemProblems(contributions: readonly Contribution[]): string[] {
 }
 
 function groupsByPath(
-  contributions: readonly Contribution[]
+  contributions: readonly Contribution[],
 ): { path: string; contributions: Contribution[] }[] {
   const groups = new Map<string, Contribution[]>()
   for (const contribution of contributions) {
@@ -388,7 +392,7 @@ function isExclusive(contribution: Contribution): boolean {
 
 function addressesOverlap(
   left: StructuredAddress,
-  right: StructuredAddress
+  right: StructuredAddress,
 ): boolean {
   const shorter = left.length <= right.length ? left : right
   const longer = left.length <= right.length ? right : left

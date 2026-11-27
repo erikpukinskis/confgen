@@ -7,6 +7,7 @@ import { expect, test } from "vitest"
 
 const selection: Selection = {
   runtimes: ["lib"],
+  libraryPlatform: "universal",
   presets: ["typescript", "git"],
 }
 
@@ -33,7 +34,7 @@ test("creates absent files and leaves an unchanged rerun alone", () => {
     ".gitignore": "dist\n",
   })
   expect(
-    created.files.find((change) => change.path === "tsconfig.json")?.type
+    created.files.find((change) => change.path === "tsconfig.json")?.type,
   ).toBe("write")
   expect(created.runYarnInstall).toBe(true)
 
@@ -193,7 +194,7 @@ test("preserves application JSON values on first adoption", () => {
         ["compilerOptions"],
         { strict: true },
         "merge",
-        "tsconfig.json"
+        "tsconfig.json",
       ),
     ],
     prior: undefined,
@@ -245,7 +246,7 @@ test("migrates the package manager when adopting the Yarn preset", () => {
   })
 
   expect(
-    JSON.parse(writtenContents(result.files, "package.json"))
+    JSON.parse(writtenContents(result.files, "package.json")),
   ).toMatchObject({
     packageManager: "yarn@4.11.0",
   })
@@ -386,11 +387,11 @@ test("upgrades a recognized line and dependency, and can remove them", () => {
     pnpPresent: true,
   })
   expect(writtenContents(upgraded.files, ".gitignore")).toBe(
-    "node_modules\ndist/\n"
+    "node_modules\ndist/\n",
   )
   expect(
     parsedObject(writtenContents(upgraded.files, "package.json"))
-      .devDependencies
+      .devDependencies,
   ).toEqual({
     typescript: "^6",
   })
@@ -408,7 +409,8 @@ test("upgrades a recognized line and dependency, and can remove them", () => {
   })
   expect(writtenContents(removed.files, ".gitignore")).toBe("node_modules\n")
   expect(
-    parsedObject(writtenContents(removed.files, "package.json")).devDependencies
+    parsedObject(writtenContents(removed.files, "package.json"))
+      .devDependencies,
   ).toBeUndefined()
 })
 
@@ -459,7 +461,9 @@ test("does not recreate a delivered starter after it is deleted", () => {
   })
   expect(result.files).toEqual([])
   expect(
-    result.lock.contributions.find((entry) => entry.strategy === "starter-file")
+    result.lock.contributions.find(
+      (entry) => entry.strategy === "starter-file",
+    ),
   ).toMatchObject({ path: "lib/index.ts" })
 })
 
@@ -483,7 +487,9 @@ test("adopts an existing project without a lock and does not invent removals", (
   expect(result.files.map((change) => change.path)).toEqual([".gitignore"])
   expect(writtenContents(result.files, ".gitignore")).toBe("notes\ndist\n")
   expect(
-    result.lock.contributions.find((entry) => entry.strategy === "starter-file")
+    result.lock.contributions.find(
+      (entry) => entry.strategy === "starter-file",
+    ),
   ).toMatchObject({
     path: "lib/index.ts",
   })
@@ -502,7 +508,7 @@ test("records whole-file hashes and does not require yarn for scripts alone", ()
     pnpPresent: false,
   })
   const recorded = result.lock.contributions.find(
-    (entry) => entry.id === "Dockerfile"
+    (entry) => entry.id === "Dockerfile",
   )
   expect(recorded).toMatchObject({
     strategy: "whole-file",
@@ -578,7 +584,7 @@ function reconcileError(input: Parameters<typeof reconcile>[0]): ConfgenError {
 }
 
 function changeMap(
-  files: readonly { type: string; path: string; contents?: string }[]
+  files: readonly { type: string; path: string; contents?: string }[],
 ): Record<string, string> {
   const result: Record<string, string> = {}
   for (const change of files) {
@@ -590,10 +596,10 @@ function changeMap(
 }
 
 function packageText(
-  files: readonly { type: string; path: string; contents?: string }[]
+  files: readonly { type: string; path: string; contents?: string }[],
 ): string {
   const change = files.find(
-    (entry) => entry.path === "package.json" && entry.type === "write"
+    (entry) => entry.path === "package.json" && entry.type === "write",
   )
   if (change === undefined || change.contents === undefined) {
     throw new Error("package.json was not written")
@@ -603,10 +609,10 @@ function packageText(
 
 function writtenContents(
   files: readonly { type: string; path: string; contents?: string }[],
-  path: string
+  path: string,
 ): string {
   const change = files.find(
-    (entry) => entry.path === path && entry.type === "write"
+    (entry) => entry.path === path && entry.type === "write",
   )
   if (change === undefined || change.contents === undefined) {
     throw new Error(`${path} was not written`)
@@ -659,7 +665,7 @@ function structured(
   address: readonly (string | number)[],
   value: JsonValue,
   update: "merge" | "replace",
-  path = "tsconfig.json"
+  path = "tsconfig.json",
 ): Contribution {
   return {
     id: address.join("."),

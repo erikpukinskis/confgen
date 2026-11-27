@@ -11,7 +11,7 @@ import type {
 import { ConfgenError } from "./errors"
 import { isPresetName, type PresetName } from "./presets/registry"
 import { isRuntimeName, type RuntimeName } from "./runtimes"
-import type { Selection } from "./selection"
+import { LIBRARY_PLATFORMS, type Selection } from "./selection"
 import { isMissingFile, type System } from "./system"
 import { z } from "zod"
 
@@ -35,11 +35,11 @@ const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
     z.string(),
     z.array(jsonValueSchema),
     z.record(z.string(), jsonValueSchema),
-  ])
+  ]),
 )
 
 const addressSchema = z.array(
-  z.union([z.string().min(1), z.number().int().nonnegative()])
+  z.union([z.string().min(1), z.number().int().nonnegative()]),
 )
 
 const viteImportSchema = z.object({
@@ -134,15 +134,19 @@ const lockContributionSchema = z.discriminatedUnion("strategy", [
         viteImportSchema,
         vitePluginSchema,
         vitePropertySchema,
-      ])
+      ]),
     ),
   }),
 ])
+
+const libraryPlatformSchema = z.enum(LIBRARY_PLATFORMS)
 
 const lockSchema = z.object({
   lockVersion: z.literal(SUPPORTED_LOCK_VERSION),
   confgenVersion: z.string().min(1),
   runtimes: z.array(z.string().refine(isRuntimeName)),
+  libraryPlatform: libraryPlatformSchema.optional(),
+  libraryTestKit: z.literal(true).optional(),
   presets: z.array(z.string().refine(isPresetName)),
   contributions: z.array(lockContributionSchema),
 })
@@ -163,7 +167,7 @@ export function confgenVersion(): string {
   if (ownVersion !== undefined) return ownVersion
   const path = fileURLToPath(new URL("../package.json", import.meta.url))
   const parsed = ownPackageSchema.safeParse(
-    jsonUnknown(JSON.parse(readFileSync(path, "utf8")))
+    jsonUnknown(JSON.parse(readFileSync(path, "utf8"))),
   )
   if (!parsed.success) {
     throw new Error("confgen package.json has no version")
@@ -193,6 +197,10 @@ export function lockFromContributions(input: {
     lockVersion: SUPPORTED_LOCK_VERSION,
     confgenVersion: confgenVersion(),
     runtimes: [...input.selection.runtimes],
+    ...(input.selection.libraryPlatform === undefined
+      ? {}
+      : { libraryPlatform: input.selection.libraryPlatform }),
+    ...recordedTestKit(input.selection.libraryTestKit),
     presets: [...input.selection.presets],
     contributions,
   }
@@ -245,10 +253,33 @@ export function parseLock(text: string): LockData {
         const path = issue.path.map(String).join(".")
         const location = path.length === 0 ? LOCK_PATH : `${LOCK_PATH}: ${path}`
         return `${location}: ${issue.message}`
-      })
+      }),
     )
   }
+  const platformProblem = libraryPlatformProblem(parsed.data)
+  if (platformProblem !== undefined) throw new ConfgenError([platformProblem])
   return parsed.data
+}
+
+function recordedTestKit(
+  selected: true | undefined,
+): { libraryTestKit: true } | Record<string, never> {
+  if (selected !== true) return {}
+  return { libraryTestKit: true }
+}
+
+function libraryPlatformProblem(lock: LockData): string | undefined {
+  const hasLib = lock.runtimes.includes("lib")
+  if (!hasLib && lock.libraryPlatform !== undefined) {
+    return `${LOCK_PATH}: libraryPlatform is set without the lib runtime.`
+  }
+  if (!hasLib && lock.libraryTestKit === true) {
+    return `${LOCK_PATH}: libraryTestKit is set without the lib runtime.`
+  }
+  if (lock.libraryTestKit === true && lock.libraryPlatform !== "node") {
+    return `${LOCK_PATH}: libraryTestKit requires libraryPlatform "node".`
+  }
+  return undefined
 }
 
 /**
@@ -257,7 +288,7 @@ export function parseLock(text: string): LockData {
  */
 export async function writeLockFile(
   system: System,
-  lock: LockData
+  lock: LockData,
 ): Promise<void> {
   const next = serializeLock(lock)
   const current = await readOptional(system, LOCK_PATH)
@@ -269,7 +300,7 @@ export async function writeLockFile(
 export function viteItemsFromLock(
   items: ReadonlyArray<
     Extract<LockContribution, { strategy: "vite-config" }>["items"][number]
-  >
+  >,
 ): ViteConfigItem[] {
   return items.map(viteItemFromLock)
 }
@@ -402,6 +433,10 @@ function orderedLock(lock: LockData): LockData {
     lockVersion: lock.lockVersion,
     confgenVersion: lock.confgenVersion,
     runtimes: [...lock.runtimes],
+    ...(lock.libraryPlatform === undefined
+      ? {}
+      : { libraryPlatform: lock.libraryPlatform }),
+    ...recordedTestKit(lock.libraryTestKit),
     presets: [...lock.presets],
     contributions: lock.contributions
       .slice()
@@ -420,7 +455,7 @@ function orderedContribution(contribution: LockContribution): LockContribution {
 
 function compareLockContributions(
   left: LockContribution,
-  right: LockContribution
+  right: LockContribution,
 ): number {
   return compareText(left.id, right.id)
 }
@@ -447,7 +482,7 @@ function isContributionSource(value: string): value is ContributionSource {
 
 async function readOptional(
   system: System,
-  path: string
+  path: string,
 ): Promise<string | undefined> {
   try {
     return await system.readFile(path)

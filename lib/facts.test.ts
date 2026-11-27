@@ -20,7 +20,7 @@ test("reads identity, workspaces, repository, and registry from manifests", asyn
         registry: "https://npm.pkg.github.com",
         access: "restricted",
       },
-    })
+    }),
   )
   await system.writeFile(
     "client/package.json",
@@ -32,7 +32,7 @@ test("reads identity, workspaces, repository, and registry from manifests", asyn
         directory: "client",
       },
       publishConfig: { registry: "https://npm.pkg.github.com" },
-    })
+    }),
   )
 
   expect(await readProjectFacts(system)).toEqual({
@@ -98,11 +98,11 @@ test("reads a workspace package list object", async () => {
     JSON.stringify({
       name: "root",
       workspaces: { packages: ["client"] },
-    })
+    }),
   )
   await system.writeFile(
     "client/package.json",
-    JSON.stringify({ name: "@example/client" })
+    JSON.stringify({ name: "@example/client" }),
   )
 
   const facts = await readProjectFacts(system)
@@ -119,17 +119,56 @@ test("detects an existing integration test and a published library file", async 
     "package.json",
     JSON.stringify({
       name: "@example/package-service",
-      exports: { "./test": { types: "./dist/lib/test.d.ts" } },
-    })
+      exports: {
+        ".": { types: "./dist/lib/index.d.ts" },
+        "./test-kit": { types: "./dist/lib/test-kit.d.ts" },
+      },
+    }),
   )
-  await system.writeFile("lib/test.ts", "export const kit = true\n")
+  await system.writeFile("lib/index.ts", "export const value = 1\n")
+  await system.writeFile("lib/test-kit.ts", "export const kit = true\n")
   await system.writeFile("integration/publishing.test.ts", "export {}\n")
   await system.writeFile(".gitignore", "dist\n")
 
   const facts = await readProjectFacts(system)
   expect(facts.hasPublishedLibFile).toBe(true)
+  expect(facts.hasLibraryTestEntry).toBe(true)
   expect(facts.hasApplicationIntegrationTest).toBe(true)
   expect(facts.gitignore).toBe("dist\n")
+})
+
+test("a test kit export does not count as an application library", async () => {
+  const system = await project()
+  await system.writeFile(
+    "package.json",
+    JSON.stringify({
+      name: "@example/schema-service",
+      exports: {
+        ".": { import: { types: "./dist/lib/index.d.ts" } },
+        "./test-kit": { import: { types: "./dist/lib/test-kit.d.ts" } },
+      },
+    }),
+  )
+  await system.writeFile("lib/index.ts", "export const value = 1\n")
+  await system.writeFile("lib/test-kit.ts", "export const kit = true\n")
+
+  const facts = await readProjectFacts(system, {
+    lockVersion: 1,
+    confgenVersion: "0.0.0",
+    runtimes: ["lib", "server"],
+    libraryPlatform: "node",
+    presets: ["graphql"],
+    contributions: [
+      {
+        id: "runtime:lib:index",
+        source: "runtime:lib",
+        path: "lib/index.ts",
+        strategy: "starter-file",
+      },
+    ],
+  })
+  expect(facts.hasPublishedLibFile).toBeUndefined()
+  expect(facts.hasLibraryTestEntry).toBe(true)
 })
 
 test("detects the existing integration workflow filename", async () => {
@@ -151,12 +190,12 @@ test("reports every missing or invalid manifest field", async () => {
       version: 1,
       repository: { url: "https://github.com/example/root.git" },
       workspaces: ["client", "docs"],
-    })
+    }),
   )
   await system.writeFile("client/package.json", "{")
   await system.writeFile(
     "docs/package.json",
-    JSON.stringify({ name: "", version: "" })
+    JSON.stringify({ name: "", version: "" }),
   )
 
   expect((await factsError(system)).problems).toEqual([
@@ -177,7 +216,7 @@ test("names the field when a manifest union has the wrong shape", async () => {
       name: "root",
       repository: "",
       workspaces: { packages: [1] },
-    })
+    }),
   )
 
   expect((await factsError(system)).problems).toEqual([
@@ -190,7 +229,7 @@ test("reports a workspace value that matches neither accepted shape", async () =
   const system = await project()
   await system.writeFile(
     "package.json",
-    JSON.stringify({ name: "root", workspaces: 1 })
+    JSON.stringify({ name: "root", workspaces: 1 }),
   )
 
   expect((await factsError(system)).problems).toEqual([
@@ -202,7 +241,7 @@ test("reports a missing manifest", async () => {
   const system = await project()
   await system.writeFile(
     "package.json",
-    JSON.stringify({ name: "root", workspaces: ["client"] })
+    JSON.stringify({ name: "root", workspaces: ["client"] }),
   )
 
   expect((await factsError(system)).problems).toEqual([
@@ -217,7 +256,7 @@ test("reports unsafe workspace paths and does not read them", async () => {
     JSON.stringify({
       name: "root",
       workspaces: ["../outside", "/etc", "packages/*"],
-    })
+    }),
   )
 
   expect((await factsError(system)).problems).toEqual([

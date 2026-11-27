@@ -10,21 +10,19 @@ export const contributions: ProduceContributions = (selection) => {
     lines.push(
       ["yalc-store", ".yalc-store"],
       ["yalc-dir", ".yalc"],
-      ["yalc-lock", "yalc.lock"]
+      ["yalc-lock", "yalc.lock"],
     )
   }
   if (selection.presets.includes("graphql")) {
     lines.push(["generated-graphql", "gql/**/_generated"])
   }
-  return lines.map(
-    ([id, value]): Contribution => ({
-      id: `git:ignore:${id}`,
-      source: "preset:git",
-      kind: "line",
-      path: ".gitignore",
-      value,
-    })
-  )
+  return lines.map(([id, value]): Contribution => ({
+    id: `git:ignore:${id}`,
+    source: "preset:git",
+    kind: "line",
+    path: ".gitignore",
+    value,
+  }))
 }
 
 const IGNORE_LINES: readonly (readonly [string, string])[] = [

@@ -25,7 +25,7 @@ const client = {
 }
 const facts: ProjectFacts = { root, packages: [root, client] }
 const selection = parseSelection([
-  "runtimes=#lib,#server,#client,#integration,#gateway",
+  "runtimes=#lib:node,#server,#client,#integration,#gateway",
   "yarn",
   "typescript",
   "vite",
@@ -63,18 +63,18 @@ test("generates the seven reusable workflows and the established call graph", ()
     "unit-tests",
   ])
   expect(record(ciJobs["code-format"]).uses).toBe(
-    "./.github/workflows/check-code-format.yml"
+    "./.github/workflows/check-code-format.yml",
   )
   expect(record(ciJobs.lint).uses).toBe("./.github/workflows/check-lint.yml")
   expect(record(ciJobs.types).uses).toBe("./.github/workflows/check-types.yml")
   expect(record(ciJobs["unit-tests"]).uses).toBe(
-    "./.github/workflows/unit-tests.yml"
+    "./.github/workflows/unit-tests.yml",
   )
   expect(record(ciJobs["integration-tests"]).uses).toBe(
-    "./.github/workflows/integration-tests.yml"
+    "./.github/workflows/integration-tests.yml",
   )
   expect(record(ciJobs.artifacts).uses).toBe(
-    "./.github/workflows/artifacts.yml"
+    "./.github/workflows/artifacts.yml",
   )
   expect(record(ciJobs.artifacts).needs).toEqual([
     "types",
@@ -96,7 +96,7 @@ test("keeps existing integration workflow spelling", () => {
     const workflows = workflowTexts(selection, withExistingPath)
     expect(workflows.has(path)).toBe(true)
     const ciJobs = record(
-      parseWorkflow(required(workflows, ".github/workflows/ci.yml")).jobs
+      parseWorkflow(required(workflows, ".github/workflows/ci.yml")).jobs,
     )
     expect(record(ciJobs["integration-tests"]).uses).toBe(`./${path}`)
   }
@@ -105,26 +105,28 @@ test("keeps existing integration workflow spelling", () => {
 test("keeps publication in one artifacts job and preserves command order", () => {
   const workflows = workflowTexts(selection, facts)
   expect(
-    commandTexts(required(workflows, ".github/workflows/check-code-format.yml"))
+    commandTexts(
+      required(workflows, ".github/workflows/check-code-format.yml"),
+    ),
   ).toContain("yarn check:format")
   expect(
-    commandTexts(required(workflows, ".github/workflows/check-lint.yml"))
+    commandTexts(required(workflows, ".github/workflows/check-lint.yml")),
   ).toContain("yarn check:lint")
   expect(
-    commandTexts(required(workflows, ".github/workflows/check-types.yml"))
+    commandTexts(required(workflows, ".github/workflows/check-types.yml")),
   ).toContain("yarn build && yarn check:types")
   expect(
-    commandTexts(required(workflows, ".github/workflows/unit-tests.yml"))
+    commandTexts(required(workflows, ".github/workflows/unit-tests.yml")),
   ).toContain("yarn test")
   const integration = required(
     workflows,
-    ".github/workflows/integration-tests.yml"
+    ".github/workflows/integration-tests.yml",
   )
   expect(commandTexts(integration)).toContain("yarn dev-cluster certs")
   expect(commandTexts(integration)).toContain("yarn test:integration:ci")
 
   const artifacts = parseWorkflow(
-    required(workflows, ".github/workflows/artifacts.yml")
+    required(workflows, ".github/workflows/artifacts.yml"),
   )
   const artifactJobs = record(artifacts.jobs)
   expect(Object.keys(artifactJobs)).toEqual(["package"])
@@ -132,7 +134,7 @@ test("keeps publication in one artifacts job and preserves command order", () =>
   expect(packageJob["runs-on"]).toBe("ubuntu-latest")
   const steps = jobSteps(packageJob)
   expect(
-    steps.map((step) => step.name).filter((name) => typeof name === "string")
+    steps.map((step) => step.name).filter((name) => typeof name === "string"),
   ).toEqual([
     "Check out",
     "Enable Yarn cache",
@@ -155,17 +157,18 @@ test("keeps publication in one artifacts job and preserves command order", () =>
   expect(commands).toContain("yarn bump-n-pub check-pack")
   expect(commands).toContain("gh release create")
   expect(commands).toContain(
-    'sed -i "s/[$]{IMAGE_TAG:?}/$IMAGE_TAG/g" compose.base.yaml'
+    'sed -i "s/[$]{IMAGE_TAG:?}/$IMAGE_TAG/g" compose.base.yaml',
   )
   expect(
     record(
-      stepWithName(packageJob, "Push package-api-server image to registry").with
-    ).tags
+      stepWithName(packageJob, "Push package-api-server image to registry")
+        .with,
+    ).tags,
   ).toBe("ghcr.io/example/package-api-server:${{ env.IMAGE_TAG }}")
   expect(
     record(
-      stepWithName(packageJob, "Push package-service image to registry").with
-    ).tags
+      stepWithName(packageJob, "Push package-service image to registry").with,
+    ).tags,
   ).toBe("ghcr.io/example/package-service:${{ env.IMAGE_TAG }}")
 })
 
@@ -202,7 +205,7 @@ test("preserves Schema Service's no-release artifacts policy", () => {
   ])
   const workflows = workflowTexts(schemaSelection, schemaFacts)
   const integration = parseWorkflow(
-    required(workflows, ".github/workflows/integration-tests.yml")
+    required(workflows, ".github/workflows/integration-tests.yml"),
   )
   const integrationJob = requiredWorkflow(record(integration.jobs), "run")
   const locate = stepWithName(integrationJob, "Locate Package Service")
@@ -210,24 +213,24 @@ test("preserves Schema Service's no-release artifacts policy", () => {
   expect(locate.run).toContain('>> "$GITHUB_ENV"')
   expect(jobSteps(integrationJob).indexOf(locate)).toBeLessThan(
     jobSteps(integrationJob).findIndex(
-      (step) => step.run === "yarn test:integration:ci"
-    )
+      (step) => step.run === "yarn test:integration:ci",
+    ),
   )
   const jobs = record(
-    parseWorkflow(required(workflows, ".github/workflows/artifacts.yml")).jobs
+    parseWorkflow(required(workflows, ".github/workflows/artifacts.yml")).jobs,
   )
   const packageJob = requiredWorkflow(jobs, "package")
   expect(
-    jobSteps(packageJob).some((step) => step.name === "Create GitHub release")
+    jobSteps(packageJob).some((step) => step.name === "Create GitHub release"),
   ).toBe(false)
   expect(
-    jobSteps(packageJob).some((step) => step.name === "Publish client package")
+    jobSteps(packageJob).some((step) => step.name === "Publish client package"),
   ).toBe(false)
 })
 
 function workflowTexts(
   next: typeof selection,
-  project: ProjectFacts
+  project: ProjectFacts,
 ): Map<string, string> {
   const result = reconcile({
     selection: next,
@@ -241,8 +244,8 @@ function workflowTexts(
     result.files.flatMap((change) =>
       change.type === "write" && change.path.startsWith(".github/workflows/")
         ? [[change.path, change.contents] as const]
-        : []
-    )
+        : [],
+    ),
   )
 }
 
@@ -270,7 +273,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function requiredWorkflow(
   jobs: Record<string, unknown>,
-  name: string
+  name: string,
 ): Record<string, unknown> {
   return record(jobs[name])
 }
@@ -281,7 +284,7 @@ function jobSteps(job: Record<string, unknown>): Record<string, unknown>[] {
 
 function stepWithName(
   job: Record<string, unknown>,
-  name: string
+  name: string,
 ): Record<string, unknown> {
   const step = jobSteps(job).find((entry) => entry.name === name)
   if (step === undefined) throw new Error(`missing step ${name}`)

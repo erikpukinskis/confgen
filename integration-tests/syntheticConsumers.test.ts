@@ -19,17 +19,17 @@ import {
 import { expect, test } from "vitest"
 
 const fixture = fileURLToPath(
-  new URL("./fixtures/package-service/", import.meta.url)
+  new URL("./fixtures/package-service/", import.meta.url),
 )
 const rootName = "@example/package-service"
 const clientName = "@example/package-service-client"
 
 test(
-  "the packed package service builds, publishes, and reruns cleanly",
+  "the package service test verifies confgen behavior for an empty project",
   { timeout: 1_500_000 },
   async () => {
     const args = [
-      "runtimes=#lib,#server,#client,#integration,#gateway",
+      "runtimes=#lib:node:test-kit,#server,#client,#integration,#gateway",
       "yarn",
       "typescript",
       "vite",
@@ -64,7 +64,7 @@ test(
         project,
         { SSL_PATH: sslDirectory },
         ["certs"],
-        60_000
+        60_000,
       )
       await proveGraphqlSource(project, sslDirectory)
       await expectRuntimeScopes(project)
@@ -75,7 +75,6 @@ test(
       await project.run("yarn", ["install"], 180_000)
       await project.run("yarn", ["build:generate"], 180_000)
       await project.run("yarn", ["build:lib"], 180_000)
-      await project.run("yarn", ["build:test-kit"], 180_000)
       await project.run("yarn", ["build:server"], 180_000)
       await project.run("yarn", ["build:client"], 180_000)
       await project.run("yarn", ["check:types"], 180_000)
@@ -117,13 +116,13 @@ test(
       await bumpNPub.cleanup()
       await project.cleanup()
     }
-  }
+  },
 )
 
 async function pinTool(
   project: SyntheticProject,
   tarball: string,
-  name: string
+  name: string,
 ): Promise<void> {
   const destination = join(project.directory, ".yalc", name)
   await mkdir(destination, { recursive: true })
@@ -179,7 +178,7 @@ async function proveReleaseCommands(project: SyntheticProject): Promise<void> {
       {
         GITHUB_REF_NAME: "main",
         PUBLISHING_BRANCHES: '["main"]',
-      }
+      },
     )
     expect(prepared.stdout).toContain("package_version=0.1.0")
     expect(prepared.stdout).toContain("should_publish=true")
@@ -205,7 +204,7 @@ async function writeRegistry(path: string, registry: string): Promise<void> {
 
 async function proveGraphqlSource(
   project: SyntheticProject,
-  sslDirectory: string
+  sslDirectory: string,
 ): Promise<void> {
   const checkPath = join(project.directory, "gql/checkSchema.ts")
   await writeFile(
@@ -215,7 +214,7 @@ if (!schema.includes("greeting")) {
   throw new Error("schema was not loaded")
 }
 console.log("schema-loaded")
-`
+`,
   )
   try {
     const loaded = await project.run("yarn", [
@@ -251,7 +250,7 @@ console.log("schema-loaded")
 
 async function proveContainer(
   project: SyntheticProject,
-  env: Readonly<Record<string, string>>
+  env: Readonly<Record<string, string>>,
 ): Promise<void> {
   const sslPath = env.SSL_PATH
   if (sslPath === undefined) {
@@ -269,7 +268,7 @@ async function proveContainer(
       "config",
     ],
     60_000,
-    env
+    env,
   )
   expect(configured.stdout).toContain("package-api-server")
   expect(configured.stdout).toContain("target: dev")
@@ -281,18 +280,18 @@ async function proveContainer(
     "docker",
     ["compose", "-f", "compose.base.yaml", "config"],
     60_000,
-    env
+    env,
   )
   expect(base.stdout).toContain("ghcr.io/example/package-api-server:test")
   expect(base.stdout).toContain("ghcr.io/example/package-service:test")
   expect(base.stdout).not.toContain("target: dev")
   expect(base.stdout).toContain(
-    "ghcr.io/example/package-service-integration-test-host:test"
+    "ghcr.io/example/package-service-integration-test-host:test",
   )
   expect(base.stdout).not.toContain("/mnt/package-service")
   const manifest = await readManifest(project.directory, "package.json")
   expect(scriptCommand(manifest, "test:integration:ci")).toBe(
-    "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host"
+    "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host",
   )
 
   await project.run(
@@ -306,7 +305,7 @@ async function proveContainer(
       ".",
     ],
     600_000,
-    env
+    env,
   )
   await project.run(
     "docker",
@@ -319,7 +318,7 @@ async function proveContainer(
       ".",
     ],
     600_000,
-    env
+    env,
   )
   try {
     await project.run(
@@ -338,20 +337,20 @@ async function proveContainer(
         "package-service",
       ],
       180_000,
-      env
+      env,
     )
     const listed = await project.run(
       "docker",
       ["compose", "-f", "compose.base.yaml", "ps", "-q", "package-api-server"],
       30_000,
-      env
+      env,
     )
     const containerId = listed.stdout.trim()
     const health = await project.run(
       "docker",
       ["inspect", "--format", "{{.State.Health.Status}}", containerId],
       30_000,
-      env
+      env,
     )
     expect(health.stdout.trim()).toBe("healthy")
     const response = await project.run(
@@ -369,7 +368,7 @@ async function proveContainer(
         "https://package-api-server.local.multiplayerdb.dev:7001/",
       ],
       30_000,
-      env
+      env,
     )
     expect(response.stdout).toContain("Hello, baseline")
     const check = await project.run(
@@ -387,7 +386,7 @@ async function proveContainer(
         "https://package-api-server.local.multiplayerdb.dev:7001/healthcheck",
       ],
       30_000,
-      env
+      env,
     )
     expect(check.stdout).toContain("ok")
     const gatewayHealth = await project.run(
@@ -405,7 +404,7 @@ async function proveContainer(
         "https://package-service.local.multiplayerdb.dev/healthcheck",
       ],
       30_000,
-      env
+      env,
     )
     expect(gatewayHealth.stdout).toContain("ok")
     const proxied = await project.run(
@@ -428,7 +427,7 @@ async function proveContainer(
         "https://package-service.local.multiplayerdb.dev/api",
       ],
       30_000,
-      env
+      env,
     )
     expect(proxied.stdout).toContain("Hello, baseline")
   } finally {
@@ -443,7 +442,7 @@ async function proveContainer(
  */
 async function withoutLocalFileDependencies(
   project: SyntheticProject,
-  run: () => Promise<void>
+  run: () => Promise<void>,
 ): Promise<void> {
   const manifestPath = join(project.directory, "package.json")
   const lockPath = join(project.directory, "yarn.lock")
@@ -453,7 +452,7 @@ async function withoutLocalFileDependencies(
   if (!isRecord(parsed)) throw new Error("package.json must be an object")
   await writeFile(
     manifestPath,
-    `${JSON.stringify(stripLocalPins(parsed), null, 2)}\n`
+    `${JSON.stringify(stripLocalPins(parsed), null, 2)}\n`,
   )
   try {
     await project.run("yarn", ["install"], 180_000)
@@ -466,7 +465,7 @@ async function withoutLocalFileDependencies(
 }
 
 function stripLocalPins(
-  manifest: Record<string, unknown>
+  manifest: Record<string, unknown>,
 ): Record<string, unknown> {
   const pinned = new Set<string>()
   const resolutions = isRecord(manifest.resolutions) ? manifest.resolutions : {}
@@ -508,12 +507,12 @@ function isLocalPin(value: unknown): boolean {
 }
 
 const devClusterRoot = fileURLToPath(
-  new URL("../../dev-cluster/", import.meta.url)
+  new URL("../../dev-cluster/", import.meta.url),
 )
 
 async function proveLocalIntegration(
   project: SyntheticProject,
-  env: Readonly<Record<string, string>>
+  env: Readonly<Record<string, string>>,
 ): Promise<void> {
   try {
     await project.run("yarn", ["test:integration:local"], 900_000, env)
@@ -526,7 +525,7 @@ async function runDevCluster(
   project: SyntheticProject,
   env: Readonly<Record<string, string>>,
   args: readonly string[],
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<void> {
   const script = [
     "process.chdir(process.env.PROJECT_DIRECTORY ?? '')",
@@ -541,13 +540,13 @@ async function runDevCluster(
       ...env,
       PROJECT_DIRECTORY: project.directory,
       DEV_CLUSTER_CLI: pathToFileURL(join(devClusterRoot, "dist/cli.js")).href,
-    }
+    },
   )
 }
 
 async function stopContainers(
   project: SyntheticProject,
-  env: Readonly<Record<string, string>>
+  env: Readonly<Record<string, string>>,
 ): Promise<void> {
   try {
     await project.run("yarn", ["stop:containers:local"], 120_000, env)
@@ -559,7 +558,7 @@ async function stopContainers(
       "docker",
       ["compose", "-f", "compose.base.yaml", "down", "-v", "--remove-orphans"],
       120_000,
-      env
+      env,
     )
   } catch {
     // The service may not have started.
@@ -573,38 +572,40 @@ async function expectRuntimeScopes(project: SyntheticProject): Promise<void> {
   await expectFile(project.directory, "gateway/public/index.html")
   await expectFile(project.directory, "gateway/Dockerfile")
   const tsconfig = parseObject(
-    JSON.parse(await readFile(join(project.directory, "tsconfig.json"), "utf8"))
+    JSON.parse(
+      await readFile(join(project.directory, "tsconfig.json"), "utf8"),
+    ),
   )
   expect(stringList(tsconfig.include)).toEqual(
-    expect.arrayContaining(["integration/**/*.ts", "gateway/**/*.ts"])
+    expect.arrayContaining(["integration/**/*.ts", "gateway/**/*.ts"]),
   )
   const unit = await readFile(
     join(project.directory, "vite.test.config.ts"),
-    "utf8"
+    "utf8",
   )
   expect(unit).not.toContain("integration/**/*.test.ts")
   const focused = await readFile(
     join(project.directory, "vite.integration.config.ts"),
-    "utf8"
+    "utf8",
   )
   expect(focused).toContain("integration/**/*.test.ts")
   const manifest = await readManifest(project.directory, "package.json")
   expect(scriptCommand(manifest, "check:types")).toContain("tsconfig.json")
   expect(scriptCommand(manifest, "build")).toContain("yarn build:server")
   expect(scriptCommand(manifest, "test:integration:run")).toBe(
-    "vitest run --config vite.integration.config.ts"
+    "vitest run --config vite.integration.config.ts",
   )
   expect(scriptCommand(manifest, "test:integration:local")).toBe(
-    "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service-integration-test-host"
+    "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service-integration-test-host",
   )
   expect(scriptCommand(manifest, "test:integration:ci")).toBe(
-    "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host"
+    "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host",
   )
 }
 
 function scriptCommand(
   manifest: Record<string, unknown>,
-  name: string
+  name: string,
 ): string {
   const scripts = manifest.scripts
   if (!isRecord(scripts)) throw new Error("missing scripts")
@@ -624,12 +625,12 @@ function stringList(value: unknown): string[] {
 }
 
 async function expectPublishedPackages(
-  project: SyntheticProject
+  project: SyntheticProject,
 ): Promise<void> {
   await expectFile(project.directory, "dist/lib/index.js")
   await expectFile(project.directory, "dist/lib/index.d.ts")
-  await expectFile(project.directory, "dist/test/index.js")
-  await expectFile(project.directory, "dist/test/index.d.ts")
+  await expectFile(project.directory, "dist/lib/test-kit.js")
+  await expectFile(project.directory, "dist/lib/test-kit.d.ts")
   await expectFile(project.directory, "client/dist/index.js")
   await expectFile(project.directory, "client/dist/client/index.d.ts")
   const rootManifest = await readManifest(project.directory, "package.json")
@@ -638,11 +639,21 @@ async function expectPublishedPackages(
   expect(publishRegistry(rootManifest)).toBe("https://npm.example.test")
   expect(exportImport(rootManifest, ".")).toBe("./dist/lib/index.js")
   expect(exportTypes(rootManifest, ".")).toBe("./dist/lib/index.d.ts")
-  expect(exportImport(rootManifest, "./test")).toBe("./dist/test/index.js")
-  expect(exportTypes(rootManifest, "./test")).toBe("./dist/test/index.d.ts")
+  expect(exportImport(rootManifest, "./test-kit")).toBe(
+    "./dist/lib/test-kit.js",
+  )
+  expect(exportTypes(rootManifest, "./test-kit")).toBe(
+    "./dist/lib/test-kit.d.ts",
+  )
+  expect(exportImport(rootManifest, "./test")).toBeUndefined()
+  const testKitSource = await readFile(
+    join(project.directory, "dist/lib/test-kit.js"),
+    "utf8",
+  )
+  expect(testKitSource).toMatch(/from ["']graphql-dev-kit\/test["']/)
   const clientManifest = await readManifest(
     project.directory,
-    "client/package.json"
+    "client/package.json",
   )
   expect(clientManifest.name).toBe(clientName)
   expect(clientManifest.version).toBe(rootManifest.version)
@@ -654,14 +665,14 @@ async function expectPublishedPackages(
   const inspected = await project.run("yarn", ["inspect:pack"], 180_000)
   expect(inspected.stdout).toContain("dist/lib/index.js")
   expect(inspected.stdout).toContain("dist/lib/index.d.ts")
-  expect(inspected.stdout).toContain("dist/test/index.js")
+  expect(inspected.stdout).toContain("dist/lib/test-kit.js")
   expect(inspected.stdout).toContain("dist/client/index.d.ts")
   expect(inspected.stdout).toContain("dist/gql/client/index.d.ts")
 }
 
 async function consumePublishedPackages(
   project: SyntheticProject,
-  directory: string
+  directory: string,
 ): Promise<void> {
   await writeFile(
     join(directory, "package.json"),
@@ -674,21 +685,21 @@ async function consumePublishedPackages(
         dependencies: { graphql: "16.11.0" },
       },
       null,
-      2
-    )}\n`
+      2,
+    )}\n`,
   )
   await writeFile(join(directory, "consume.mjs"), CONSUME)
   const store = join(project.directory, ".yalc-store")
   await project.run("yarn", [
     "exec",
     `cd ${shellQuote(directory)} && yalc add ${shellQuote(
-      rootName
+      rootName,
     )} --store-folder ${shellQuote(store)}`,
   ])
   await project.run("yarn", [
     "exec",
     `cd ${shellQuote(directory)} && yalc add ${shellQuote(
-      clientName
+      clientName,
     )} --store-folder ${shellQuote(store)}`,
   ])
   await project.runAt(directory, "yarn", ["install"], 180_000)
@@ -715,7 +726,7 @@ async function expectFile(directory: string, path: string): Promise<void> {
 
 async function listRelative(
   directory: string,
-  path: string
+  path: string,
 ): Promise<string[]> {
   const root = join(directory, path)
   const found: string[] = []
@@ -741,14 +752,14 @@ async function listRelative(
 
 async function readManifest(
   directory: string,
-  path: string
+  path: string,
 ): Promise<Record<string, unknown>> {
   const text = await readFile(join(directory, path), "utf8")
   return parseObject(JSON.parse(text))
 }
 
 function publishRegistry(
-  manifest: Record<string, unknown>
+  manifest: Record<string, unknown>,
 ): string | undefined {
   const publishConfig = manifest.publishConfig
   if (!isRecord(publishConfig)) return undefined
@@ -758,7 +769,7 @@ function publishRegistry(
 
 function exportImport(
   manifest: Record<string, unknown>,
-  entry: string
+  entry: string,
 ): string | undefined {
   const condition = exportCondition(manifest, entry)
   if (condition === undefined) return undefined
@@ -768,7 +779,7 @@ function exportImport(
 
 function exportTypes(
   manifest: Record<string, unknown>,
-  entry: string
+  entry: string,
 ): string | undefined {
   const condition = exportCondition(manifest, entry)
   if (condition === undefined) return undefined
@@ -778,7 +789,7 @@ function exportTypes(
 
 function exportCondition(
   manifest: Record<string, unknown>,
-  entry: string
+  entry: string,
 ): Record<string, unknown> | undefined {
   const exportsField = manifest.exports
   if (!isRecord(exportsField)) return undefined
@@ -803,26 +814,17 @@ function shellQuote(value: string): string {
 }
 
 const CONSUME = `import { greeting } from "@example/package-service"
-import { serviceTestKit } from "@example/package-service/test"
+import { createPackageServiceTestKit } from "@example/package-service/test-kit"
 import { Greeting } from "@example/package-service-client"
 
 if (greeting("package") !== "Hello, package") {
   console.error("greeting mismatch")
   process.exit(1)
 }
-const kit = serviceTestKit()
-if (!kit.schema.includes("greeting")) {
-  console.error("schema mismatch")
-  process.exit(1)
-}
-const greeted = kit.greeting({}, { name: "package" }, {}, undefined)
-if (greeted !== "Hello, package") {
-  console.error("kit mismatch", greeted)
-  process.exit(1)
-}
-if (Greeting.kind !== "Document") {
-  console.error("document mismatch", Greeting)
-  process.exit(1)
+const kit = await createPackageServiceTestKit()
+const data = await kit.operations.query(Greeting, { name: "package" })
+if (data.greeting !== "Hello, package") {
+  throw new Error("greeting operation did not return the expected result")
 }
 console.log("consumed")
 `

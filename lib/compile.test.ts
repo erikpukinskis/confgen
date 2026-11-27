@@ -9,6 +9,7 @@ import { readProjectFacts } from "./facts"
 import {
   LOCK_PATH,
   lockFromContributions,
+  parseLock,
   serializeLock,
   textHash,
 } from "./lock"
@@ -19,7 +20,7 @@ import { createSystem, type RunResult, type System } from "./system"
 import { expect, test } from "vitest"
 
 const documented = [
-  "runtimes=#lib,#server,#client",
+  "runtimes=#lib:node,#server,#client",
   "yarn",
   "typescript",
   "vite",
@@ -31,18 +32,19 @@ test("collects the documented selection in registry order", async () => {
   const forward = collectContributions(parseSelection(documented), facts)
   const reversed = collectContributions(
     parseSelection([
-      "runtimes=#client,#server,#lib",
+      "runtimes=#client,#server,#lib:node",
       "vitest",
       "vite",
       "typescript",
       "yarn",
     ]),
-    facts
+    facts,
   )
 
   expect(reversed).toEqual(forward)
   expect(parseSelection(documented)).toEqual({
     runtimes: ["lib", "server", "client"],
+    libraryPlatform: "node",
     presets: ["yarn", "typescript", "vite", "vitest"],
   })
   expect(forward.length).toBeGreaterThan(0)
@@ -51,13 +53,15 @@ test("collects the documented selection in registry order", async () => {
 test("collection order stays canonical for every runtime and preset", async () => {
   const system = await project()
   const canonical = [
-    `runtimes=${RUNTIME_NAMES.map((name) => `#${name}`).join(",")}`,
+    `runtimes=${RUNTIME_NAMES.map((name) =>
+      name === "lib" ? "#lib:node" : `#${name}`,
+    ).join(",")}`,
     ...PRESET_NAMES,
   ]
   const reversed = [
     `runtimes=${[...RUNTIME_NAMES]
       .reverse()
-      .map((name) => `#${name}`)
+      .map((name) => (name === "lib" ? "#lib:node" : `#${name}`))
       .join(",")}`,
     ...[...PRESET_NAMES].reverse(),
   ]
@@ -91,13 +95,13 @@ test("rejects an unsupported lock before writing", async () => {
   await system.writeFile("confgen.lock", '{"lockVersion":9}\n')
   await system.writeFile("keep.txt", "same\n")
 
-  const error = await compileError(system, ["runtimes=#lib"])
+  const error = await compileError(system, ["runtimes=#lib:universal"])
 
   expect(error.problems[0]).toContain("lock version 9 is not supported")
   expect(await system.readFile("confgen.lock")).toBe('{"lockVersion":9}\n')
   expect(await system.readFile("keep.txt")).toBe("same\n")
   expect(await system.readFile("package.json")).toBe(
-    JSON.stringify({ name: "example" })
+    JSON.stringify({ name: "example" }),
   )
 })
 
@@ -114,6 +118,7 @@ test("refuses to remove a changed whole file before writing", async () => {
         lockVersion: 1,
         confgenVersion: "0.95.0",
         runtimes: ["lib"],
+        libraryPlatform: "universal",
         presets: [],
         contributions: [
           {
@@ -126,19 +131,19 @@ test("refuses to remove a changed whole file before writing", async () => {
         ],
       },
       null,
-      2
-    )}\n`
+      2,
+    )}\n`,
   )
   const lockBefore = await system.readFile("confgen.lock")
 
-  const error = await compileError(system, ["runtimes=#lib"])
+  const error = await compileError(system, ["runtimes=#lib:universal"])
 
   expect(error.problems).toEqual([
     'Cannot remove changed whole file "Dockerfile" because its contents no longer match confgen.lock.',
   ])
   expect(await system.readFile("confgen.lock")).toBe(lockBefore)
   expect(await system.readFile("Dockerfile")).toBe(
-    "FROM node:24\nRUN echo edited\n"
+    "FROM node:24\nRUN echo edited\n",
   )
 })
 
@@ -155,6 +160,7 @@ test("removes an unchanged deselected whole file and then leaves a clean rerun",
         lockVersion: 1,
         confgenVersion: "0.95.0",
         runtimes: ["lib"],
+        libraryPlatform: "universal",
         presets: [],
         contributions: [
           {
@@ -167,16 +173,16 @@ test("removes an unchanged deselected whole file and then leaves a clean rerun",
         ],
       },
       null,
-      2
-    )}\n`
+      2,
+    )}\n`,
   )
 
-  await compile({ selection: ["runtimes=#lib"], system })
+  await compile({ selection: ["runtimes=#lib:universal"], system })
   await expect(system.readFile("Dockerfile")).rejects.toThrow()
 
   const lock = await system.readFile(LOCK_PATH)
   const lockStat = await stat(join(cwd, LOCK_PATH))
-  await compile({ selection: ["runtimes=#lib"], system })
+  await compile({ selection: ["runtimes=#lib:universal"], system })
   expect(await system.readFile(LOCK_PATH)).toBe(lock)
   expect((await stat(join(cwd, LOCK_PATH))).mtimeMs).toBe(lockStat.mtimeMs)
 })
@@ -190,11 +196,12 @@ test("a yarn failure leaves the previous lock untouched", async () => {
       lockVersion: 1,
       confgenVersion: "0.95.0",
       runtimes: ["lib"],
+      libraryPlatform: "universal",
       presets: ["typescript"],
       contributions: [],
     },
     null,
-    2
+    2,
   )}\n`
   await real.writeFile(LOCK_PATH, previous)
   const system = failingInstall(real)
@@ -216,15 +223,60 @@ test("a yarn failure leaves the previous lock untouched", async () => {
   expect(await real.readFile("package.json")).toContain('"typescript"')
 })
 
+test("reconciles a lib lock that omits libraryPlatform", async () => {
+  const system = await project()
+  await system.writeFile(
+    "confgen.lock",
+    `${JSON.stringify(
+      {
+        lockVersion: 1,
+        confgenVersion: "0.95.0",
+        runtimes: ["lib"],
+        presets: ["git"],
+        contributions: [
+          {
+            id: "git:ignore:04",
+            source: "preset:git",
+            path: ".gitignore",
+            strategy: "line",
+            value: "dist",
+          },
+        ],
+      },
+      null,
+      2,
+    )}\n`,
+  )
+  await system.writeFile(".gitignore", "dist\n")
+
+  await compile({ selection: ["runtimes=#lib:node", "git"], system })
+
+  const lock = parseLock(await system.readFile(LOCK_PATH))
+  expect(lock.libraryPlatform).toBe("node")
+  expect(lock.libraryTestKit).toBeUndefined()
+  expect(lock.runtimes).toEqual(["lib"])
+  expect(lock.presets).toEqual(["git"])
+  expect(lock.contributions).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        id: "git:ignore:04",
+        strategy: "line",
+        value: "dist",
+      }),
+    ]),
+  )
+  expect(await system.readFile(".gitignore")).toContain("dist")
+})
+
 test("lock text does not depend on CLI order", async () => {
   const facts = await readProjectFacts(await project())
   const forwardSelection = parseSelection([
-    "runtimes=#lib,#server",
+    "runtimes=#lib:universal,#server",
     "typescript",
     "vite",
   ])
   const reverseSelection = parseSelection([
-    "runtimes=#server,#lib",
+    "runtimes=#server,#lib:universal",
     "vite",
     "typescript",
   ])
@@ -234,15 +286,15 @@ test("lock text does not depend on CLI order", async () => {
       lockFromContributions({
         selection: reverseSelection,
         contributions: collectContributions(reverseSelection, facts),
-      })
-    )
+      }),
+    ),
   ).toBe(
     serializeLock(
       lockFromContributions({
         selection: forwardSelection,
         contributions: collectContributions(forwardSelection, facts),
-      })
-    )
+      }),
+    ),
   )
 })
 
@@ -254,14 +306,14 @@ async function project(): Promise<System> {
     JSON.stringify({
       name: "example",
       repository: "https://github.com/example/example.git",
-    })
+    }),
   )
   return system
 }
 
 async function compileError(
   system: System,
-  selection: readonly string[]
+  selection: readonly string[],
 ): Promise<ConfgenError> {
   try {
     await compile({ selection, system })
@@ -275,11 +327,15 @@ async function compileError(
 async function collectedError(
   system: System,
   facts: Awaited<ReturnType<typeof readProjectFacts>>,
-  contributions: readonly Contribution[]
+  contributions: readonly Contribution[],
 ): Promise<ConfgenError> {
   try {
     await compileCollected({
-      selection: { runtimes: ["lib"], presets: ["typescript"] },
+      selection: {
+        runtimes: ["lib"],
+        libraryPlatform: "universal",
+        presets: ["typescript"],
+      },
       facts,
       contributions,
       system,

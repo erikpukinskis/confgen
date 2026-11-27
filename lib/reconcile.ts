@@ -31,9 +31,7 @@ export type ChangeSet = {
 
 const YARN_CONFIG_PATHS = [".yarnrc.yml", ".yarnrc"]
 const DEPENDENCY_SECTIONS: readonly (
-  | "dependencies"
-  | "devDependencies"
-  | "peerDependencies"
+  "dependencies" | "devDependencies" | "peerDependencies"
 )[] = ["dependencies", "devDependencies", "peerDependencies"]
 
 /**
@@ -52,7 +50,7 @@ export function reconcile(input: {
   const warnings: string[] = []
   const changes: FileChange[] = []
   const desiredIds = new Set(
-    input.contributions.map((contribution) => contribution.id)
+    input.contributions.map((contribution) => contribution.id),
   )
   const priorByPath = groupPrior(input.prior)
   const desiredByPath = groupDesired(input.contributions)
@@ -65,7 +63,7 @@ export function reconcile(input: {
       path,
       desired: desiredByPath.get(path) ?? emptyDesired(),
       prior: (priorByPath.get(path) ?? []).filter(
-        (entry) => !desiredIds.has(entry.id)
+        (entry) => !desiredIds.has(entry.id),
       ),
       priorEntries: priorByPath.get(path) ?? [],
       current: input.files.get(path),
@@ -125,7 +123,7 @@ function reconcilePath(input: {
     return writeIfChanged(
       input.path,
       input.current,
-      input.desired.whole.contents
+      input.desired.whole.contents,
     )
   }
   if (input.desired.starter !== undefined) {
@@ -133,7 +131,7 @@ function reconcilePath(input: {
     const delivered = input.priorEntries.some(
       (entry) =>
         entry.strategy === "starter-file" &&
-        entry.id === input.desired.starter?.id
+        entry.id === input.desired.starter?.id,
     )
     if (delivered) return { changes: [], problems: [] }
     return {
@@ -155,10 +153,10 @@ function reconcilePath(input: {
   }
 
   const wholeRemoval = input.prior.find(
-    (entry) => entry.strategy === "whole-file"
+    (entry) => entry.strategy === "whole-file",
   )
   const dockerfileRemoval = input.prior.find(
-    (entry) => entry.strategy === "dockerfile"
+    (entry) => entry.strategy === "dockerfile",
   )
   if (dockerfileRemoval?.strategy === "dockerfile") {
     if (input.current === undefined) return { changes: [], problems: [] }
@@ -187,7 +185,7 @@ function reconcilePath(input: {
       (entry) =>
         entry.strategy === "dependency" ||
         entry.strategy === "package-script" ||
-        (entry.strategy === "structured" && entry.format === "json")
+        (entry.strategy === "structured" && entry.format === "json"),
     )
   ) {
     return reconcileJsonDocument({ ...input, priorEntries: input.priorEntries })
@@ -196,7 +194,7 @@ function reconcilePath(input: {
   if (
     input.desired.structured.some((entry) => entry.format === "yaml") ||
     input.prior.some(
-      (entry) => entry.strategy === "structured" && entry.format === "yaml"
+      (entry) => entry.strategy === "structured" && entry.format === "yaml",
     )
   ) {
     return reconcileYamlDocument({ ...input, priorEntries: input.priorEntries })
@@ -221,10 +219,10 @@ function reconcileDockerfile(input: {
   const next = input.desired.dockerfile?.contents
   if (next === undefined) return { changes: [], problems: [] }
   const prior = input.priorEntries.find(
-    (entry) => entry.strategy === "dockerfile"
+    (entry) => entry.strategy === "dockerfile",
   )
   const legacy = input.priorEntries.find(
-    (entry) => entry.strategy === "whole-file"
+    (entry) => entry.strategy === "whole-file",
   )
   if (prior === undefined && legacy?.strategy !== "whole-file") {
     if (input.current === undefined)
@@ -268,14 +266,14 @@ function dockerfileMerge(
   path: string,
   current: string,
   base: string,
-  next: string
+  next: string,
 ): { changes: FileChange[]; problems: string[]; warnings: string[] } {
   const warnings: string[] = []
   const merged: string[] = []
   for (const region of diff3Merge(
     splitLosslessLines(current),
     splitLosslessLines(base),
-    splitLosslessLines(next)
+    splitLosslessLines(next),
   )) {
     if (region.ok !== undefined) {
       merged.push(...region.ok)
@@ -295,7 +293,7 @@ function dockerfileMerge(
       const behavior = a.length === 0 ? "deletion" : "edit"
       const skipped = b.length === 0 ? "deletion" : "updated text"
       warnings.push(
-        `${path} (near baseline line ${line}): preserved an application ${behavior}; skipped Confgen's ${skipped}.`
+        `${path} (near baseline line ${line}): preserved an application ${behavior}; skipped Confgen's ${skipped}.`,
       )
     }
   }
@@ -311,7 +309,7 @@ function mergeAroundBase(
   merged: string[],
   current: readonly string[],
   base: readonly string[],
-  next: readonly string[]
+  next: readonly string[],
 ): boolean {
   const currentBase = uniqueSubsequenceIndex(current, base)
   const nextBase = uniqueSubsequenceIndex(next, base)
@@ -321,7 +319,7 @@ function mergeAroundBase(
     merged.push(
       ...next,
       ...current.slice(0, currentBase),
-      ...current.slice(currentBase + base.length)
+      ...current.slice(currentBase + base.length),
     )
     return true
   }
@@ -329,7 +327,7 @@ function mergeAroundBase(
     merged.push(
       ...next.slice(0, nextBase),
       ...current,
-      ...next.slice(nextBase + base.length)
+      ...next.slice(nextBase + base.length),
     )
     return true
   }
@@ -339,14 +337,14 @@ function mergeAroundBase(
     ...current.slice(0, currentBase),
     ...base,
     ...next.slice(nextBase + base.length),
-    ...current.slice(currentBase + base.length)
+    ...current.slice(currentBase + base.length),
   )
   return true
 }
 
 function uniqueSubsequenceIndex(
   lines: readonly string[],
-  subsequence: readonly string[]
+  subsequence: readonly string[],
 ): number | undefined {
   let found: number | undefined
   for (let start = 0; start <= lines.length - subsequence.length; start += 1) {
@@ -389,7 +387,7 @@ function reconcileVitePath(input: {
   current: string | undefined
 }): { changes: FileChange[]; problems: string[] } {
   const prior = input.priorEntries.find(
-    (entry) => entry.strategy === "vite-config"
+    (entry) => entry.strategy === "vite-config",
   )
   const priorItems =
     prior !== undefined && prior.strategy === "vite-config"
@@ -410,7 +408,7 @@ function reconcileVitePath(input: {
 function removeWholeFile(
   path: string,
   current: string | undefined,
-  hash: string
+  hash: string,
 ): { changes: FileChange[]; problems: string[] } {
   if (current === undefined) return { changes: [], problems: [] }
   if (textHash(current) !== hash) {
@@ -435,7 +433,7 @@ function reconcileJsonDocument(input: {
   for (const entry of input.desired.structured) {
     if (entry.format !== "json") {
       problems.push(
-        `${input.path}: structured format ${entry.format} cannot share this JSON file.`
+        `${input.path}: structured format ${entry.format} cannot share this JSON file.`,
       )
     }
   }
@@ -466,7 +464,7 @@ function reconcileJsonDocument(input: {
       entry.address,
       entry.value,
       entry.update,
-      input.path
+      input.path,
     )
     if (!updated.ok) return { changes: [], problems: [updated.problem] }
     document = updated.value
@@ -483,7 +481,7 @@ function reconcileJsonDocument(input: {
       [entry.section, entry.package],
       entry.range,
       "replace",
-      input.path
+      input.path,
     )
     if (!updated.ok) return { changes: [], problems: [updated.problem] }
     document = updated.value
@@ -494,7 +492,7 @@ function reconcileJsonDocument(input: {
       ["scripts", entry.name],
       entry.command,
       "replace",
-      input.path
+      input.path,
     )
     if (!updated.ok) return { changes: [], problems: [updated.problem] }
     document = updated.value
@@ -514,7 +512,7 @@ function reconcileJsonDocument(input: {
 
 function valueAt(
   value: JsonValue,
-  address: readonly (string | number)[]
+  address: readonly (string | number)[],
 ): JsonValue | undefined {
   let current: JsonValue | undefined = value
   for (const segment of address) {
@@ -538,7 +536,7 @@ function reconcileYamlDocument(input: {
   for (const entry of input.desired.structured) {
     if (entry.format !== "yaml") {
       problems.push(
-        `${input.path}: structured format ${entry.format} cannot share this YAML file.`
+        `${input.path}: structured format ${entry.format} cannot share this YAML file.`,
       )
     }
   }
@@ -553,7 +551,7 @@ function reconcileYamlDocument(input: {
     return {
       changes: [],
       problems: document.errors.map(
-        (error) => `${input.path}: ${error.message}`
+        (error) => `${input.path}: ${error.message}`,
       ),
     }
   }
@@ -566,7 +564,7 @@ function reconcileYamlDocument(input: {
       entry.value,
       entry.update,
       input.path,
-      input.priorEntries.some((previous) => previous.id === entry.id)
+      input.priorEntries.some((previous) => previous.id === entry.id),
     )
     if (problem !== undefined) return { changes: [], problems: [problem] }
   }
@@ -599,7 +597,7 @@ function reconcileLines(input: {
     if (replacement !== undefined && replacement.value === entry.value) continue
     if (
       input.desired.lines.some(
-        (line) => line.value === entry.value && line.id !== entry.id
+        (line) => line.value === entry.value && line.id !== entry.id,
       )
     ) {
       continue
@@ -623,7 +621,7 @@ function reconcileLines(input: {
 function strategyProblems(
   path: string,
   desired: DesiredGroup,
-  prior: readonly LockContribution[]
+  prior: readonly LockContribution[],
 ): string[] {
   const problems: string[] = []
   const desiredKind = desiredKindName(desired)
@@ -640,7 +638,7 @@ function strategyProblems(
     desiredKind !== "whole-file"
   ) {
     problems.push(
-      `${path}: cannot reconcile whole-file removal with ${desiredKind} edits.`
+      `${path}: cannot reconcile whole-file removal with ${desiredKind} edits.`,
     )
   }
   if (
@@ -648,7 +646,7 @@ function strategyProblems(
     (desired.structured.length > 0 || desired.lines.length > 0)
   ) {
     problems.push(
-      `${path}: Vite configuration cannot share its file with another strategy.`
+      `${path}: Vite configuration cannot share its file with another strategy.`,
     )
   }
   if (
@@ -658,7 +656,7 @@ function strategyProblems(
       desired.scripts.length > 0)
   ) {
     problems.push(
-      `${path}: line entries cannot share this file with structured edits.`
+      `${path}: line entries cannot share this file with structured edits.`,
     )
   }
   return problems
@@ -666,7 +664,7 @@ function strategyProblems(
 
 function manifestOverlapProblems(
   path: string,
-  desired: DesiredGroup
+  desired: DesiredGroup,
 ): string[] {
   const problems: string[] = []
   const owned: { address: StructuredAddress; label: string }[] = []
@@ -688,7 +686,7 @@ function manifestOverlapProblems(
       problems.push(
         `${path}: structured address ${formatAddress(entry.address)} overlaps ${
           other.label
-        }.`
+        }.`,
       )
     }
   }
@@ -702,7 +700,7 @@ function yarnInstallRequired(input: {
   pnpPresent: boolean
 }): boolean {
   const packageWrite = input.files.find(
-    (change) => change.type === "write" && change.path === "package.json"
+    (change) => change.type === "write" && change.path === "package.json",
   )
   const beforeText = input.currentFiles.get("package.json")
   const afterText =
@@ -721,7 +719,7 @@ function yarnInstallRequired(input: {
   const yarnConfigChanged = input.files.some(
     (change) =>
       YARN_CONFIG_PATHS.includes(change.path) ||
-      YARN_CONFIG_PATHS.some((config) => change.path.endsWith(`/${config}`))
+      YARN_CONFIG_PATHS.some((config) => change.path.endsWith(`/${config}`)),
   )
   const usesYarn =
     hasDependencies(after ?? before) ||
@@ -729,7 +727,7 @@ function yarnInstallRequired(input: {
     YARN_CONFIG_PATHS.some((path) => {
       if (input.currentFiles.has(path)) return true
       return input.files.some(
-        (change) => change.type === "write" && change.path === path
+        (change) => change.type === "write" && change.path === path,
       )
     })
   const artifactsAbsent =
@@ -745,7 +743,7 @@ function yarnInstallRequired(input: {
 function writeIfChanged(
   path: string,
   current: string | undefined,
-  contents: string
+  contents: string,
 ): { changes: FileChange[]; problems: string[] } {
   if (current === contents) return { changes: [], problems: [] }
   return { changes: [{ type: "write", path, contents }], problems: [] }
@@ -754,7 +752,7 @@ function writeIfChanged(
 function writeJsonIfChanged(
   path: string,
   current: string | undefined,
-  value: JsonValue
+  value: JsonValue,
 ): { changes: FileChange[]; problems: string[] } {
   if (current !== undefined) {
     const parsed = parseJsonValue(current)
@@ -769,15 +767,14 @@ function writeJsonIfChanged(
 }
 
 type JsonResult =
-  | { ok: true; value: JsonValue }
-  | { ok: false; problem: string }
+  { ok: true; value: JsonValue } | { ok: false; problem: string }
 
 function updateJson(
   root: JsonValue,
   address: StructuredAddress,
   value: JsonValue,
   update: "merge" | "replace",
-  path: string
+  path: string,
 ): JsonResult {
   return writeAt(root, address, value, update, path, [])
 }
@@ -788,7 +785,7 @@ function writeAt(
   value: JsonValue,
   update: "merge" | "replace",
   path: string,
-  walked: StructuredAddress
+  walked: StructuredAddress,
 ): JsonResult {
   const head = address[0]
   if (head === undefined) {
@@ -843,7 +840,7 @@ function mergeValues(
   current: JsonValue,
   value: JsonValue,
   path: string,
-  walked: StructuredAddress
+  walked: StructuredAddress,
 ): JsonResult {
   if (isJsonObject(current) && isJsonObject(value)) {
     let merged: { readonly [key: string]: JsonValue } = current
@@ -877,7 +874,7 @@ function mergeValues(
     return {
       ok: false,
       problem: `${path}: cannot merge ${formatAddress(
-        walked
+        walked,
       )} without removing existing ${containerName(current)} content.`,
     }
   }
@@ -887,20 +884,20 @@ function mergeValues(
 function removeJsonEntry(
   root: JsonValue,
   entry: LockContribution,
-  path: string
+  path: string,
 ): JsonResult {
   if (entry.strategy === "structured")
     return deleteAt(root, entry.address, path)
   if (entry.strategy === "dependency") {
     return deleteEmptySection(
       deleteAt(root, [entry.section, entry.package], path),
-      entry.section
+      entry.section,
     )
   }
   if (entry.strategy === "package-script") {
     return deleteEmptySection(
       deleteAt(root, ["scripts", entry.name], path),
-      "scripts"
+      "scripts",
     )
   }
   return { ok: true, value: root }
@@ -917,7 +914,7 @@ function deleteEmptySection(result: JsonResult, section: string): JsonResult {
 function deleteAt(
   current: JsonValue,
   address: StructuredAddress,
-  path: string
+  path: string,
 ): JsonResult {
   const head = address[0]
   if (head === undefined) return { ok: true, value: current }
@@ -948,7 +945,7 @@ function deleteAt(
     return {
       ok: false,
       problem: `${path}: cannot remove ${formatAddress(
-        address
+        address,
       )} because ${head} is not a container.`,
     }
   }
@@ -963,7 +960,7 @@ function yamlWriteProblem(
   value: JsonValue,
   update: "merge" | "replace",
   path: string,
-  previouslyManaged: boolean
+  previouslyManaged: boolean,
 ): string | undefined {
   const blocked = yamlPathProblem(document, address, path)
   if (blocked !== undefined) return blocked
@@ -1000,7 +997,7 @@ function yamlWriteProblem(
           child,
           "merge",
           path,
-          previouslyManaged
+          previouslyManaged,
         )
         if (problem !== undefined) return problem
       }
@@ -1027,7 +1024,7 @@ function yamlWriteProblem(
 function yamlRemove(
   document: ReturnType<typeof parseDocument>,
   address: StructuredAddress,
-  path: string
+  path: string,
 ): string | undefined {
   const parentAddress = address.slice(0, -1)
   const leaf = address[address.length - 1]
@@ -1040,12 +1037,12 @@ function yamlRemove(
   if (typeof leaf === "number") {
     if (!isSeq(parent)) {
       return `${path}: cannot remove ${formatAddress(
-        address
+        address,
       )} because ${formatAddress(parentAddress)} is not an array.`
     }
   } else if (!isMap(parent)) {
     return `${path}: cannot remove ${formatAddress(
-      address
+      address,
     )} because ${formatAddress(parentAddress)} is not an object.`
   }
   document.deleteIn([...address])
@@ -1055,7 +1052,7 @@ function yamlRemove(
 function yamlPathProblem(
   document: ReturnType<typeof parseDocument>,
   address: StructuredAddress,
-  path: string
+  path: string,
 ): string | undefined {
   for (let index = 0; index < address.length - 1; index += 1) {
     const walked = address.slice(0, index + 1)
@@ -1065,14 +1062,14 @@ function yamlPathProblem(
     if (typeof next === "number") {
       if (!isSeq(node)) {
         return `${path}: cannot update ${formatAddress(
-          address
+          address,
         )} because ${formatAddress(walked)} is not an array.`
       }
       continue
     }
     if (!isMap(node)) {
       return `${path}: cannot update ${formatAddress(
-        address
+        address,
       )} because ${formatAddress(walked)} is not an object.`
     }
   }
@@ -1080,7 +1077,7 @@ function yamlPathProblem(
 }
 
 function groupDesired(
-  contributions: readonly Contribution[]
+  contributions: readonly Contribution[],
 ): Map<string, DesiredGroup> {
   const groups = new Map<string, DesiredGroup>()
   for (const contribution of contributions) {
@@ -1120,7 +1117,7 @@ function groupDesired(
 }
 
 function groupPrior(
-  lock: LockData | undefined
+  lock: LockData | undefined,
 ): Map<string, LockContribution[]> {
   const groups = new Map<string, LockContribution[]>()
   if (lock === undefined) return groups
@@ -1149,7 +1146,7 @@ function desiredKindName(desired: DesiredGroup): string | undefined {
 
 function priorStrategy(
   prior: readonly LockContribution[],
-  strategy: LockContribution["strategy"]
+  strategy: LockContribution["strategy"],
 ): boolean {
   return prior.some((entry) => entry.strategy === strategy)
 }
@@ -1285,7 +1282,7 @@ function brokenArray(value: readonly JsonValue[], indent: number): string {
 
 function brokenObject(
   value: { readonly [key: string]: JsonValue },
-  indent: number
+  indent: number,
 ): string {
   const pad = "  ".repeat(indent + 1)
   const closing = "  ".repeat(indent)
@@ -1303,7 +1300,7 @@ function brokenObject(
 function withKey(
   object: { readonly [key: string]: JsonValue },
   key: string,
-  value: JsonValue | undefined
+  value: JsonValue | undefined,
 ): { readonly [key: string]: JsonValue } {
   const next: { [key: string]: JsonValue } = {}
   let replaced = false
@@ -1325,13 +1322,13 @@ function jsonEqual(left: unknown, right: unknown): boolean {
 }
 
 function isJsonArray(
-  value: JsonValue | undefined
+  value: JsonValue | undefined,
 ): value is readonly JsonValue[] {
   return Array.isArray(value)
 }
 
 function isJsonObject(
-  value: JsonValue | undefined
+  value: JsonValue | undefined,
 ): value is { readonly [key: string]: JsonValue } {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
@@ -1355,7 +1352,7 @@ function containerName(value: JsonValue): string {
 
 function addressesOverlap(
   left: StructuredAddress,
-  right: StructuredAddress
+  right: StructuredAddress,
 ): boolean {
   const shorter = left.length <= right.length ? left : right
   const longer = left.length <= right.length ? right : left

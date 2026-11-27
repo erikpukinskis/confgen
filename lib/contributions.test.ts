@@ -24,7 +24,7 @@ test("orders contributions by the runtime and preset registries", () => {
     "test-script",
   ])
   expect(ids(normalizeContributions([...shuffled].reverse()))).toEqual(
-    ids(normalizeContributions(shuffled))
+    ids(normalizeContributions(shuffled)),
   )
 })
 
@@ -92,7 +92,7 @@ test("rejects a starter file that shares its path", () => {
     contributionError([
       starterFile("runtime:server", "starter", "server/index.ts"),
       line("preset:git", "generated-line", "server/index.ts"),
-    ]).problems
+    ]).problems,
   ).toEqual(['starter-file and line cannot share "server/index.ts".'])
 })
 
@@ -101,7 +101,7 @@ function ids(contributions: readonly Contribution[]): string[] {
 }
 
 function contributionError(
-  contributions: readonly Contribution[]
+  contributions: readonly Contribution[],
 ): ConfgenError {
   try {
     normalizeContributions(contributions)
@@ -115,7 +115,7 @@ function contributionError(
 function wholeFile(
   source: ContributionSource,
   id: string,
-  path: string
+  path: string,
 ): Contribution {
   return { id, source, kind: "whole-file", path, contents: "" }
 }
@@ -123,7 +123,7 @@ function wholeFile(
 function starterFile(
   source: ContributionSource,
   id: string,
-  path: string
+  path: string,
 ): Contribution {
   return { id, source, kind: "starter-file", path, contents: "" }
 }
@@ -131,7 +131,7 @@ function starterFile(
 function line(
   source: ContributionSource,
   id: string,
-  path: string
+  path: string,
 ): Contribution {
   return { id, source, kind: "line", path, value: "" }
 }
@@ -140,7 +140,7 @@ function structured(
   source: ContributionSource,
   id: string,
   address: readonly (string | number)[],
-  path = "tsconfig.json"
+  path = "tsconfig.json",
 ): Contribution {
   return {
     id,
@@ -160,9 +160,7 @@ function dependency(
   packageName: string,
   range: string,
   section:
-    | "dependencies"
-    | "devDependencies"
-    | "peerDependencies" = "devDependencies"
+    "dependencies" | "devDependencies" | "peerDependencies" = "devDependencies",
 ): Contribution {
   return {
     id,
@@ -179,7 +177,7 @@ function script(
   source: ContributionSource,
   id: string,
   command: string,
-  name = id
+  name = id,
 ): Contribution {
   return {
     id,
@@ -194,7 +192,7 @@ function script(
 function viteConfig(
   source: ContributionSource,
   id: string,
-  items: readonly ViteConfigItem[]
+  items: readonly ViteConfigItem[],
 ): Contribution {
   return {
     id,

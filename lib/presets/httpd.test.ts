@@ -19,7 +19,7 @@ const root = {
 const facts: ProjectFacts = { root, packages: [root] }
 
 const selection = parseSelection([
-  "runtimes=#lib,#server,#client,#integration,#gateway",
+  "runtimes=#lib:universal,#server,#client,#integration,#gateway",
   "yarn",
   "typescript",
   "vite",
@@ -32,37 +32,37 @@ test("the gateway proxies health and API and shares the integration host across 
   const contributions = collectContributions(selection, facts)
   const conf = text(contributions, "gateway/httpd.conf")
   expect(conf).toContain(
-    'SSLCertificateFile "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"'
+    'SSLCertificateFile "/usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"',
   )
   expect(conf).toContain(
-    'SSLCertificateKeyFile "/etc/apache2/ssl/local.multiplayerdb.dev.key"'
+    'SSLCertificateKeyFile "/etc/apache2/ssl/local.multiplayerdb.dev.key"',
   )
   expect(conf).toContain("SSLProxyVerify require")
   expect(conf).toContain("SSLProxyCheckPeerName on")
   expect(conf).toContain("SSLProxyCheckPeerExpire on")
   expect(conf).toContain(
-    "SSLProxyCACertificateFile /usr/local/share/ca-certificates/local.multiplayerdb.dev.crt"
+    "SSLProxyCACertificateFile /usr/local/share/ca-certificates/local.multiplayerdb.dev.crt",
   )
   expect(conf).toContain(
-    "ProxyPass /healthcheck https://package-api-server.local.multiplayerdb.dev:7001/healthcheck"
+    "ProxyPass /healthcheck https://package-api-server.local.multiplayerdb.dev:7001/healthcheck",
   )
   expect(conf).toContain(
-    "ProxyPass /api https://package-api-server.local.multiplayerdb.dev:7001/api"
+    "ProxyPass /api https://package-api-server.local.multiplayerdb.dev:7001/api",
   )
   expect(conf).toContain("DocumentRoot /srv/homepage")
   expect(text(contributions, "gateway/public/index.html")).toContain(
-    "Package service"
+    "Package service",
   )
   expect(text(contributions, "gateway/Dockerfile")).toContain("FROM httpd:2.4")
   expect(text(contributions, "gateway/Dockerfile")).toContain("git")
   expect(text(contributions, "gateway/Dockerfile")).toContain(
-    String.raw`ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \"$@\"", "--"]`
+    String.raw`ENTRYPOINT ["sh", "-c", "update-ca-certificates && exec \"$@\"", "--"]`,
   )
   expect(text(contributions, "gateway/Dockerfile")).not.toContain(
-    "docker-entrypoint-httpd.sh"
+    "docker-entrypoint-httpd.sh",
   )
   expect(text(contributions, "Dockerfile")).toContain(
-    "FROM source AS integration-test-host"
+    "FROM source AS integration-test-host",
   )
 
   const created = reconcile({
@@ -88,10 +88,10 @@ test("the gateway proxies health and API and shares the integration host across 
   const services = objectField(base, "services")
   const baseHost = objectField(
     services,
-    "package-service-integration-test-host"
+    "package-service-integration-test-host",
   )
   expect(baseHost.image).toBe(
-    "ghcr.io/example/package-service-integration-test-host:${IMAGE_TAG:?}"
+    "ghcr.io/example/package-service-integration-test-host:${IMAGE_TAG:?}",
   )
   expect(baseHost.environment).toEqual({
     PACKAGE_SERVICE_URL: "${PACKAGE_SERVICE_URL:?}",
@@ -111,7 +111,7 @@ test("the gateway proxies health and API and shares the integration host across 
   const localServices = objectField(local, "services")
   const host = objectField(
     localServices,
-    "package-service-integration-test-host"
+    "package-service-integration-test-host",
   )
   expect(objectField(host, "build").target).toBe("integration-test-host")
   expect(host.entrypoint).toBeUndefined()
@@ -132,8 +132,8 @@ test("the gateway proxies health and API and shares the integration host across 
     "compose.local.yaml",
     written(created.files, "compose.local.yaml").replace(
       "command: null",
-      "command: scripts/integration-local.sh"
-    )
+      "command: scripts/integration-local.sh",
+    ),
   )
   const inherited = reconcile({
     selection,
@@ -145,43 +145,43 @@ test("the gateway proxies health and API and shares the integration host across 
   })
   const inheritedServices = objectField(
     yamlObject(written(inherited.files, "compose.local.yaml")),
-    "services"
+    "services",
   )
   expect(
     objectField(inheritedServices, "package-service-integration-test-host")
-      .command
+      .command,
   ).toBeNull()
   expect(
     created.files.find(
-      (change) => change.path === "scripts/test-integration-ci.sh"
-    )
+      (change) => change.path === "scripts/test-integration-ci.sh",
+    ),
   ).toBeUndefined()
   const manifest = jsonObject(written(created.files, "package.json"))
   const scripts = objectField(manifest, "scripts")
   expect(scripts.bump).toBe("bump-n-pub --bump-only")
   expect(scripts["generate:local:ssl"]).toBe("dev-cluster certs")
   expect(scripts["test:integration:run"]).toBe(
-    "vitest run --config vite.integration.config.ts"
+    "vitest run --config vite.integration.config.ts",
   )
   expect(scripts["test:integration:local"]).toBe(
-    "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service-integration-test-host"
+    "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service-integration-test-host",
   )
   expect(scripts["test:integration:ci"]).toBe(
-    "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host"
+    "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host",
   )
   expect(scripts["start:containers:local"]).toBe(
-    "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service"
+    "docker compose -f compose.base.yaml -f compose.local.yaml up --build --abort-on-container-exit --attach-dependencies package-service",
   )
   const unit = written(created.files, "vite.test.config.ts")
   expect(unit).not.toContain("integration/**/*.test.ts")
   expect(written(created.files, "vite.integration.config.ts")).toContain(
-    "integration/**/*.test.ts"
+    "integration/**/*.test.ts",
   )
   const tsconfig = jsonObject(written(created.files, "tsconfig.json"))
   expect(tsconfig.include).toContain("integration/**/*.ts")
   expect(tsconfig.include).toContain("gateway/**/*.ts")
   const server = contributions.find(
-    (contribution) => contribution.id === "runtime:server:index"
+    (contribution) => contribution.id === "runtime:server:index",
   )
   if (server?.kind !== "starter-file") throw new Error("missing server starter")
   expect(server.contents).toContain('"0.0.0.0"')
@@ -204,10 +204,10 @@ test("an existing gateway config stays in place", () => {
     pnpPresent: true,
   })
   expect(
-    created.files.find((change) => change.path === "gateway/httpd.conf")
+    created.files.find((change) => change.path === "gateway/httpd.conf"),
   ).toBeUndefined()
   expect(
-    created.files.find((change) => change.path === "gateway/public/index.html")
+    created.files.find((change) => change.path === "gateway/public/index.html"),
   ).toBeUndefined()
 })
 
@@ -253,8 +253,9 @@ test("integration starters stay application-owned and deselection removes the ru
   expect(
     kept.files.find(
       (change) =>
-        change.type === "write" && change.path === "integration/service.test.ts"
-    )
+        change.type === "write" &&
+        change.path === "integration/service.test.ts",
+    ),
   ).toBeUndefined()
 
   expect(kept.files).toContainEqual({
@@ -263,7 +264,7 @@ test("integration starters stay application-owned and deselection removes the ru
   })
 
   const withoutEdge = parseSelection([
-    "runtimes=#lib,#server,#client",
+    "runtimes=#lib:universal,#server,#client",
     "yarn",
     "typescript",
     "vite",
@@ -283,20 +284,20 @@ test("integration starters stay application-owned and deselection removes the ru
       { type: "remove", path: "gateway/Dockerfile" },
       { type: "remove", path: "scripts/docker-entrypoint-httpd.sh" },
       { type: "remove", path: "scripts/test-integration-ci.sh" },
-    ])
+    ]),
   )
   expect(
-    removed.files.find((change) => change.path === "gateway/httpd.conf")
+    removed.files.find((change) => change.path === "gateway/httpd.conf"),
   ).toBeUndefined()
   expect(
-    removed.files.find((change) => change.path === "gateway/public/index.html")
+    removed.files.find((change) => change.path === "gateway/public/index.html"),
   ).toBeUndefined()
   expect(
     removed.files.find(
       (change) =>
         change.type === "remove" &&
-        change.path === "integration/service.test.ts"
-    )
+        change.path === "integration/service.test.ts",
+    ),
   ).toBeUndefined()
   const base = yamlObject(written(removed.files, "compose.base.yaml"))
   const services = objectField(base, "services")
@@ -307,7 +308,7 @@ test("integration starters stay application-owned and deselection removes the ru
 test("httpd without a gateway runtime writes nothing", () => {
   const httpdOnly = parseSelection(["runtimes=#server", "httpd", "docker"])
   const produced = collectContributions(httpdOnly, facts).filter(
-    (contribution) => contribution.source === "preset:httpd"
+    (contribution) => contribution.source === "preset:httpd",
   )
   expect(produced).toEqual([])
   const dockerfile = text(collectContributions(httpdOnly, facts), "Dockerfile")
@@ -321,7 +322,7 @@ function text(contributions: readonly Contribution[], path: string): string {
       (contribution.kind === "whole-file" ||
         contribution.kind === "dockerfile" ||
         contribution.kind === "starter-file") &&
-      contribution.path === path
+      contribution.path === path,
   )
   if (
     found === undefined ||
@@ -336,10 +337,10 @@ function text(contributions: readonly Contribution[], path: string): string {
 
 function written(
   changes: ReturnType<typeof reconcile>["files"],
-  path: string
+  path: string,
 ): string {
   const found = changes.find(
-    (change) => change.type === "write" && change.path === path
+    (change) => change.type === "write" && change.path === path,
   )
   if (found === undefined || found.type !== "write") {
     throw new Error(`missing write ${path}`)
@@ -358,7 +359,7 @@ function jsonObject(contents: string): Record<string, unknown> {
 
 function objectField(
   value: Record<string, unknown>,
-  key: string
+  key: string,
 ): Record<string, unknown> {
   return asRecord(value[key])
 }

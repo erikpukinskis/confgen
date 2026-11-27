@@ -4,13 +4,7 @@ import { containerIdentity } from "./presets/docker"
 import type { Selection } from "./selection"
 
 export type RuntimeName =
-  | "lib"
-  | "app"
-  | "server"
-  | "client"
-  | "integration"
-  | "gateway"
-  | "docs"
+  "lib" | "app" | "server" | "client" | "integration" | "gateway" | "docs"
 
 /** Canonical runtime order. CLI order does not override this. */
 export const RUNTIME_NAMES = [
@@ -217,8 +211,9 @@ function listenPort(value: string | undefined): number {
 
 function libContributions(
   _selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): readonly Contribution[] {
+  // TODO: Why is this a fact and not just "if !exists(lib/index.ts)"?
   if (facts.hasPublishedLibFile) return []
   return [
     {
@@ -235,7 +230,7 @@ const CLIENT_INDEX = `export {}\n`
 
 function integrationContributions(
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): readonly Contribution[] {
   const identity = containerIdentity(facts.root.name)
   return [
@@ -305,7 +300,7 @@ function clientContributions(selection: Selection): readonly Contribution[] {
 
 function serverContributions(
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): readonly Contribution[] {
   return [
     {
@@ -318,8 +313,8 @@ function serverContributions(
         facts.hasApplicationServerInitServer !== true
           ? SERVER_GRAPHQL_INDEX(selection.presets.includes("docker"))
           : selection.presets.includes("docker")
-          ? SERVER_CONTAINER_INDEX
-          : SERVER_INDEX,
+            ? SERVER_CONTAINER_INDEX
+            : SERVER_INDEX,
     },
     {
       id: "runtime:server:start",
@@ -335,7 +330,7 @@ function serverContributions(
 export function runtimeContributions(
   runtime: RuntimeName,
   selection: Selection,
-  facts: ProjectFacts
+  facts: ProjectFacts,
 ): readonly Contribution[] {
   const produce = runtimeProducers[runtime]
   if (produce === undefined) {

@@ -1,4 +1,5 @@
 import { collectContributions, type Contribution } from "./contributions"
+import { ConfgenError } from "./errors"
 import type { ProjectFacts } from "./facts"
 import { reconcile } from "./reconcile"
 import { parseSelection } from "./selection"
@@ -19,7 +20,7 @@ const root = {
 const facts: ProjectFacts = { root, packages: [root] }
 
 const selection = parseSelection([
-  "runtimes=#lib,#server,#client",
+  "runtimes=#lib:node,#server,#client",
   "yarn",
   "typescript",
   "vite",
@@ -34,7 +35,7 @@ test("the package selection publishes a root and client workspace", () => {
   const contributions = collectContributions(selection, facts)
   expect(byId(contributions, "package-manifest:build")).toMatchObject({
     command:
-      "rm -rf dist client/dist && yarn build:generate && yarn build:lib && yarn build:test-kit && yarn build:server && yarn build:client",
+      "rm -rf dist client/dist && yarn build:generate && yarn build:lib && yarn build:server && yarn build:client",
   })
   expect(byId(contributions, "package-manifest:check")).toMatchObject({
     command: "yarn check:types && yarn check:lint && yarn check:format",
@@ -52,7 +53,7 @@ test("the package selection publishes a root and client workspace", () => {
   expect(byId(contributions, "package-manifest:client:registry")).toMatchObject(
     {
       value: "https://npm.example.test",
-    }
+    },
   )
   expect(byId(contributions, "graphql:script:build:generate")).toMatchObject({
     command: "graphql-codegen",
@@ -61,7 +62,7 @@ test("the package selection publishes a root and client workspace", () => {
     (contribution) =>
       contribution.kind === "structured" &&
       contribution.path === "client/package.json" &&
-      contribution.address[0] === "imports"
+      contribution.address[0] === "imports",
   )
   expect(clientImports).toEqual([])
 
@@ -101,22 +102,43 @@ test("the package selection publishes a root and client workspace", () => {
     "client/**/*.ts",
     "gql/client/**/*.ts",
   ])
+  expect(clientTsconfig.compilerOptions).toMatchObject({
+    paths: { "#gql/client": ["./gql/client/index.ts"] },
+  })
+  expect(files.get("client/index.ts")).toContain('from "#gql/client"')
   expect(parseObject(files.get("tsconfig.json")).include).not.toContain(
-    "client/**/*.ts"
+    "client/**/*.ts",
   )
   const libVite = files.get("vite.lib.config.ts")
   expect(libVite).toContain("unplugin-dts/vite")
   expect(libVite).toContain('["es"]')
+  expect(libVite).toContain("ssr: true")
+  expect(libVite).toContain('target: "node24"')
+  expect(libVite).toContain('entry: resolve("lib/index.ts")')
+  expect(libVite).not.toContain('resolve("lib/test-kit.ts")')
+  expect(libVite).not.toContain("builtinModules")
+  expect(libVite).not.toContain("peerDependencies")
   expect(libVite).not.toContain('"cjs"')
   expect(libVite).not.toContain('"umd"')
+  expect(files.has("vite.test-kit.config.ts")).toBe(false)
   expect(files.get("vite.client.config.ts")).toContain('find: "#gql/client"')
   expect(files.get("vite.client.config.ts")).toContain(
-    'replacement: resolve("gql/client/index.ts")'
+    'replacement: resolve("gql/client/index.ts")',
   )
-  const testKitVite = files.get("vite.test-kit.config.ts")
-  expect(testKitVite).toContain('id.startsWith("#")')
-  expect(testKitVite).toContain('!id.includes("/node_modules/")')
-  expect(testKitVite).not.toContain('["graphql"]')
+  const rootExports = parseObject(files.get("package.json")).exports
+  expect(rootExports).toMatchObject({
+    ".": {
+      import: {
+        types: "./dist/lib/index.d.ts",
+        default: "./dist/lib/index.js",
+      },
+    },
+  })
+  expect(rootExports).not.toHaveProperty("./test-kit")
+  expect(rootExports).not.toHaveProperty("./test")
+  expect(parseObject(files.get("package.json")).imports).toMatchObject({
+    "#lib/*": "./lib/*.ts",
+  })
   expect(files.has("gql/schema.graphql")).toBe(true)
   expect(files.has("gql/_generated/resolvers.ts")).toBe(false)
   expect(files.has("gql/graphqlRawLoader.mjs")).toBe(false)
@@ -125,7 +147,7 @@ test("the package selection publishes a root and client workspace", () => {
   expect(parseObject(files.get("tsconfig.json")).compilerOptions).toMatchObject(
     {
       types: ["node", "vite/client"],
-    }
+    },
   )
 
   files.set("yarn.lock", "# lock\n")
@@ -165,10 +187,10 @@ test("existing manifest dependency ranges become the selected versions", () => {
   expect(byId(contributions, "typescript:dependency:typescript")).toMatchObject(
     {
       range: "5.9.3",
-    }
+    },
   )
   expect(
-    byId(contributions, "graphql:dependency:package.json:dependencies:graphql")
+    byId(contributions, "graphql:dependency:package.json:dependencies:graphql"),
   ).toMatchObject({ range: "^16.6.0" })
 })
 
@@ -220,13 +242,13 @@ test("graphql codegen keeps an existing application file", () => {
     pnpPresent: true,
   })
   expect(created.files.find((change) => change.path === "codegen.yml")).toBe(
-    undefined
+    undefined,
   )
 })
 
 test("graphql without a client workspace stays one server pipeline", () => {
   const serverSelection = parseSelection([
-    "runtimes=#lib,#server",
+    "runtimes=#lib:node,#server",
     "yarn",
     "typescript",
     "vite",
@@ -238,8 +260,8 @@ test("graphql without a client workspace stays one server pipeline", () => {
     contributions.some(
       (contribution) =>
         contribution.kind === "starter-file" &&
-        contribution.path === "client/index.ts"
-    )
+        contribution.path === "client/index.ts",
+    ),
   ).toBe(false)
   const created = reconcile({
     selection: serverSelection,
@@ -254,11 +276,187 @@ test("graphql without a client workspace stays one server pipeline", () => {
   const codegen = writtenFiles(created.files).get("codegen.yml")
   expect(codegen).toContain("typescript-resolvers")
   expect(codegen).not.toContain("preset: client")
+  const serverFiles = writtenFiles(created.files)
+  expect(serverFiles.has("lib/test-kit.ts")).toBe(false)
+  expect(serverFiles.get("vite.lib.config.ts")).not.toContain(
+    'resolve("lib/test-kit.ts")',
+  )
+  expect(
+    parseObject(serverFiles.get("package.json")).exports,
+  ).not.toHaveProperty("./test-kit")
 })
+
+test("selecting graphql alone omits ./test-kit", () => {
+  const files = reconciledFiles(selection)
+  expect(files.has("lib/test-kit.ts")).toBe(false)
+  expect(files.get("vite.lib.config.ts")).not.toContain(
+    'resolve("lib/test-kit.ts")',
+  )
+  const exportsField = parseObject(files.get("package.json")).exports
+  expect(exportsField).not.toHaveProperty("./test-kit")
+  expect(exportsField).not.toHaveProperty("./test")
+})
+
+test("an explicit node test kit publishes ./test-kit from lib/test-kit.ts", () => {
+  const files = reconciledFiles(
+    parseSelection([
+      "runtimes=#lib:node:test-kit,#server,#client",
+      "yarn",
+      "typescript",
+      "vite",
+      "graphql",
+    ]),
+    { ...facts, hasLibraryTestEntry: true },
+  )
+  const libVite = files.get("vite.lib.config.ts")
+  expect(libVite).toContain('index: resolve("lib/index.ts")')
+  expect(libVite).toContain('"test-kit": resolve("lib/test-kit.ts")')
+  expect(libVite).toContain('outDir: "dist/lib"')
+  expect(files.has("lib/test-kit.ts")).toBe(false)
+  const exportsField = parseObject(files.get("package.json")).exports
+  expect(exportsField).toMatchObject({
+    "./test-kit": {
+      import: {
+        types: "./dist/lib/test-kit.d.ts",
+        default: "./dist/lib/test-kit.js",
+      },
+    },
+  })
+  expect(exportsField).not.toHaveProperty("./test")
+})
+
+test("a test kit modifier without lib/test-kit.ts is an error", () => {
+  const error = collectError(["runtimes=#lib:node:test-kit", "vite"])
+  expect(error.problems).toEqual([
+    "lib/test-kit.ts is missing. #lib:node:test-kit publishes that file at ./test-kit.",
+  ])
+})
+
+test("a node library without a test kit builds only the root entry", () => {
+  const nodeSelection = parseSelection([
+    "runtimes=#lib:node",
+    "typescript",
+    "vite",
+  ])
+  const files = reconciledFiles(nodeSelection)
+  const libVite = files.get("vite.lib.config.ts")
+  expect(libVite).toContain('resolve("lib/index.ts")')
+  expect(libVite).not.toContain('resolve("lib/test-kit.ts")')
+  expect(libVite).toContain("ssr: true")
+  expect(libVite).toContain('target: "node24"')
+  expect(libVite).not.toContain("builtinModules")
+  expect(libVite).not.toContain("peerDependencies")
+  expect(files.has("vite.test-kit.config.ts")).toBe(false)
+  expect(parseObject(files.get("package.json")).exports).toEqual({
+    ".": {
+      import: {
+        types: "./dist/lib/index.d.ts",
+        default: "./dist/lib/index.js",
+      },
+    },
+  })
+  expect(parseObject(files.get("tsconfig.json")).compilerOptions).toMatchObject(
+    {
+      lib: ["ES2024"],
+      types: ["node", "vite/client"],
+    },
+  )
+})
+
+test("browser and universal libraries bundle package dependencies", () => {
+  const browser = reconciledFiles(
+    parseSelection(["runtimes=#lib:browser", "typescript", "vite", "vitest"]),
+  )
+  const universal = reconciledFiles(
+    parseSelection(["runtimes=#lib:universal", "typescript", "vite"]),
+  )
+  for (const files of [browser, universal]) {
+    const libVite = files.get("vite.lib.config.ts")
+    expect(libVite).toContain('target: "es2024"')
+    expect(libVite).not.toContain("readFileSync")
+    expect(libVite).not.toContain("peerDependencies")
+    expect(libVite).not.toContain("rolldownOptions")
+    expect(libVite).not.toContain("ssr:")
+    expect(libVite).toContain('resolve("lib/index.ts")')
+    expect(libVite).not.toContain('resolve("lib/test-kit.ts")')
+    expect(parseObject(files.get("package.json")).imports).toMatchObject({
+      "#lib/*": "./lib/*.ts",
+    })
+  }
+  expect(
+    parseObject(browser.get("tsconfig.json")).compilerOptions,
+  ).toMatchObject({
+    lib: ["ES2024", "DOM", "DOM.Iterable"],
+    types: ["vite/client"],
+  })
+  expect(
+    parseObject(universal.get("tsconfig.json")).compilerOptions,
+  ).toMatchObject({
+    lib: ["ES2024", "DOM", "DOM.Iterable"],
+    types: ["node", "vite/client"],
+  })
+  const browserTest = browser.get("vite.test.config.ts")
+  expect(browserTest).toContain("lib/**/*.test.ts")
+  expect(browserTest).not.toContain("environment:")
+})
+
+test("a browser library that shares a server keeps the shared TypeScript types", () => {
+  const files = reconciledFiles(
+    parseSelection(["runtimes=#lib:browser,#server", "typescript", "vite"]),
+  )
+  const compilerOptions = parseObject(
+    files.get("tsconfig.json"),
+  ).compilerOptions
+  expect(compilerOptions).toMatchObject({
+    types: ["node", "vite/client"],
+  })
+  if (!isRecord(compilerOptions)) throw new Error("missing compilerOptions")
+  expect(compilerOptions.lib).toBeUndefined()
+})
+
+test("graphql on a browser library does not add a test kit", () => {
+  const files = reconciledFiles(
+    parseSelection(["runtimes=#lib:browser,#server", "graphql", "vite"]),
+  )
+  expect(files.get("vite.lib.config.ts")).not.toContain(
+    'resolve("lib/test-kit.ts")',
+  )
+  expect(parseObject(files.get("package.json")).exports).not.toHaveProperty(
+    "./test-kit",
+  )
+})
+
+function reconciledFiles(
+  selection: ReturnType<typeof parseSelection>,
+  projectFacts: ProjectFacts = facts,
+) {
+  const contributions = collectContributions(selection, projectFacts)
+  const created = reconcile({
+    selection,
+    contributions,
+    prior: undefined,
+    files: new Map([
+      ["package.json", '{ "name": "@example/package-service" }\n'],
+    ]),
+    yarnLockPresent: false,
+    pnpPresent: false,
+  })
+  return writtenFiles(created.files)
+}
+
+function collectError(args: readonly string[]): ConfgenError {
+  try {
+    collectContributions(parseSelection(args), facts)
+  } catch (error) {
+    if (error instanceof ConfgenError) return error
+    throw error
+  }
+  throw new Error("Expected a Confgen error")
+}
 
 function byId(
   contributions: readonly Contribution[],
-  id: string
+  id: string,
 ): Contribution {
   const found = contributions.find((contribution) => contribution.id === id)
   if (found === undefined) throw new Error(`missing contribution ${id}`)
@@ -266,7 +464,7 @@ function byId(
 }
 
 function writtenFiles(
-  changes: ReturnType<typeof reconcile>["files"]
+  changes: ReturnType<typeof reconcile>["files"],
 ): Map<string, string> {
   const files = new Map<string, string>()
   for (const change of changes) {

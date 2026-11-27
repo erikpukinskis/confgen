@@ -48,7 +48,7 @@
     "@yarnpkg/sdks": "2",
     "eslint": "8.57.1",
     "eslint-plugin-import": "^2.31.0",
-    "prettier": "2.8.1",
+    "prettier": "3.10.1",
     "vite": "8.3.4",
     "vitest": "^4.0.7"
   }

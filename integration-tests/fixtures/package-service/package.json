@@ -10,8 +10,15 @@
   "publishConfig": {
     "registry": "https://npm.example.test"
   },
+  "dependencies": {
+    "graphql-dev-kit": "0.3.0",
+    "msw": "^2.7.0"
+  },
   "dependenciesMeta": {
     "graphql": {
+      "unplugged": true
+    },
+    "graphql-dev-kit": {
       "unplugged": true
     }
   },
