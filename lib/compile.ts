@@ -88,12 +88,7 @@ export async function compileCollected(input: {
       executable,
       args,
     })
-    const result = await input.system.run(executable, args)
-    if (result.status !== 0) {
-      const detail =
-        result.stderr.trim() || result.stdout.trim() || `exit ${result.status}`
-      throw new ConfgenError([`yarn install failed: ${detail}`])
-    }
+    await input.system.run(executable, args).waitForExit()
   }
   await verifyApplied(input.system, changeSet, prior)
   await writeLockFile(input.system, changeSet.lock)

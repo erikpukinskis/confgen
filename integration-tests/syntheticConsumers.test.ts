@@ -1,13 +1,10 @@
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import {
-  confgenExecutable,
-  createSyntheticProject,
-  type SyntheticProject,
-} from "./helpers"
+import { createSystem, type System } from "../lib/system"
+import { confgenExecutable, copyFixture } from "./helpers"
 import { expect, test } from "vitest"
 
 const fixture = fileURLToPath(
@@ -16,49 +13,53 @@ const fixture = fileURLToPath(
 const rootName = "@example/package-service"
 const clientName = "@example/package-service-client"
 
-test(
-  "the package service test verifies confgen behavior for an empty project",
-  // { timeout: 1_500_000 },
-  async () => {
-    const args = [
-      "runtimes=#lib:node:test-kit,#server,#client,#integration,#gateway",
-      "yarn",
-      "typescript",
-      "vite",
-      "vitest",
-      "eslint",
-      "prettier",
-      "git",
-      "graphql",
-      "docker",
-      "httpd",
-      "githubActions",
-      "githubPackage",
-    ]
-    const project = await createSyntheticProject(fixture)
-    const consumerDirectory = await mkdtemp(join(tmpdir(), "confgen-consumer-"))
-    const sslDirectory = await mkdtemp(join(tmpdir(), "confgen-ssl-"))
-    const composeProject = `confgen-package-${process.pid}`
-    const composeEnv = {
-      COMPOSE_PROJECT_NAME: composeProject,
-      IMAGE_TAG: "test",
-      SSL_PATH: sslDirectory,
-      PACKAGE_SERVICE_URL: "https://package-service.local.multiplayerdb.dev",
-      DEV_CLUSTER_HTTP_PORT: "18080",
-      DEV_CLUSTER_HTTPS_PORT: "18443",
+test("the package service test verifies confgen behavior for an empty project", async () => {
+  const args = [
+    "runtimes=#lib:node:test-kit,#server,#client,#integration,#gateway",
+    "yarn",
+    "typescript",
+    "vite",
+    "vitest",
+    "eslint",
+    "prettier",
+    "git",
+    "graphql",
+    "docker",
+    "httpd",
+    "githubActions",
+    "githubPackage",
+  ]
+  const directory = await copyFixture(fixture)
+  const project = createSystem(directory)
+  const consumerDirectory = await mkdtemp(join(tmpdir(), "confgen-consumer-"))
+  const sslDirectory = await mkdtemp(join(tmpdir(), "confgen-ssl-"))
+  const composeProject = `confgen-package-${process.pid}`
+  const composeEnv = {
+    COMPOSE_PROJECT_NAME: composeProject,
+    IMAGE_TAG: "test",
+    SSL_PATH: sslDirectory,
+    PACKAGE_SERVICE_URL: "https://package-service.local.multiplayerdb.dev",
+    DEV_CLUSTER_HTTP_PORT: "18080",
+    DEV_CLUSTER_HTTPS_PORT: "18443",
+  }
+  try {
+    await project.run(confgenExecutable, args).waitForExit()
+    await project.run("yarn", ["install"]).waitForExit()
+    await project
+      .run("yarn", ["generate:local:ssl"], { env: { SSL_PATH: sslDirectory } })
+      .waitForExit()
+    const server = project.run("yarn", ["start:server"], {
+      env: { PORT: "3017", SSL_PATH: sslDirectory },
+    })
+    for (;;) {
+      const line = await server.next()
+      if (line.stdout?.includes("ready https://127.0.0.1:")) break
+      if (line.status !== undefined) {
+        throw new Error(`server exited before it was ready\n${server.stdout}`)
+      }
     }
-    try {
-      await project.run(confgenExecutable, args, 180_000)
-      await project.run("yarn", ["install"], 180_000)
-      await project.run("yarn", ["generate:local:ssl"], 60_000, {
-        SSL_PATH: sslDirectory,
-      })
-      const server = await project.start("yarn", ["start:server"], {
-        ready: (output) => output.includes("ready https://127.0.0.1:"),
-        timeoutMs: 60_000,
-        env: { PORT: "3017", SSL_PATH: sslDirectory },
-      })
-      const health = await project.run("curl", [
+    const health = await project
+      .run("curl", [
         "--fail",
         "--silent",
         "--cacert",
@@ -67,27 +68,31 @@ test(
         "package-service.local.multiplayerdb.dev:3017:127.0.0.1",
         "https://package-service.local.multiplayerdb.dev:3017/healthcheck",
       ])
-      expect(health.stdout).toContain("ok")
-      await server.stop()
-      await expectRuntimeScopes(project)
-      await proveContainer(project, composeEnv)
-      await project.run("yarn", ["test:integration:local"], 900_000, composeEnv)
-      await project.run("yarn", ["build:generate"], 180_000)
-      await project.run("yarn", ["build:lib"], 180_000)
-      await project.run("yarn", ["build:server"], 180_000)
-      await project.run("yarn", ["build:client"], 180_000)
-      await project.run("yarn", ["check:types"], 180_000)
-      await project.run("yarn", ["check:lint"], 180_000)
-      await project.run("yarn", ["fix:format"], 180_000)
-      await project.run("yarn", ["check:format"], 180_000)
-      await project.run("yarn", ["test"], 180_000)
-      await expectPublishedPackages(project)
-      await proveReleaseCommands(project)
-      await project.run("yarn", ["yalc:publish"], 180_000)
-      await consumePublishedPackages(project, consumerDirectory)
-      await project.run("git", ["init"])
-      await project.run("git", ["add", "--all"])
-      await project.run("git", [
+      .waitForExit()
+    expect(health.stdout).toContain("ok")
+    await server.stop()
+    await expectRuntimeScopes(directory)
+    await proveContainer(project, directory, composeEnv)
+    await project
+      .run("yarn", ["test:integration:local"], { env: composeEnv })
+      .waitForExit()
+    await project.run("yarn", ["build:generate"]).waitForExit()
+    await project.run("yarn", ["build:lib"]).waitForExit()
+    await project.run("yarn", ["build:server"]).waitForExit()
+    await project.run("yarn", ["build:client"]).waitForExit()
+    await project.run("yarn", ["check:types"]).waitForExit()
+    await project.run("yarn", ["check:lint"]).waitForExit()
+    await project.run("yarn", ["fix:format"]).waitForExit()
+    await project.run("yarn", ["check:format"]).waitForExit()
+    await project.run("yarn", ["test"]).waitForExit()
+    await expectPublishedPackages(project, directory)
+    await proveReleaseCommands(project, directory)
+    await project.run("yarn", ["yalc:publish"]).waitForExit()
+    await consumePublishedPackages(project, directory, consumerDirectory)
+    await project.run("git", ["init"]).waitForExit()
+    await project.run("git", ["add", "--all"]).waitForExit()
+    await project
+      .run("git", [
         "-c",
         "user.email=confgen@example.com",
         "-c",
@@ -98,30 +103,29 @@ test(
         "-m",
         "package service",
       ])
-      const bumped = await project.run("yarn", [
-        "bump-n-pub",
-        "patch",
-        "--bump-only",
-        "--dry-run",
-      ])
-      expect(bumped.stdout).toContain("Version would be 0.1.1")
-      await project.run(confgenExecutable, args, 180_000)
-      const status = await project.run("git", ["status", "--porcelain"])
-      expect(status.stdout).toBe("")
-    } finally {
-      await stopContainers(project, composeEnv)
-      await rm(consumerDirectory, { recursive: true, force: true })
-      await rm(sslDirectory, { recursive: true, force: true })
-      await project.cleanup()
-    }
-  },
-)
+      .waitForExit()
+    const bumped = await project
+      .run("yarn", ["bump-n-pub", "patch", "--bump-only", "--dry-run"])
+      .waitForExit()
+    expect(bumped.stdout).toContain("Version would be 0.1.1")
+    await project.run(confgenExecutable, args).waitForExit()
+    const status = await project
+      .run("git", ["status", "--porcelain"])
+      .waitForExit()
+    expect(status.stdout).toBe("")
+  } finally {
+    await stopContainers(project, composeEnv)
+  }
+})
 
-async function proveReleaseCommands(project: SyntheticProject): Promise<void> {
-  await project.run("yarn", ["bump-n-pub", "check-registries"], 60_000)
-  await project.run("yarn", ["bump-n-pub", "check-pack"], 120_000)
-  const rootPath = join(project.directory, "package.json")
-  const clientPath = join(project.directory, "client/package.json")
+async function proveReleaseCommands(
+  project: System,
+  directory: string,
+): Promise<void> {
+  await project.run("yarn", ["bump-n-pub", "check-registries"]).waitForExit()
+  await project.run("yarn", ["bump-n-pub", "check-pack"]).waitForExit()
+  const rootPath = join(directory, "package.json")
+  const clientPath = join(directory, "client/package.json")
   const rootOriginal = await readFile(rootPath, "utf8")
   const clientOriginal = await readFile(clientPath, "utf8")
   const server = createServer((request, response) => {
@@ -141,15 +145,14 @@ async function proveReleaseCommands(project: SyntheticProject): Promise<void> {
     const registry = `http://127.0.0.1:${address.port}`
     await writeRegistry(rootPath, registry)
     await writeRegistry(clientPath, registry)
-    const prepared = await project.run(
-      "yarn",
-      ["bump-n-pub", "prepare"],
-      60_000,
-      {
-        GITHUB_REF_NAME: "main",
-        PUBLISHING_BRANCHES: '["main"]',
-      },
-    )
+    const prepared = await project
+      .run("yarn", ["bump-n-pub", "prepare"], {
+        env: {
+          GITHUB_REF_NAME: "main",
+          PUBLISHING_BRANCHES: '["main"]',
+        },
+      })
+      .waitForExit()
     expect(prepared.stdout).toContain("package_version=0.1.0")
     expect(prepared.stdout).toContain("should_publish=true")
   } finally {
@@ -173,34 +176,27 @@ async function writeRegistry(path: string, registry: string): Promise<void> {
 }
 
 async function proveContainer(
-  project: SyntheticProject,
+  project: System,
+  directory: string,
   env: Readonly<Record<string, string>>,
 ): Promise<void> {
-  const configured = await project.run(
-    "docker",
-    [
-      "compose",
-      "-f",
-      "compose.base.yaml",
-      "-f",
-      "compose.local.yaml",
-      "config",
-    ],
-    60_000,
-    env,
-  )
+  const docker = (args: readonly string[]) =>
+    project.run("docker", args, { env }).waitForExit()
+  const configured = await docker([
+    "compose",
+    "-f",
+    "compose.base.yaml",
+    "-f",
+    "compose.local.yaml",
+    "config",
+  ])
   expect(configured.stdout).toContain("package-api-server")
   expect(configured.stdout).toContain("target: dev")
   expect(configured.stdout).toContain("/healthcheck")
   expect(configured.stdout).toContain("package-service-integration-test-host")
   expect(configured.stdout).toContain("target: integration-test-host")
   expect(configured.stdout).toContain("dockerfile: ./gateway/Dockerfile")
-  const base = await project.run(
-    "docker",
-    ["compose", "-f", "compose.base.yaml", "config"],
-    60_000,
-    env,
-  )
+  const base = await docker(["compose", "-f", "compose.base.yaml", "config"])
   expect(base.stdout).toContain("ghcr.io/example/package-api-server:test")
   expect(base.stdout).toContain("ghcr.io/example/package-service:test")
   expect(base.stdout).not.toContain("target: dev")
@@ -208,146 +204,113 @@ async function proveContainer(
     "ghcr.io/example/package-service-integration-test-host:test",
   )
   expect(base.stdout).not.toContain("/mnt/package-service")
-  const manifest = await readManifest(project.directory, "package.json")
+  const manifest = await readManifest(directory, "package.json")
   expect(scriptCommand(manifest, "test:integration:ci")).toBe(
     "docker compose -f compose.base.yaml up --attach-dependencies --exit-code-from package-service-integration-test-host package-service-integration-test-host",
   )
 
-  await project.run(
-    "docker",
-    [
-      "build",
-      "--target",
-      "prod",
-      "-t",
-      "ghcr.io/example/package-api-server:test",
-      ".",
-    ],
-    600_000,
-    env,
-  )
-  await project.run(
-    "docker",
-    [
-      "build",
-      "-f",
-      "gateway/Dockerfile",
-      "-t",
-      "ghcr.io/example/package-service:test",
-      ".",
-    ],
-    600_000,
-    env,
-  )
+  await docker([
+    "build",
+    "--target",
+    "prod",
+    "-t",
+    "ghcr.io/example/package-api-server:test",
+    ".",
+  ])
+  await docker([
+    "build",
+    "-f",
+    "gateway/Dockerfile",
+    "-t",
+    "ghcr.io/example/package-service:test",
+    ".",
+  ])
   try {
-    await project.run(
-      "docker",
-      [
-        "compose",
-        "-f",
-        "compose.base.yaml",
-        "up",
-        "-d",
-        "--wait",
-        "--wait-timeout",
-        "120",
-        "--pull",
-        "never",
-        "package-service",
-      ],
-      180_000,
-      env,
-    )
-    const listed = await project.run(
-      "docker",
-      ["compose", "-f", "compose.base.yaml", "ps", "-q", "package-api-server"],
-      30_000,
-      env,
-    )
+    await docker([
+      "compose",
+      "-f",
+      "compose.base.yaml",
+      "up",
+      "-d",
+      "--wait",
+      "--wait-timeout",
+      "120",
+      "--pull",
+      "never",
+      "package-service",
+    ])
+    const listed = await docker([
+      "compose",
+      "-f",
+      "compose.base.yaml",
+      "ps",
+      "-q",
+      "package-api-server",
+    ])
     const containerId = listed.stdout.trim()
-    const health = await project.run(
-      "docker",
-      ["inspect", "--format", "{{.State.Health.Status}}", containerId],
-      30_000,
-      env,
-    )
+    const health = await docker([
+      "inspect",
+      "--format",
+      "{{.State.Health.Status}}",
+      containerId,
+    ])
     expect(health.stdout.trim()).toBe("healthy")
-    const response = await project.run(
-      "docker",
-      [
-        "compose",
-        "-f",
-        "compose.base.yaml",
-        "exec",
-        "-T",
-        "package-api-server",
-        "curl",
-        "--fail",
-        "--silent",
-        "https://package-api-server.local.multiplayerdb.dev:7001/",
-      ],
-      30_000,
-      env,
-    )
+    const response = await docker([
+      "compose",
+      "-f",
+      "compose.base.yaml",
+      "exec",
+      "-T",
+      "package-api-server",
+      "curl",
+      "--fail",
+      "--silent",
+      "https://package-api-server.local.multiplayerdb.dev:7001/",
+    ])
     expect(response.stdout).toContain("Hello, baseline")
-    const check = await project.run(
-      "docker",
-      [
-        "compose",
-        "-f",
-        "compose.base.yaml",
-        "exec",
-        "-T",
-        "package-api-server",
-        "curl",
-        "--fail",
-        "--silent",
-        "https://package-api-server.local.multiplayerdb.dev:7001/healthcheck",
-      ],
-      30_000,
-      env,
-    )
+    const check = await docker([
+      "compose",
+      "-f",
+      "compose.base.yaml",
+      "exec",
+      "-T",
+      "package-api-server",
+      "curl",
+      "--fail",
+      "--silent",
+      "https://package-api-server.local.multiplayerdb.dev:7001/healthcheck",
+    ])
     expect(check.stdout).toContain("ok")
-    const gatewayHealth = await project.run(
-      "docker",
-      [
-        "compose",
-        "-f",
-        "compose.base.yaml",
-        "exec",
-        "-T",
-        "package-service",
-        "curl",
-        "--fail",
-        "--silent",
-        "https://package-service.local.multiplayerdb.dev/healthcheck",
-      ],
-      30_000,
-      env,
-    )
+    const gatewayHealth = await docker([
+      "compose",
+      "-f",
+      "compose.base.yaml",
+      "exec",
+      "-T",
+      "package-service",
+      "curl",
+      "--fail",
+      "--silent",
+      "https://package-service.local.multiplayerdb.dev/healthcheck",
+    ])
     expect(gatewayHealth.stdout).toContain("ok")
-    const proxied = await project.run(
-      "docker",
-      [
-        "compose",
-        "-f",
-        "compose.base.yaml",
-        "exec",
-        "-T",
-        "package-service",
-        "curl",
-        "--fail-with-body",
-        "--silent",
-        "--show-error",
-        "--header",
-        "Content-Type: application/json",
-        "--data",
-        JSON.stringify({ query: '{ greeting(name: "baseline") }' }),
-        "https://package-service.local.multiplayerdb.dev/api",
-      ],
-      30_000,
-      env,
-    )
+    const proxied = await docker([
+      "compose",
+      "-f",
+      "compose.base.yaml",
+      "exec",
+      "-T",
+      "package-service",
+      "curl",
+      "--fail-with-body",
+      "--silent",
+      "--show-error",
+      "--header",
+      "Content-Type: application/json",
+      "--data",
+      JSON.stringify({ query: '{ greeting(name: "baseline") }' }),
+      "https://package-service.local.multiplayerdb.dev/api",
+    ])
     expect(proxied.stdout).toContain("Hello, baseline")
   } finally {
     await stopContainers(project, env)
@@ -355,51 +318,54 @@ async function proveContainer(
 }
 
 async function stopContainers(
-  project: SyntheticProject,
+  project: System,
   env: Readonly<Record<string, string>>,
 ): Promise<void> {
   try {
-    await project.run("yarn", ["stop:containers:local"], 120_000, env)
+    await project.run("yarn", ["stop:containers:local"], { env }).waitForExit()
   } catch {
     // The local project may not be up.
   }
   try {
-    await project.run(
-      "docker",
-      ["compose", "-f", "compose.base.yaml", "down", "-v", "--remove-orphans"],
-      120_000,
-      env,
-    )
+    await project
+      .run(
+        "docker",
+        [
+          "compose",
+          "-f",
+          "compose.base.yaml",
+          "down",
+          "-v",
+          "--remove-orphans",
+        ],
+        { env },
+      )
+      .waitForExit()
   } catch {
     // The service may not have started.
   }
 }
 
-async function expectRuntimeScopes(project: SyntheticProject): Promise<void> {
-  await expectFile(project.directory, ".env.example")
-  await expectFile(project.directory, "integration/service.test.ts")
-  await expectFile(project.directory, "gateway/httpd.conf")
-  await expectFile(project.directory, "gateway/public/index.html")
-  await expectFile(project.directory, "gateway/Dockerfile")
+async function expectRuntimeScopes(directory: string): Promise<void> {
+  await expectFile(directory, ".env.example")
+  await expectFile(directory, "integration/service.test.ts")
+  await expectFile(directory, "gateway/httpd.conf")
+  await expectFile(directory, "gateway/public/index.html")
+  await expectFile(directory, "gateway/Dockerfile")
   const tsconfig = parseObject(
-    JSON.parse(
-      await readFile(join(project.directory, "tsconfig.json"), "utf8"),
-    ),
+    JSON.parse(await readFile(join(directory, "tsconfig.json"), "utf8")),
   )
   expect(stringList(tsconfig.include)).toEqual(
     expect.arrayContaining(["integration/**/*.ts", "gateway/**/*.ts"]),
   )
-  const unit = await readFile(
-    join(project.directory, "vite.test.config.ts"),
-    "utf8",
-  )
+  const unit = await readFile(join(directory, "vite.test.config.ts"), "utf8")
   expect(unit).not.toContain("integration/**/*.test.ts")
   const focused = await readFile(
-    join(project.directory, "vite.integration.config.ts"),
+    join(directory, "vite.integration.config.ts"),
     "utf8",
   )
   expect(focused).toContain("integration/**/*.test.ts")
-  const manifest = await readManifest(project.directory, "package.json")
+  const manifest = await readManifest(directory, "package.json")
   expect(scriptCommand(manifest, "check:types")).toContain("tsconfig.json")
   expect(scriptCommand(manifest, "build")).toContain("yarn build:server")
   expect(scriptCommand(manifest, "test:integration:run")).toBe(
@@ -435,15 +401,16 @@ function stringList(value: unknown): string[] {
 }
 
 async function expectPublishedPackages(
-  project: SyntheticProject,
+  project: System,
+  directory: string,
 ): Promise<void> {
-  await expectFile(project.directory, "dist/lib/index.js")
-  await expectFile(project.directory, "dist/lib/index.d.ts")
-  await expectFile(project.directory, "dist/lib/test-kit.js")
-  await expectFile(project.directory, "dist/lib/test-kit.d.ts")
-  await expectFile(project.directory, "client/dist/index.js")
-  await expectFile(project.directory, "client/dist/client/index.d.ts")
-  const rootManifest = await readManifest(project.directory, "package.json")
+  await expectFile(directory, "dist/lib/index.js")
+  await expectFile(directory, "dist/lib/index.d.ts")
+  await expectFile(directory, "dist/lib/test-kit.js")
+  await expectFile(directory, "dist/lib/test-kit.d.ts")
+  await expectFile(directory, "client/dist/index.js")
+  await expectFile(directory, "client/dist/client/index.d.ts")
+  const rootManifest = await readManifest(directory, "package.json")
   expect(rootManifest.name).toBe(rootName)
   expect(rootManifest.type).toBe("module")
   expect(publishRegistry(rootManifest)).toBe("https://npm.example.test")
@@ -457,14 +424,11 @@ async function expectPublishedPackages(
   )
   expect(exportImport(rootManifest, "./test")).toBeUndefined()
   const testKitSource = await readFile(
-    join(project.directory, "dist/lib/test-kit.js"),
+    join(directory, "dist/lib/test-kit.js"),
     "utf8",
   )
   expect(testKitSource).toMatch(/from ["']graphql-dev-kit\/test["']/)
-  const clientManifest = await readManifest(
-    project.directory,
-    "client/package.json",
-  )
+  const clientManifest = await readManifest(directory, "client/package.json")
   expect(clientManifest.name).toBe(clientName)
   expect(clientManifest.version).toBe(rootManifest.version)
   expect(clientManifest.type).toBe("module")
@@ -472,7 +436,7 @@ async function expectPublishedPackages(
   expect(exportImport(clientManifest, ".")).toBe("./dist/index.js")
   expect(exportTypes(clientManifest, ".")).toBe("./dist/client/index.d.ts")
   expect(clientManifest.imports).toBeUndefined()
-  const inspected = await project.run("yarn", ["inspect:pack"], 180_000)
+  const inspected = await project.run("yarn", ["inspect:pack"]).waitForExit()
   expect(inspected.stdout).toContain("dist/lib/index.js")
   expect(inspected.stdout).toContain("dist/lib/index.d.ts")
   expect(inspected.stdout).toContain("dist/lib/test-kit.js")
@@ -481,11 +445,12 @@ async function expectPublishedPackages(
 }
 
 async function consumePublishedPackages(
-  project: SyntheticProject,
-  directory: string,
+  project: System,
+  projectDirectory: string,
+  consumerDirectory: string,
 ): Promise<void> {
   await writeFile(
-    join(directory, "package.json"),
+    join(consumerDirectory, "package.json"),
     `${JSON.stringify(
       {
         name: "package-consumer",
@@ -498,25 +463,30 @@ async function consumePublishedPackages(
       2,
     )}\n`,
   )
-  await writeFile(join(directory, "consume.mjs"), CONSUME)
-  const store = join(project.directory, ".yalc-store")
-  await project.run("yarn", [
-    "exec",
-    `cd ${shellQuote(directory)} && yalc add ${shellQuote(
-      rootName,
-    )} --store-folder ${shellQuote(store)}`,
-  ])
-  await project.run("yarn", [
-    "exec",
-    `cd ${shellQuote(directory)} && yalc add ${shellQuote(
-      clientName,
-    )} --store-folder ${shellQuote(store)}`,
-  ])
-  await project.runAt(directory, "yarn", ["install"], 180_000)
-  const consumed = await project.runAt(directory, "yarn", [
-    "node",
-    "consume.mjs",
-  ])
+  await writeFile(join(consumerDirectory, "consume.mjs"), CONSUME)
+  const store = join(projectDirectory, ".yalc-store")
+  await project
+    .run("yarn", [
+      "exec",
+      `cd ${shellQuote(consumerDirectory)} && yalc add ${shellQuote(
+        rootName,
+      )} --store-folder ${shellQuote(store)}`,
+    ])
+    .waitForExit()
+  await project
+    .run("yarn", [
+      "exec",
+      `cd ${shellQuote(consumerDirectory)} && yalc add ${shellQuote(
+        clientName,
+      )} --store-folder ${shellQuote(store)}`,
+    ])
+    .waitForExit()
+  await project
+    .run("yarn", ["install"], { cwd: consumerDirectory })
+    .waitForExit()
+  const consumed = await project
+    .run("yarn", ["node", "consume.mjs"], { cwd: consumerDirectory })
+    .waitForExit()
   expect(consumed.stdout).toContain("consumed")
 }
 

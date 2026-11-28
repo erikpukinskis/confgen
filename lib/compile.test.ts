@@ -16,7 +16,7 @@ import {
 import { PRESET_NAMES } from "./presets/registry"
 import { RUNTIME_NAMES } from "./runtimes"
 import { parseSelection } from "./selection"
-import { createSystem, type RunResult, type System } from "./system"
+import { CommandError, createSystem, type System } from "./system"
 import { expect, test } from "vitest"
 
 const documented = [
@@ -216,9 +216,23 @@ test("a yarn failure leaves the previous lock untouched", async () => {
     range: "^5",
   }
 
-  const error = await collectedError(system, facts, [dependency])
+  let error: unknown
+  try {
+    await compileCollected({
+      selection: {
+        runtimes: ["lib"],
+        libraryPlatform: "universal",
+        presets: ["typescript"],
+      },
+      facts,
+      contributions: [dependency],
+      system,
+    })
+  } catch (caught) {
+    error = caught
+  }
 
-  expect(error.problems[0]).toContain("yarn install failed")
+  expect(error).toBeInstanceOf(CommandError)
   expect(await real.readFile(LOCK_PATH)).toBe(previous)
   expect(await real.readFile("package.json")).toContain('"typescript"')
 })
@@ -324,29 +338,6 @@ async function compileError(
   throw new Error("Expected a compile error")
 }
 
-async function collectedError(
-  system: System,
-  facts: Awaited<ReturnType<typeof readProjectFacts>>,
-  contributions: readonly Contribution[],
-): Promise<ConfgenError> {
-  try {
-    await compileCollected({
-      selection: {
-        runtimes: ["lib"],
-        libraryPlatform: "universal",
-        presets: ["typescript"],
-      },
-      facts,
-      contributions,
-      system,
-    })
-  } catch (error) {
-    if (error instanceof ConfgenError) return error
-    throw error
-  }
-  throw new Error("Expected a compile error")
-}
-
 function failingInstall(real: System): System {
   return {
     readFile: (path) => real.readFile(path),
@@ -354,7 +345,11 @@ function failingInstall(real: System): System {
     writeFile: (path, contents) => real.writeFile(path, contents),
     removeFile: (path) => real.removeFile(path),
     rename: (from, to) => real.rename(from, to),
-    run: (): Promise<RunResult> =>
-      Promise.resolve({ status: 1, stdout: "", stderr: "install failed" }),
+    run: (_executable, _args, options) =>
+      real.run(
+        process.execPath,
+        ["-e", "console.error('install failed'); process.exit(1)"],
+        options,
+      ),
   }
 }
