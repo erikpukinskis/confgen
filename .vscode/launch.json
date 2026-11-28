@@ -7,6 +7,13 @@
       "name": "Debug Current Test File",
       "command": "yarn vitest related \"${relativeFile}\"",
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "Debug Current Integration Test",
+      "command": "yarn vitest --config integration-tests/vitest.config.ts related \"${relativeFile}\"",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

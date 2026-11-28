@@ -73,6 +73,7 @@ export async function compileCollected(input: {
   input.onWarnings?.(changeSet.warnings)
   await applyChanges(input.system, changeSet.files, input.onProgress)
   if (changeSet.runYarnInstall) {
+    // TODO: Let's just always enable yarn.
     const executable = input.selection.presets.includes("yarn")
       ? "bash"
       : "yarn"

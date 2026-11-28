@@ -23,6 +23,6 @@
     }
   },
   "devDependencies": {
-    "dev-cluster": "file:.yalc/dev-cluster"
+    "dev-cluster": "0.3.0"
   }
 }

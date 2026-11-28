@@ -318,8 +318,4 @@ Confgen's boundaries rather than duplicating the test suites of those tools
 or of applications generated with them.
 
 The Docker preset uses `DEV_CLUSTER_VERSION` when set, or its default version
-otherwise. To prepare the integration fixtures with a locally published
-`dev-cluster`, run `yalc add dev-cluster --dev` inside both
-`integration-tests/fixtures/package-service` and
-`integration-tests/fixtures/schema-service`. The integration test configuration
-sets `DEV_CLUSTER_VERSION=file:.yalc/dev-cluster`.
+otherwise.

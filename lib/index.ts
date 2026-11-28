@@ -51,7 +51,7 @@ export async function main(
             warnings = nextWarnings
           },
           onProgress(progress) {
-            writeProgress(stdout, progress)
+            writeProgress(stdout, progress, cwd)
           },
         })
       } catch (error) {
@@ -91,6 +91,7 @@ const separator = "————————————————————�
 function writeProgress(
   stdout: TextWriter,
   progress: CompilationProgress,
+  folderName: string,
 ): void {
   if (progress.type === "start") {
     stdout.write(
@@ -103,12 +104,14 @@ function writeProgress(
       ? "Updating file"
       : progress.type === "remove"
         ? "Removing file"
-        : "Running command"
+        : `Running command`
   const detail =
     progress.type === "run"
       ? [progress.executable, ...progress.args].join(" ")
       : progress.path
-  stdout.write(`${separator}\n👷 ${description}\n   ${detail}\n`)
+  stdout.write(
+    `${separator}\n👷 ${description} in ${folderName}\n   ${detail}\n`,
+  )
 }
 
 function version(): string {

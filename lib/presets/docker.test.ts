@@ -308,7 +308,7 @@ test("replaces the local yalc dev-cluster link with its published version", () =
       ...root,
       dependencyRanges: {
         dependencies: {},
-        devDependencies: { "dev-cluster": "file:.yalc/dev-cluster" },
+        devDependencies: { "dev-cluster": "0.3.0" },
         peerDependencies: {},
       },
     },
@@ -317,7 +317,7 @@ test("replaces the local yalc dev-cluster link with its published version", () =
         ...root,
         dependencyRanges: {
           dependencies: {},
-          devDependencies: { "dev-cluster": "file:.yalc/dev-cluster" },
+          devDependencies: { "dev-cluster": "0.3.0" },
           peerDependencies: {},
         },
       },
@@ -331,7 +331,7 @@ test("replaces the local yalc dev-cluster link with its published version", () =
       contribution.kind === "dependency" &&
       contribution.package === "dev-cluster",
   )
-  expect(dependency).toMatchObject({ kind: "dependency", range: "0.2.0" })
+  expect(dependency).toMatchObject({ kind: "dependency", range: "0.3.0" })
 })
 
 test("DEV_CLUSTER_VERSION overrides an existing published dependency", () => {

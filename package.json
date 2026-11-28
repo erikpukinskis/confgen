@@ -20,7 +20,6 @@
   },
   "scripts": {
     "build": "vite build && chmod +x dist/index.js",
-    "build:fixtures": "cd integration-tests/fixtures/package-service && yarn build",
     "check:format": "prettier --check .",
     "check:lint": "eslint --no-error-on-unmatched-pattern .",
     "check:types": "tsc --noEmit -p tsconfig.json",
@@ -45,7 +44,7 @@
     "@types/node": "^24.10.0",
     "@typescript-eslint/eslint-plugin": "8.70.0",
     "@typescript-eslint/parser": "8.70.0",
-    "@yarnpkg/sdks": "2",
+    "@yarnpkg/sdks": "3.3.2",
     "eslint": "8.57.1",
     "eslint-plugin-import": "^2.31.0",
     "prettier": "3.10.1",

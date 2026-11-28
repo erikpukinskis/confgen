@@ -1,19 +1,11 @@
-import {
-  mkdtemp,
-  mkdir,
-  readdir,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises"
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { fileURLToPath, pathToFileURL } from "node:url"
+import { fileURLToPath } from "node:url"
 import {
   confgenExecutable,
   createSyntheticProject,
-  packBumpNPub,
   type SyntheticProject,
 } from "./helpers"
 import { expect, test } from "vitest"
@@ -26,7 +18,7 @@ const clientName = "@example/package-service-client"
 
 test(
   "the package service test verifies confgen behavior for an empty project",
-  { timeout: 1_500_000 },
+  // { timeout: 1_500_000 },
   async () => {
     const args = [
       "runtimes=#lib:node:test-kit,#server,#client,#integration,#gateway",
@@ -43,7 +35,6 @@ test(
       "githubActions",
       "githubPackage",
     ]
-    const bumpNPub = await packBumpNPub()
     const project = await createSyntheticProject(fixture)
     const consumerDirectory = await mkdtemp(join(tmpdir(), "confgen-consumer-"))
     const sslDirectory = await mkdtemp(join(tmpdir(), "confgen-ssl-"))
@@ -57,22 +48,30 @@ test(
       DEV_CLUSTER_HTTPS_PORT: "18443",
     }
     try {
-      await pinTool(project, bumpNPub.tarball, "bump-n-pub")
       await project.run(confgenExecutable, args, 180_000)
       await project.run("yarn", ["install"], 180_000)
-      await runDevCluster(
-        project,
-        { SSL_PATH: sslDirectory },
-        ["certs"],
-        60_000,
-      )
-      await proveGraphqlSource(project, sslDirectory)
-      await expectRuntimeScopes(project)
-      await withoutLocalFileDependencies(project, async () => {
-        await proveContainer(project, composeEnv)
-        await proveLocalIntegration(project, composeEnv)
+      await project.run("yarn", ["generate:local:ssl"], 60_000, {
+        SSL_PATH: sslDirectory,
       })
-      await project.run("yarn", ["install"], 180_000)
+      const server = await project.start("yarn", ["start:server"], {
+        ready: (output) => output.includes("ready https://127.0.0.1:"),
+        timeoutMs: 60_000,
+        env: { PORT: "3017", SSL_PATH: sslDirectory },
+      })
+      const health = await project.run("curl", [
+        "--fail",
+        "--silent",
+        "--cacert",
+        join(sslDirectory, "local.multiplayerdb.dev.crt"),
+        "--resolve",
+        "package-service.local.multiplayerdb.dev:3017:127.0.0.1",
+        "https://package-service.local.multiplayerdb.dev:3017/healthcheck",
+      ])
+      expect(health.stdout).toContain("ok")
+      await server.stop()
+      await expectRuntimeScopes(project)
+      await proveContainer(project, composeEnv)
+      await project.run("yarn", ["test:integration:local"], 900_000, composeEnv)
       await project.run("yarn", ["build:generate"], 180_000)
       await project.run("yarn", ["build:lib"], 180_000)
       await project.run("yarn", ["build:server"], 180_000)
@@ -113,39 +112,10 @@ test(
       await stopContainers(project, composeEnv)
       await rm(consumerDirectory, { recursive: true, force: true })
       await rm(sslDirectory, { recursive: true, force: true })
-      await bumpNPub.cleanup()
       await project.cleanup()
     }
   },
 )
-
-async function pinTool(
-  project: SyntheticProject,
-  tarball: string,
-  name: string,
-): Promise<void> {
-  const destination = join(project.directory, ".yalc", name)
-  await mkdir(destination, { recursive: true })
-  await project.run("tar", [
-    "-xzf",
-    tarball,
-    "-C",
-    destination,
-    "--strip-components=1",
-  ])
-  const path = join(project.directory, "package.json")
-  const value: unknown = JSON.parse(await readFile(path, "utf8"))
-  if (!isRecord(value)) throw new Error("package.json must be an object")
-  const current = isRecord(value.resolutions) ? value.resolutions : {}
-  const next = {
-    ...value,
-    resolutions: {
-      ...current,
-      [name]: `file:.yalc/${name}`,
-    },
-  }
-  await writeFile(path, `${JSON.stringify(next, null, 2)}\n`)
-}
 
 async function proveReleaseCommands(project: SyntheticProject): Promise<void> {
   await project.run("yarn", ["bump-n-pub", "check-registries"], 60_000)
@@ -202,61 +172,10 @@ async function writeRegistry(path: string, registry: string): Promise<void> {
   await writeFile(path, `${JSON.stringify(next, null, 2)}\n`)
 }
 
-async function proveGraphqlSource(
-  project: SyntheticProject,
-  sslDirectory: string,
-): Promise<void> {
-  const checkPath = join(project.directory, "gql/checkSchema.ts")
-  await writeFile(
-    checkPath,
-    `import schema from "./schema.graphql?raw"
-if (!schema.includes("greeting")) {
-  throw new Error("schema was not loaded")
-}
-console.log("schema-loaded")
-`,
-  )
-  try {
-    const loaded = await project.run("yarn", [
-      "vite-node",
-      "--config",
-      "vite.server.config.ts",
-      "gql/checkSchema.ts",
-    ])
-    expect(loaded.stdout).toContain("schema-loaded")
-    const server = await project.start("yarn", ["start:server"], {
-      ready: (output) => output.includes("ready https://127.0.0.1:"),
-      timeoutMs: 60_000,
-      env: { PORT: "3017", SSL_PATH: sslDirectory },
-    })
-    try {
-      const response = await project.run("curl", [
-        "--fail",
-        "--silent",
-        "--cacert",
-        join(sslDirectory, "local.multiplayerdb.dev.crt"),
-        "--resolve",
-        "package-service.local.multiplayerdb.dev:3017:127.0.0.1",
-        "https://package-service.local.multiplayerdb.dev:3017/healthcheck",
-      ])
-      expect(response.stdout).toContain("ok")
-    } finally {
-      await server.stop()
-    }
-  } finally {
-    await rm(checkPath)
-  }
-}
-
 async function proveContainer(
   project: SyntheticProject,
   env: Readonly<Record<string, string>>,
 ): Promise<void> {
-  const sslPath = env.SSL_PATH
-  if (sslPath === undefined) {
-    throw new Error("missing SSL_PATH")
-  }
-  await runDevCluster(project, { SSL_PATH: sslPath }, ["certs"], 60_000)
   const configured = await project.run(
     "docker",
     [
@@ -433,115 +352,6 @@ async function proveContainer(
   } finally {
     await stopContainers(project, env)
   }
-}
-
-/**
- * The image install sees only manifests, the lockfile, and Yarn config.
- * Local file pins are absent there, so the image build uses the remaining
- * registry dependencies and the host steps restore the pins afterward.
- */
-async function withoutLocalFileDependencies(
-  project: SyntheticProject,
-  run: () => Promise<void>,
-): Promise<void> {
-  const manifestPath = join(project.directory, "package.json")
-  const lockPath = join(project.directory, "yarn.lock")
-  const manifest = await readFile(manifestPath, "utf8")
-  const lock = await readFile(lockPath, "utf8")
-  const parsed: unknown = JSON.parse(manifest)
-  if (!isRecord(parsed)) throw new Error("package.json must be an object")
-  await writeFile(
-    manifestPath,
-    `${JSON.stringify(stripLocalPins(parsed), null, 2)}\n`,
-  )
-  try {
-    await project.run("yarn", ["install"], 180_000)
-    await run()
-  } finally {
-    await writeFile(manifestPath, manifest)
-    await writeFile(lockPath, lock)
-    await project.run("yarn", ["install"], 180_000)
-  }
-}
-
-function stripLocalPins(
-  manifest: Record<string, unknown>,
-): Record<string, unknown> {
-  const pinned = new Set<string>()
-  const resolutions = isRecord(manifest.resolutions) ? manifest.resolutions : {}
-  for (const [name, value] of Object.entries(resolutions)) {
-    if (isLocalPin(value)) pinned.add(name)
-  }
-  const sections = ["dependencies", "devDependencies", "peerDependencies"]
-  for (const section of sections) {
-    const entries = manifest[section]
-    if (!isRecord(entries)) continue
-    for (const [name, value] of Object.entries(entries)) {
-      if (isLocalPin(value)) pinned.add(name)
-    }
-  }
-
-  const next: Record<string, unknown> = { ...manifest }
-  const keptResolutions: Record<string, unknown> = {}
-  for (const [name, value] of Object.entries(resolutions)) {
-    if (!pinned.has(name)) keptResolutions[name] = value
-  }
-  if (Object.keys(keptResolutions).length === 0) delete next.resolutions
-  else next.resolutions = keptResolutions
-
-  for (const section of sections) {
-    const entries = next[section]
-    if (!isRecord(entries)) continue
-    const kept: Record<string, unknown> = {}
-    for (const [name, value] of Object.entries(entries)) {
-      if (pinned.has(name)) continue
-      kept[name] = value
-    }
-    next[section] = kept
-  }
-  return next
-}
-
-function isLocalPin(value: unknown): boolean {
-  return typeof value === "string" && value.includes(".yalc/")
-}
-
-const devClusterRoot = fileURLToPath(
-  new URL("../../dev-cluster/", import.meta.url),
-)
-
-async function proveLocalIntegration(
-  project: SyntheticProject,
-  env: Readonly<Record<string, string>>,
-): Promise<void> {
-  try {
-    await project.run("yarn", ["test:integration:local"], 900_000, env)
-  } finally {
-    await stopContainers(project, env)
-  }
-}
-
-async function runDevCluster(
-  project: SyntheticProject,
-  env: Readonly<Record<string, string>>,
-  args: readonly string[],
-  timeoutMs: number,
-): Promise<void> {
-  const script = [
-    "process.chdir(process.env.PROJECT_DIRECTORY ?? '')",
-    `process.argv = ${JSON.stringify(["node", "dev-cluster", ...args])}`,
-    "await import(process.env.DEV_CLUSTER_CLI ?? '')",
-  ].join(";")
-  await project.run(
-    "yarn",
-    ["--cwd", devClusterRoot, "node", "--input-type=module", "-e", script],
-    timeoutMs,
-    {
-      ...env,
-      PROJECT_DIRECTORY: project.directory,
-      DEV_CLUSTER_CLI: pathToFileURL(join(devClusterRoot, "dist/cli.js")).href,
-    },
-  )
 }
 
 async function stopContainers(

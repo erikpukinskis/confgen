@@ -8,9 +8,6 @@ import { z } from "zod"
 export const confgenExecutable = fileURLToPath(
   new URL("../dist/index.js", import.meta.url),
 )
-const bumpNPubRoot = fileURLToPath(
-  new URL("../../bump-n-pub/", import.meta.url),
-)
 const packageServiceRoot = fileURLToPath(
   new URL("../../package-service/", import.meta.url),
 )
@@ -42,11 +39,6 @@ export class CommandError extends Error {
     this.stdout = result.stdout
     this.stderr = result.stderr
   }
-}
-
-export type PackedTool = {
-  tarball: string
-  cleanup(): Promise<void>
 }
 
 export type PackedPackageService = {
@@ -84,24 +76,6 @@ export type SyntheticProject = {
     },
   ): Promise<RunningProcess>
   cleanup(): Promise<void>
-}
-
-/** Builds and packs the local bump-n-pub revision for the harness only. */
-export async function packBumpNPub(): Promise<PackedTool> {
-  return packTool({
-    cwd: bumpNPubRoot,
-    directoryPrefix: "bump-n-pub-pack-",
-    tarballName: "bump-n-pub.tgz",
-  })
-}
-
-/** Packs the local dev-cluster dependency used by the Schema Service fixture. */
-export async function packDevCluster(): Promise<PackedTool> {
-  return packTool({
-    cwd: fileURLToPath(new URL("../../dev-cluster/", import.meta.url)),
-    directoryPrefix: "dev-cluster-pack-",
-    tarballName: "dev-cluster.tgz",
-  })
 }
 
 /** Builds and packs the exact root and client artifacts used by consumers. */
@@ -147,28 +121,6 @@ export async function packPackageService(): Promise<PackedPackageService> {
   } catch (error) {
     await rm(directory, { recursive: true, force: true })
     throw error
-  }
-}
-
-async function packTool(input: {
-  cwd: string
-  directoryPrefix: string
-  tarballName: string
-}): Promise<PackedTool> {
-  const directory = await mkdtemp(join(tmpdir(), input.directoryPrefix))
-  const tarball = join(directory, input.tarballName)
-  await runCollected({
-    cwd: input.cwd,
-    executable: "yarn",
-    args: ["pack", "--out", tarball],
-    timeoutMs: 180_000,
-    children: [],
-  })
-  return {
-    tarball,
-    async cleanup() {
-      await rm(directory, { recursive: true, force: true })
-    },
   }
 }
 

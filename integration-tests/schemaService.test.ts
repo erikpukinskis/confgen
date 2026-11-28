@@ -1,14 +1,12 @@
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises"
+import { mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   confgenExecutable,
   createSyntheticProject,
-  packDevCluster,
   packPackageService,
   type PackedPackageService,
-  type PackedTool,
   type SyntheticProject,
 } from "./helpers"
 import { expect, test } from "vitest"
@@ -24,24 +22,13 @@ test(
   "the Schema Service fixture verifies confgen re-runs",
   { timeout: 1_500_000 },
   async () => {
-    let devCluster: PackedTool | undefined
     let packageService: PackedPackageService | undefined
     let project: SyntheticProject | undefined
     let consumer: SyntheticProject | undefined
     let packed: string | undefined
     try {
       packageService = await packPackageService()
-      devCluster = await packDevCluster()
       project = await createSyntheticProject(fixture)
-      const devClusterDirectory = join(project.directory, ".yalc/dev-cluster")
-      await mkdir(devClusterDirectory, { recursive: true })
-      await project.run("tar", [
-        "-xzf",
-        devCluster.tarball,
-        "-C",
-        devClusterDirectory,
-        "--strip-components=1",
-      ])
       await project.run("yarn", [
         "add",
         `@multiplayerdb/package-service@file:${packageService.rootTarball}`,
@@ -151,7 +138,6 @@ test(
       }
       await project?.cleanup()
       await packageService?.cleanup()
-      await devCluster?.cleanup()
     }
   },
 )
