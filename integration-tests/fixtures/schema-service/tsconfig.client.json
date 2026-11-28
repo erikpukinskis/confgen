@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "outDir": "client/dist",
+    "paths": {
+      "#gql/client": ["./gql/client/index.ts"]
+    }
+  },
+  "include": ["client/**/*.ts", "gql/client/**/*.ts"],
+  "exclude": ["client/dist"]
+}

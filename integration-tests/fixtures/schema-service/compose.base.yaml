@@ -1,0 +1,11 @@
+name: multiplayerdb
+include:
+  - path: ${PACKAGE_SERVICE_PATH:?}/compose.base.yaml
+    project_directory: ${PACKAGE_SERVICE_PATH}
+services:
+  schema-api-server:
+    environment:
+      PACKAGE_SERVICE_URL: ${PACKAGE_SERVICE_URL:?}
+    depends_on:
+      package-service:
+        condition: service_healthy

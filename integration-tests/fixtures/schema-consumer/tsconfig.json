@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "types": ["node"],
+    "skipLibCheck": true
+  },
+  "include": ["consume.ts"]
+}

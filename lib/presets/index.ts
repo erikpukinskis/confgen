@@ -1,86 +1,51 @@
-import * as all from "./all"
-import * as bin from "./bin"
+import type { Contribution, ProduceContributions } from "../contributions"
+import type { ProjectFacts } from "../facts"
+import type { Selection } from "../selection"
 import * as codedocs from "./codedocs"
-import * as codegen from "./codegen"
-import * as codespaces from "./codespaces"
-import * as dist from "./dist"
-import * as dotenv from "./dotenv"
+import * as docker from "./docker"
 import * as eslint from "./eslint"
 import * as git from "./git"
 import * as githubActions from "./githubActions"
 import * as githubPackage from "./githubPackage"
-import * as macros from "./macros"
-import * as node from "./node"
+import * as graphql from "./graphql"
+import * as httpd from "./httpd"
 import * as prettier from "./prettier"
 import * as react from "./react"
-import * as sql from "./sql"
-import * as start from "./start"
-import * as templates from "./templates"
-import type { PresetName } from "./types"
+import type { PresetName } from "./registry"
 import * as typescript from "./typescript"
 import * as vite from "./vite"
 import * as vitest from "./vitest"
+import * as vscode from "./vscode"
 import * as yarn from "./yarn"
-import type { Args } from "~/args"
-import type { Precheck } from "~/commands"
-import type { Runtime } from "~/runtimes"
-import type { System } from "~/system"
 
-const PRESETS = {
-  all,
-  bin,
-  codedocs,
-  codegen,
-  codespaces,
-  dotenv,
-  dist,
-  eslint,
-  git,
-  githubActions,
-  githubPackage,
-  macros,
-  node,
-  prettier,
-  react,
-  sql,
-  start,
-  templates,
-  typescript,
-  vite,
-  vitest,
-  yarn,
-} as const
+const producers = {
+  yarn: yarn.contributions,
+  vscode: vscode.contributions,
+  typescript: typescript.contributions,
+  vite: vite.contributions,
+  vitest: vitest.contributions,
+  eslint: eslint.contributions,
+  prettier: prettier.contributions,
+  react: react.contributions,
+  graphql: graphql.contributions,
+  docker: docker.contributions,
+  httpd: httpd.contributions,
+  // Prettier supplies SQL formatting when both presets are selected.
+  sql: () => [],
+  codedocs: codedocs.contributions,
+  git: git.contributions,
+  githubActions: githubActions.contributions,
+  githubPackage: githubPackage.contributions,
+} satisfies Record<PresetName, ProduceContributions>
 
-type Preset = typeof PRESETS[PresetName]
-type PresetWithPrecheck = Preset & {
-  precheck: Precheck
+export function presetContributions(
+  preset: PresetName,
+  selection: Selection,
+  facts: ProjectFacts,
+): readonly Contribution[] {
+  const produce = producers[preset]
+  if (produce === undefined) {
+    throw new Error(`Missing preset producer for ${preset}`)
+  }
+  return produce(selection, facts)
 }
-
-const hasPrecheck = (preset: Preset): preset is PresetWithPrecheck => {
-  return Object.prototype.hasOwnProperty.call(preset, "precheck")
-}
-
-export const precheck = (
-  name: PresetName,
-  runtimes: Runtime[],
-  presets: PresetName[],
-  args: Args,
-  system: System
-) => {
-  const preset = PRESETS[name]
-  if (!hasPrecheck(preset)) return
-  preset.precheck({ runtimes, presets, args, system })
-}
-
-export const generate = (
-  name: PresetName,
-  runtimes: Runtime[],
-  presets: PresetName[],
-  args: Args,
-  system: System
-) => {
-  const preset = PRESETS[name]
-  return preset.generator({ runtimes, presets, args, system })
-}
-
-export * from "./types"

@@ -1,0 +1,164 @@
+import { collectContributions, type Contribution } from "./contributions"
+import type { ProjectFacts } from "./facts"
+import { reconcile } from "./reconcile"
+import { parseSelection } from "./selection"
+import { expect, test } from "vitest"
+
+const root = {
+  path: "package.json",
+  name: "baseline",
+  version: "0.0.0",
+  workspaces: [],
+  dependencies: [],
+}
+const facts: ProjectFacts = { root, packages: [root] }
+
+const selection = parseSelection([
+  "runtimes=#lib:universal,#server",
+  "yarn",
+  "typescript",
+  "vite",
+  "vitest",
+  "eslint",
+  "prettier",
+  "git",
+])
+
+test("the baseline selection reconciles to a stable file set", () => {
+  const contributions = collectContributions(selection, facts)
+  expect(byId(contributions, "package-manifest:build")).toMatchObject({
+    kind: "package-script",
+    command: "rm -rf dist && yarn build:lib && yarn build:server",
+  })
+  expect(paths(contributions)).toEqual(
+    expect.arrayContaining([
+      "lib/index.ts",
+      "server/index.ts",
+      "vite.lib.config.ts",
+      "vite.server.config.ts",
+      "vite.test.config.ts",
+      ".yarnrc.yml",
+      "tsconfig.json",
+      ".eslintrc.json",
+      ".prettierrc.json",
+      ".gitignore",
+    ]),
+  )
+
+  const created = reconcile({
+    selection,
+    contributions,
+    prior: undefined,
+    files: new Map([
+      ["package.json", '{ "name": "baseline", "version": "0.0.0" }\n'],
+    ]),
+    yarnLockPresent: false,
+    pnpPresent: false,
+  })
+  expect(created.runYarnInstall).toBe(true)
+  const files = new Map<string, string>()
+  for (const change of created.files) {
+    if (change.type === "write") files.set(change.path, change.contents)
+  }
+  files.set("yarn.lock", "# lock\n")
+  files.set(".pnp.cjs", "// pnp\n")
+
+  const again = reconcile({
+    selection,
+    contributions,
+    prior: created.lock,
+    files,
+    yarnLockPresent: true,
+    pnpPresent: true,
+  })
+  expect(again.files).toEqual([])
+  expect(again.runYarnInstall).toBe(false)
+})
+
+test("existing service sources suppress duplicate starters", () => {
+  const service = parseSelection([
+    "runtimes=#lib:universal,#integration",
+    "vitest",
+    "prettier",
+    "git",
+  ])
+  const contributions = collectContributions(service, {
+    root: {
+      ...root,
+      name: "@example/package-service",
+      dependencies: ["graphql-dev-kit"],
+    },
+    packages: [root],
+    hasPublishedLibFile: true,
+    hasApplicationIntegrationTest: true,
+    gitignore: "dist\n",
+  })
+  expect(paths(contributions)).not.toContain("lib/index.ts")
+  expect(paths(contributions)).not.toContain("lib/index.test.ts")
+  expect(paths(contributions)).not.toContain("integration/service.test.ts")
+  expect(paths(contributions)).toContain(".env.example")
+  expect(contributions).toContainEqual(
+    expect.objectContaining({
+      path: ".env.example",
+      value:
+        "PACKAGE_SERVICE_URL='https://package-service.local.multiplayerdb.dev'",
+    }),
+  )
+  expect(contributions).not.toContainEqual(
+    expect.objectContaining({ path: ".prettierignore", value: "dist" }),
+  )
+})
+
+test("a new service gets a URL example and an environment-based integration test", () => {
+  const service = parseSelection(["runtimes=#integration", "prettier", "git"])
+  const contributions = collectContributions(service, {
+    root: { ...root, name: "@example/package-service" },
+    packages: [root],
+  })
+  expect(paths(contributions)).toContain("integration/service.test.ts")
+  expect(paths(contributions)).not.toContain("integration/setup.ts")
+  expect(byId(contributions, "runtime:integration:service-test")).toMatchObject(
+    {
+      contents: expect.stringContaining(
+        "process.env.PACKAGE_SERVICE_URL",
+      ) as string,
+    },
+  )
+  expect(
+    contributions
+      .filter((item) => item.kind === "line" && item.path === ".prettierignore")
+      .map((item) => (item.kind === "line" ? item.value : undefined)),
+  ).toEqual([".nvmrc", ".yalc", "yalc.lock", "yarn.lock"])
+})
+
+function byId(
+  contributions: readonly Contribution[],
+  id: string,
+): Contribution {
+  const found = contributions.find((contribution) => contribution.id === id)
+  if (found === undefined) throw new Error(`missing contribution ${id}`)
+  return found
+}
+
+function paths(contributions: readonly Contribution[]): string[] {
+  return contributions.map((contribution) => {
+    switch (contribution.kind) {
+      case "dependency":
+      case "package-script":
+        return contribution.manifest
+      case "whole-file":
+      case "dockerfile":
+      case "starter-file":
+      case "structured":
+      case "line":
+      case "vite-config":
+        return contribution.path
+      default:
+        return unexpected(contribution)
+    }
+  })
+}
+
+function unexpected(value: never): never {
+  throw new Error(`Unexpected contribution ${JSON.stringify(value)}`)
+}
